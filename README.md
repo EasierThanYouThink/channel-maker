@@ -12,6 +12,15 @@ bumps the channel version. Every irreversible step — a domain freeze, an
 exemplar/candidate/component review, a pilot or episode GO/REVISE/ABANDON call
 — requires a real, non-fabricated human decision reference, enforced in code.
 
+## Demo
+
+A 14-second 1080p render in the style this workflow produces (bold kinetic
+typography hook — one of the approved headline directions):
+
+<video src="https://github.com/EasierThanYouThink/channel-maker/releases/download/v0.1.0/videogit.mp4" controls width="640" poster="docs/demo-poster.png"></video>
+
+![Demo poster](docs/demo-poster.png)
+
 ## Install (Windows / macOS / Linux)
 
 ```
