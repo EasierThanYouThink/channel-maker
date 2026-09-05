@@ -17,7 +17,7 @@ exemplar/candidate/component review, a pilot or episode GO/REVISE/ABANDON call
 A 14-second 1080p render in the style this workflow produces (bold kinetic
 typography hook — one of the approved headline directions):
 
-<video src="https://github.com/EasierThanYouThink/channel-maker/releases/download/v0.1.0/videogit.mp4" controls width="640" poster="docs/demo-poster.png"></video>
+<video src="https://github.com/user-attachments/assets/e0c09a15-ec66-4430-91aa-c5fdb87bacb5" controls width="640" poster="docs/demo-poster.png"></video>
 
 ![Demo poster](docs/demo-poster.png)
 
