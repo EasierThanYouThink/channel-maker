@@ -14,6 +14,7 @@ from pathlib import Path
 from typing import Any
 
 from engine.channel import ChannelValidationError, validate_channel_package
+from engine.production import ProductionIncompleteError, require_complete
 
 from .validation import EpisodeValidationError, validate_episode
 
@@ -174,6 +175,14 @@ def record_review(
         "decision": decision, "decided_by": decided_by.strip(), "decided_at": _timestamp(decided_at),
         "rationale": rationale, "decision_ref": decision_ref,
     }
+    if decision == "GO":
+        try:
+            require_complete(
+                document["production"], repository_root=repository_root,
+                label=f"episode {episode_id}",
+            )
+        except ProductionIncompleteError as exc:
+            raise EpisodeValidationError(str(exc)) from exc
     validate_episode(document, repository_root=repository_root, expected_channel_id=package.identity["id"])
     _write_json_atomic(path, document)
     return path

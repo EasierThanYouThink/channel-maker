@@ -49,6 +49,22 @@ def write_evidence(root: Path, relative: str, *, artifact_type: str, artifact_id
     return path
 
 
+def write_production_media(root: Path, prefix: str = "evidence") -> dict[str, str]:
+    """Create the real files a GO decision requires: script, audio, render."""
+    script = root / prefix / "script.md"
+    script.parent.mkdir(parents=True, exist_ok=True)
+    script.write_text("# Script\n\nCaffeine blocks adenosine.\n", encoding="utf-8")
+    audio = root / prefix / "voiceover.wav"
+    audio.write_bytes(b"RIFF" + b"\x00" * 100)
+    render = root / prefix / "render.mp4"
+    render.write_bytes(b"fake-video-bytes")
+    return {
+        "script_ref": script.relative_to(root).as_posix(),
+        "voiceover_ref": audio.relative_to(root).as_posix(),
+        "render_ref": render.relative_to(root).as_posix(),
+    }
+
+
 def test_plan_produce_review_go_freeze_lifecycle(tmp_path: Path) -> None:
     package = write_package(tmp_path)
     plan_pilot(
@@ -57,10 +73,12 @@ def test_plan_produce_review_go_freeze_lifecycle(tmp_path: Path) -> None:
     )
     write_evidence(tmp_path, "evidence/scene.json", artifact_type="scene_candidate_manifest", artifact_id="scene-candidate:caffeine:abc123")
     write_evidence(tmp_path, "evidence/eval.json", artifact_type="evaluation_result", artifact_id="evaluation-result:abc123")
+    media = write_production_media(tmp_path)
     record_production(
         package, tmp_path, "pilot-1",
         scene_candidate_manifest_paths=["evidence/scene.json"], evaluation_result_paths=["evidence/eval.json"],
-        render_ref="evidence/render.mp4",
+        script_ref=media["script_ref"], voiceover_ref=media["voiceover_ref"],
+        render_ref=media["render_ref"],
     )
     path = pilot_path(package, "pilot-1")
     document = json.loads(path.read_text(encoding="utf-8"))
@@ -77,6 +95,25 @@ def test_plan_produce_review_go_freeze_lifecycle(tmp_path: Path) -> None:
     assert document["freeze"]["new_channel_version"] == "0.2.0"
     identity = yaml.safe_load((package / "channel.yaml").read_text(encoding="utf-8"))
     assert identity["version"] == "0.2.0"
+
+
+def test_go_review_requires_complete_production(tmp_path: Path) -> None:
+    package = write_package(tmp_path)
+    plan_pilot(package, tmp_path, pilot_id="pilot-1", topic="t", target_duration_seconds=25.0, integration_goals=["g"])
+    write_evidence(tmp_path, "evidence/scene.json", artifact_type="scene_candidate_manifest", artifact_id="scene-candidate:x:abc123")
+    # No script, audio, evaluation, or render: GO must fail loudly.
+    record_production(package, tmp_path, "pilot-1", scene_candidate_manifest_paths=["evidence/scene.json"])
+    with pytest.raises(PilotValidationError, match="not complete"):
+        record_review(
+            package, tmp_path, "pilot-1", decision="GO", decided_by="Seb",
+            rationale="Looks fine.", decision_ref="channels/pilot-channel/channel.yaml",
+        )
+    # REVISE on incomplete production stays legal: rework is the point.
+    record_review(
+        package, tmp_path, "pilot-1", decision="REVISE", decided_by="Seb",
+        rationale="Produce it first.", decision_ref="channels/pilot-channel/channel.yaml",
+        revise_target="PILOT_PRODUCTION",
+    )
 
 
 def test_record_review_rejects_empty_decision_ref(tmp_path: Path) -> None:

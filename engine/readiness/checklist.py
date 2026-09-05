@@ -19,6 +19,7 @@ from engine.identity import all_domains_frozen as identity_all_domains_frozen
 from engine.identity import identity_path
 from engine.library import list_components
 from engine.pilot import PilotValidationError, pilot_path, validate_pilot
+from engine.production import check_production
 from engine.script.validation import ScriptValidationError, validate_script_dna
 
 
@@ -221,6 +222,22 @@ def check_readiness(package_root: Path, repository_root: Path) -> dict[str, Any]
         human_go_ok, [freeze_event["human_decision_ref"]] if human_go_ok and freeze_event else [],
         "No CHANNEL_FREEZE advance with a human_decision_ref, or the referenced pilot's decision is not GO."
         if not human_go_ok else "Recorded.",
+    ))
+
+    production_pilot = frozen_pilot or reviewed_pilot
+    production_problems: list[str] = []
+    production_refs: list[str] = []
+    if production_pilot is not None:
+        production_problems = check_production(
+            production_pilot[1]["production"], repository_root=repository_root,
+            label=f"pilot {production_pilot[0]}",
+        )
+        production_refs = [f"channels/{channel_id}/pilots/{production_pilot[0]}/pilot.json"]
+    production_ok = production_pilot is not None and not production_problems
+    items.append(_item(
+        "complete_production", "The reviewed pilot is a real, exact production (script, narration, scenes, render)",
+        production_ok, production_refs if production_ok else [],
+        "; ".join(production_problems) if not production_ok else "Recorded.",
     ))
 
     persisted_ok = frozen_pilot is not None and frozen_pilot[1]["freeze"]["new_channel_version"] == package.identity["version"]

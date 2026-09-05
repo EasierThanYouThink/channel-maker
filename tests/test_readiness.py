@@ -15,7 +15,7 @@ from engine.identity import add_reference as add_identity_reference
 from engine.identity import freeze_domain as freeze_identity_domain
 from engine.identity import init_identity
 from engine.library import register_component, review_component
-from engine.pilot import freeze_pilot, plan_pilot, record_review
+from engine.pilot import freeze_pilot, plan_pilot, record_production, record_review
 from engine.readiness import ReadinessError, check_readiness, write_readiness_report
 from engine.script import freeze_script_dna, write_script_dna
 
@@ -179,6 +179,23 @@ def test_full_incremental_build_flips_every_item_and_persists_at_the_end(tmp_pat
     assert not item_status(report, "reviewed_pilot")
 
     plan_pilot(package, tmp_path, pilot_id="pilot-1", topic="t", target_duration_seconds=25.0, integration_goals=["g"])
+    for relative, artifact_type, artifact_id in (
+        ("evidence/pilot-scene.json", "scene_candidate_manifest", "scene-candidate:pilot:abc123"),
+        ("evidence/pilot-eval.json", "evaluation_result", "evaluation-result:pilot:abc123"),
+    ):
+        evidence_path = tmp_path / relative
+        evidence_path.parent.mkdir(parents=True, exist_ok=True)
+        evidence_path.write_text(json.dumps({"artifact_type": artifact_type, "artifact_id": artifact_id}), encoding="utf-8")
+    (tmp_path / "evidence" / "pilot-script.md").write_text("# Script\n", encoding="utf-8")
+    (tmp_path / "evidence" / "pilot-voiceover.wav").write_bytes(b"RIFF" + b"\x00" * 100)
+    (tmp_path / "evidence" / "pilot-render.mp4").write_bytes(b"fake-video-bytes")
+    record_production(
+        package, tmp_path, "pilot-1",
+        scene_candidate_manifest_paths=["evidence/pilot-scene.json"],
+        evaluation_result_paths=["evidence/pilot-eval.json"],
+        script_ref="evidence/pilot-script.md", voiceover_ref="evidence/pilot-voiceover.wav",
+        render_ref="evidence/pilot-render.mp4",
+    )
     machine.advance("PILOT_PLAN", next_action="n", actor="a", reason="r", prerequisite_refs=[any_ref])
     machine.advance("PILOT_PRODUCTION", next_action="n", actor="a", reason="r", prerequisite_refs=[any_ref])
     machine.advance("PILOT_REVIEW", next_action="n", actor="a", reason="r", prerequisite_refs=[any_ref])

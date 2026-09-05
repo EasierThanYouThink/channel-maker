@@ -110,7 +110,7 @@ agent always knows what's legal now. The stages:
 - **pilot** — Activates with the library. Voice-first production (script →
   offline TTS → measured timings → visual beats → render → evaluation
   evidence), human GO/REVISE/ABANDON review, version-bumping freeze.
-- **readiness** — Activates with a GO'd pilot. The 11-item `CHANNEL_READY`
+- **readiness** — Activates with a GO'd pilot. The 12-item `CHANNEL_READY`
   checklist; nothing writes until everything passes.
 - **episodes** — Activates after `CHANNEL_READY`, forever. Same production
   rigor as the pilot, no version bump, no state-machine involvement.

@@ -13,6 +13,7 @@ from typing import Any
 import yaml
 
 from engine.channel import ChannelValidationError, validate_channel_package
+from engine.production import ProductionIncompleteError, require_complete
 
 from .validation import PilotValidationError, validate_pilot
 
@@ -180,6 +181,14 @@ def record_review(
         "rationale": rationale, "decision_ref": decision_ref, "revise_target": revise_target,
         "critic_summary_refs": document["review"]["critic_summary_refs"],
     }
+    if decision == "GO":
+        try:
+            require_complete(
+                document["production"], repository_root=repository_root,
+                label=f"pilot {pilot_id}",
+            )
+        except ProductionIncompleteError as exc:
+            raise PilotValidationError(str(exc)) from exc
     validate_pilot(document, repository_root=repository_root, expected_channel_id=package.identity["id"])
     _write_json_atomic(path, document)
     return path
@@ -204,6 +213,13 @@ def freeze_pilot(
             f"{document['freeze']['new_channel_version']}; pass force=True to re-freeze deliberately"
         )
     repository_root = repository_root.resolve()
+    try:
+        require_complete(
+            document["production"], repository_root=repository_root,
+            label=f"pilot {pilot_id}",
+        )
+    except ProductionIncompleteError as exc:
+        raise PilotValidationError(str(exc)) from exc
 
     previous_version = package.identity["version"]
     document["freeze"] = {

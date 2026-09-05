@@ -56,6 +56,22 @@ def write_evidence(root: Path, relative: str, *, artifact_type: str, artifact_id
     return path
 
 
+def write_production_media(root: Path, prefix: str = "evidence") -> dict[str, str]:
+    """Create the real files a GO decision requires: script, audio, render."""
+    script = root / prefix / "script.md"
+    script.parent.mkdir(parents=True, exist_ok=True)
+    script.write_text("# Script\n\nCaffeine blocks adenosine.\n", encoding="utf-8")
+    audio = root / prefix / "voiceover.wav"
+    audio.write_bytes(b"RIFF" + b"\x00" * 100)
+    render = root / prefix / "render.mp4"
+    render.write_bytes(b"fake-video-bytes")
+    return {
+        "script_ref": script.relative_to(root).as_posix(),
+        "voiceover_ref": audio.relative_to(root).as_posix(),
+        "render_ref": render.relative_to(root).as_posix(),
+    }
+
+
 def test_plan_produce_review_go_lifecycle(tmp_path: Path) -> None:
     package = write_package(tmp_path)
     plan_episode(
@@ -64,10 +80,12 @@ def test_plan_produce_review_go_lifecycle(tmp_path: Path) -> None:
     )
     write_evidence(tmp_path, "evidence/scene.json", artifact_type="scene_candidate_manifest", artifact_id="scene-candidate:caffeine:abc123")
     write_evidence(tmp_path, "evidence/eval.json", artifact_type="evaluation_result", artifact_id="evaluation-result:abc123")
+    media = write_production_media(tmp_path)
     record_production(
         package, tmp_path, "ep-001",
         scene_candidate_manifest_paths=["evidence/scene.json"], evaluation_result_paths=["evidence/eval.json"],
-        render_ref="evidence/render.mp4",
+        script_ref=media["script_ref"], voiceover_ref=media["voiceover_ref"],
+        render_ref=media["render_ref"],
     )
     path = episode_path(package, "ep-001")
     document = json.loads(path.read_text(encoding="utf-8"))
@@ -90,8 +108,17 @@ def test_multiple_episodes_never_touch_channel_version(tmp_path: Path) -> None:
 
     for episode_id in ("ep-001", "ep-002", "ep-003"):
         plan_episode(package, tmp_path, episode_id=episode_id, topic="t", target_duration_seconds=25.0)
-        write_evidence(tmp_path, f"evidence/{episode_id}-scene.json", artifact_type="scene_candidate_manifest", artifact_id=f"scene-candidate:{episode_id}:abc123")
-        record_production(package, tmp_path, episode_id, scene_candidate_manifest_paths=[f"evidence/{episode_id}-scene.json"])
+        prefix = f"evidence/{episode_id}"
+        write_evidence(tmp_path, f"{prefix}-scene.json", artifact_type="scene_candidate_manifest", artifact_id=f"scene-candidate:{episode_id}:abc123")
+        write_evidence(tmp_path, f"{prefix}-eval.json", artifact_type="evaluation_result", artifact_id=f"evaluation-result:{episode_id}:abc123")
+        media = write_production_media(tmp_path, prefix=prefix)
+        record_production(
+            package, tmp_path, episode_id,
+            scene_candidate_manifest_paths=[f"{prefix}-scene.json"],
+            evaluation_result_paths=[f"{prefix}-eval.json"],
+            script_ref=media["script_ref"], voiceover_ref=media["voiceover_ref"],
+            render_ref=media["render_ref"],
+        )
         record_review(
             package, tmp_path, episode_id, decision="GO", decided_by="Seb",
             rationale="Good.", decision_ref="channels/episode-channel/channel.yaml",
