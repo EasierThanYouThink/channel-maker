@@ -2,12 +2,77 @@
 
 from __future__ import annotations
 
+import hashlib
+import json
 from pathlib import Path
 from typing import Any
 
 
 class ProductionIncompleteError(ValueError):
     """A production was presented as complete but its evidence is missing."""
+
+
+def _file_sha256(repository_root: Path, ref: str | None) -> str | None:
+    if not ref:
+        return None
+    resolved = (repository_root / ref).resolve()
+    if not resolved.is_relative_to(repository_root) or not resolved.is_file():
+        return None
+    digest = hashlib.sha256()
+    with resolved.open("rb") as handle:
+        while chunk := handle.read(1024 * 1024):
+            digest.update(chunk)
+    return digest.hexdigest()
+
+
+def production_revision(production: dict[str, Any], *, repository_root: Path) -> str:
+    """Compute the immutable revision id of a production's current content.
+
+    The id is a content hash over every referenced file (by bytes, not path
+    strings) plus the recorded evidence ids/hashes. Identical content yields
+    an identical revision; any byte change yields a new one.
+    """
+    repository_root = repository_root.resolve()
+    payload = {
+        "script": [production.get("script_ref"), _file_sha256(repository_root, production.get("script_ref"))],
+        "voiceover": [production.get("voiceover_ref"), _file_sha256(repository_root, production.get("voiceover_ref"))],
+        "render": [production.get("render_ref"), _file_sha256(repository_root, production.get("render_ref"))],
+        "production_log": [production.get("production_log_ref"), _file_sha256(repository_root, production.get("production_log_ref"))],
+        "manifests": sorted(
+            (ref.get("artifact_id"), ref.get("sha256"))
+            for ref in production.get("scene_candidate_manifest_refs", [])
+        ),
+        "evaluations": sorted(
+            (ref.get("artifact_id"), ref.get("sha256"))
+            for ref in production.get("evaluation_result_refs", [])
+        ),
+    }
+    digest = hashlib.sha256(
+        (json.dumps(payload, sort_keys=True, separators=(",", ":")) + "\n").encode("utf-8")
+    ).hexdigest()
+    return f"rev-{digest[:12]}"
+
+
+def production_snapshot(production: dict[str, Any], *, repository_root: Path) -> dict[str, Any]:
+    """Capture exactly what a review decision approves: rev id plus file bytes."""
+    repository_root = repository_root.resolve()
+    return {
+        "rev_id": production_revision(production, repository_root=repository_root),
+        "script_ref": production.get("script_ref"),
+        "script_sha256": _file_sha256(repository_root, production.get("script_ref")),
+        "voiceover_ref": production.get("voiceover_ref"),
+        "voiceover_sha256": _file_sha256(repository_root, production.get("voiceover_ref")),
+        "render_ref": production.get("render_ref"),
+        "render_sha256": _file_sha256(repository_root, production.get("render_ref")),
+        "scene_candidate_manifest_refs": [
+            {"artifact_id": ref.get("artifact_id"), "sha256": ref.get("sha256")}
+            for ref in production.get("scene_candidate_manifest_refs", [])
+        ],
+        "evaluation_result_refs": [
+            {"artifact_id": ref.get("artifact_id"), "sha256": ref.get("sha256")}
+            for ref in production.get("evaluation_result_refs", [])
+        ],
+    }
 
 
 def _exists(repository_root: Path, ref: str | None) -> bool:

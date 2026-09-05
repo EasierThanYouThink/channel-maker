@@ -191,6 +191,11 @@ def test_pilot_refreeze_refuses_without_force(tmp_path: Path) -> None:
     )
     record_review(package, tmp_path, "pilot-1", decision="GO", decided_by="Seb", rationale="Good.", decision_ref=ref)
     freeze_pilot(package, tmp_path, "pilot-1", new_channel_version="0.2.0", frozen_by="Seb")
+    # Same version + identical release retries idempotently ...
+    freeze_pilot(package, tmp_path, "pilot-1", new_channel_version="0.2.0", frozen_by="Seb")
+    identity = yaml.safe_load((package / "channel.yaml").read_text(encoding="utf-8"))
+    assert identity["version"] == "0.2.0"
+    # ... while a version bump on identical content is refused without force.
     with pytest.raises(PilotValidationError, match="already frozen"):
         freeze_pilot(package, tmp_path, "pilot-1", new_channel_version="0.3.0", frozen_by="Seb")
     freeze_pilot(package, tmp_path, "pilot-1", new_channel_version="0.3.0", frozen_by="Seb", force=True)

@@ -6,10 +6,18 @@ verified hashes), and a non-empty render file. Anything less cannot stand
 in for success at review, freeze, or readiness time.
 """
 
-from .completeness import ProductionIncompleteError, check_production, require_complete
+from .completeness import (
+    ProductionIncompleteError,
+    check_production,
+    production_revision,
+    production_snapshot,
+    require_complete,
+)
 
 __all__ = [
     "ProductionIncompleteError",
     "check_production",
+    "production_revision",
+    "production_snapshot",
     "require_complete",
 ]

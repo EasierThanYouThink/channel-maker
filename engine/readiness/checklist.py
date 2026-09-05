@@ -19,7 +19,7 @@ from engine.identity import all_domains_frozen as identity_all_domains_frozen
 from engine.identity import identity_path
 from engine.library import list_components
 from engine.pilot import PilotValidationError, pilot_path, validate_pilot
-from engine.production import check_production
+from engine.production import check_production, production_revision
 from engine.script.validation import ScriptValidationError, validate_script_dna
 
 
@@ -214,13 +214,18 @@ def check_readiness(package_root: Path, repository_root: Path) -> dict[str, Any]
             if pilot_id:
                 document = json.loads(pilot_path(root, pilot_id).read_text(encoding="utf-8"))
                 validate_pilot(document, repository_root=repository_root, expected_channel_id=channel_id)
-                human_go_ok = document["review"]["decision"] == "GO"
+                current_rev = production_revision(document["production"], repository_root=repository_root)
+                human_go_ok = (
+                    document["review"]["decision"] == "GO"
+                    and document["review"].get("rev_id") == current_rev
+                )
         except (PilotValidationError, OSError, json.JSONDecodeError):
             human_go_ok = False
     items.append(_item(
-        "explicit_human_go", "PILOT_REVIEW -> CHANNEL_FREEZE was recorded with an explicit human GO decision",
+        "explicit_human_go", "PILOT_REVIEW -> CHANNEL_FREEZE was recorded with an explicit human GO decision bound to the current production revision",
         human_go_ok, [freeze_event["human_decision_ref"]] if human_go_ok and freeze_event else [],
-        "No CHANNEL_FREEZE advance with a human_decision_ref, or the referenced pilot's decision is not GO."
+        "No CHANNEL_FREEZE advance with a human_decision_ref, the referenced pilot's decision is not GO, "
+        "or its production changed since the GO review."
         if not human_go_ok else "Recorded.",
     ))
 

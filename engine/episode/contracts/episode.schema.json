@@ -32,7 +32,8 @@
         "scene_candidate_manifest_refs": {"type": "array", "items": {"$ref": "common.schema.json#/$defs/evidenceRef"}},
         "evaluation_result_refs": {"type": "array", "items": {"$ref": "common.schema.json#/$defs/evidenceRef"}},
         "render_ref": {"oneOf": [{"type": "null"}, {"$ref": "common.schema.json#/$defs/relativePath"}]},
-        "production_log_ref": {"oneOf": [{"type": "null"}, {"$ref": "common.schema.json#/$defs/relativePath"}]}
+        "production_log_ref": {"oneOf": [{"type": "null"}, {"$ref": "common.schema.json#/$defs/relativePath"}]},
+        "revision": {"type": ["string", "null"], "pattern": "^rev-[a-f0-9]{12}$"}
       }
     },
     "review": {
@@ -44,7 +45,11 @@
         "decided_by": {"type": ["string", "null"], "minLength": 1},
         "decided_at": {"type": ["string", "null"], "format": "date-time"},
         "rationale": {"type": ["string", "null"], "minLength": 1},
-        "decision_ref": {"oneOf": [{"type": "null"}, {"$ref": "common.schema.json#/$defs/relativePath"}]}
+        "decision_ref": {"oneOf": [{"type": "null"}, {"$ref": "common.schema.json#/$defs/relativePath"}]},
+        "rev_id": {"type": ["string", "null"], "pattern": "^rev-[a-f0-9]{12}$"},
+        "production_snapshot": {"type": ["object", "null"]},
+        "history": {"type": "array", "items": {"type": "object"}},
+        "release_ref": {"type": ["string", "null"]}
       }
     },
     "created_by": {"$ref": "common.schema.json#/$defs/creationProvenance"}

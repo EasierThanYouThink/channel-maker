@@ -14,7 +14,12 @@ from pathlib import Path
 from typing import Any
 
 from engine.channel import ChannelValidationError, validate_channel_package
-from engine.production import ProductionIncompleteError, require_complete
+from engine.production import (
+    ProductionIncompleteError,
+    production_revision,
+    production_snapshot,
+    require_complete,
+)
 
 from .validation import EpisodeValidationError, validate_episode
 
@@ -88,9 +93,11 @@ def plan_episode(
         "production": {
             "script_ref": None, "voiceover_ref": None, "scene_candidate_manifest_refs": [],
             "evaluation_result_refs": [], "render_ref": None, "production_log_ref": None,
+            "revision": None,
         },
         "review": {
             "decision": None, "decided_by": None, "decided_at": None, "rationale": None, "decision_ref": None,
+            "rev_id": None, "production_snapshot": None, "history": [], "release_ref": None,
         },
         "created_by": {
             "created_at": _timestamp(None), "creator": "MODEL_ASSISTED",
@@ -146,9 +153,47 @@ def record_production(
         if ref["artifact_id"] not in existing_eval_ids:
             production["evaluation_result_refs"].append(ref)
             existing_eval_ids.add(ref["artifact_id"])
+    new_revision = production_revision(production, repository_root=repository_root)
+    old_revision = production.get("revision")
+    production["revision"] = new_revision
+    if (
+        old_revision is not None
+        and new_revision != old_revision
+        and document["review"].get("decision") == "GO"
+    ):
+        # Production changed under a GO: the approval no longer describes
+        # this content. Archive it and restore "needs review".
+        document["review"] = _reset_review(document["review"])
     validate_episode(document, repository_root=repository_root, expected_channel_id=package.identity["id"])
     _write_json_atomic(path, document)
     return path
+
+
+def _archive_entry(review: dict[str, Any]) -> dict[str, Any]:
+    """Copy a superseded review without its own history (kept alongside)."""
+    return {key: value for key, value in review.items() if key != "history"}
+
+
+def _reset_review(review: dict[str, Any]) -> dict[str, Any]:
+    history = list(review.get("history") or [])
+    history.append(_archive_entry(review))
+    return {
+        "decision": None, "decided_by": None, "decided_at": None, "rationale": None,
+        "decision_ref": None, "rev_id": None, "production_snapshot": None,
+        "history": history, "release_ref": None,
+    }
+
+
+def _current_release(package_root: Path) -> str | None:
+    pointer = package_root / "current-release.json"
+    if not pointer.is_file():
+        return None
+    try:
+        document = json.loads(pointer.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return None
+    version = document.get("version")
+    return version if isinstance(version, str) else None
 
 
 def record_review(
@@ -171,9 +216,19 @@ def record_review(
     if not resolved.is_relative_to(repository_root) or not resolved.exists():
         raise EpisodeValidationError(f"decision_ref does not resolve to an existing repository path: {decision_ref}")
 
+    prior = document["review"]
+    history = list(prior.get("history") or [])
+    if prior.get("decision") is not None:
+        history.append(_archive_entry(prior))
+    current_rev = production_revision(document["production"], repository_root=repository_root)
+    document["production"]["revision"] = current_rev
     document["review"] = {
         "decision": decision, "decided_by": decided_by.strip(), "decided_at": _timestamp(decided_at),
         "rationale": rationale, "decision_ref": decision_ref,
+        "rev_id": current_rev,
+        "production_snapshot": production_snapshot(document["production"], repository_root=repository_root),
+        "history": history,
+        "release_ref": _current_release(package.root) if decision == "GO" else prior.get("release_ref"),
     }
     if decision == "GO":
         try:
