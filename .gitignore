@@ -6,3 +6,8 @@ channels/*/.channel-state.lock
 .memory-index/
 data/local/*
 !data/local/.gitkeep
+.env
+*.key
+.DS_Store
+.vscode/
+.idea/
