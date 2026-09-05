@@ -151,8 +151,31 @@ def channel_state_semantic_errors(state: dict[str, Any]) -> list[str]:
     return errors
 
 
+def missing_historical_refs(state: dict[str, Any], repository_root: Path) -> list[str]:
+    """Labels of historical references whose files no longer exist.
+
+    Escapes are not reported here — they remain hard errors. A missing file
+    means history degraded (usually a deleted note), not that the channel is
+    unreadable: callers surface these as recoverable warnings.
+    """
+    repository_root = repository_root.resolve()
+    warnings: list[str] = []
+    references = [(f"source_refs[{index}]", value) for index, value in enumerate(state["source_refs"])]
+    for event_index, event in enumerate(state.get("events", [])):
+        references.extend(
+            (f"events[{event_index}].prerequisite_refs[{ref_index}]", value)
+            for ref_index, value in enumerate(event["prerequisite_refs"])
+        )
+    for label, value in references:
+        path = (repository_root / value).resolve()
+        if path.is_relative_to(repository_root) and not path.exists():
+            warnings.append(f"{label}: referenced path no longer exists: {value}")
+    return warnings
+
+
 def validate_channel_state_document(
-    state: dict[str, Any], channel_id: str, repository_root: Path
+    state: dict[str, Any], channel_id: str, repository_root: Path,
+    allow_missing_historical_refs: bool = False,
 ) -> None:
     errors = _schema_errors(state, CONTRACT_ROOT / "channel-state.schema.json", "channel state")
     if not errors and state["channel_id"] != channel_id:
@@ -167,14 +190,18 @@ def validate_channel_state_document(
                 for ref_index, value in enumerate(event["prerequisite_refs"])
             )
         for label, value in references:
-            error = _repository_path_error(repository_root, value, label)
-            if error:
-                errors.append(error)
+            path = (repository_root.resolve() / value).resolve()
+            if not path.is_relative_to(repository_root.resolve()):
+                errors.append(f"{label}: path escapes repository root: {value}")
+            elif not path.exists() and not allow_missing_historical_refs:
+                errors.append(f"{label}: referenced path does not exist: {value}")
     if errors:
         raise ChannelValidationError("\n".join(errors))
 
 
-def validate_channel_package(package_root: Path, repository_root: Path) -> ChannelPackage:
+def validate_channel_package(
+    package_root: Path, repository_root: Path, allow_missing_historical_refs: bool = False,
+) -> ChannelPackage:
     """Load and validate one Channel Package, raising one aggregated error."""
 
     repository_root = repository_root.resolve()
@@ -197,7 +224,13 @@ def validate_channel_package(package_root: Path, repository_root: Path) -> Chann
     channel_id = identity["id"]
     if package_root.name != channel_id:
         errors.append(f"package directory {package_root.name!r} does not match channel id {channel_id!r}")
-    validate_channel_state_document(state, channel_id, repository_root)
+    try:
+        validate_channel_state_document(
+            state, channel_id, repository_root,
+            allow_missing_historical_refs=allow_missing_historical_refs,
+        )
+    except ChannelValidationError as exc:
+        errors.append(str(exc))
     if state["state"] in state["completed"]:
         errors.append(f"active workflow state {state['state']!r} cannot also be completed")
 

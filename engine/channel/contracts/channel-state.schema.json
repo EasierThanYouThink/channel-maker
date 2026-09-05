@@ -135,6 +135,10 @@
           "uniqueItems": true,
           "items": {"$ref": "#/$defs/workflowState"}
         },
+        "invalidated_artifact_families": {
+          "type": "array",
+          "items": {"type": "string", "minLength": 1}
+        },
         "state_revision": {"type": "integer", "minimum": 1},
         "previous_event_id": {
           "oneOf": [

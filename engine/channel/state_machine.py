@@ -19,12 +19,14 @@ from ._portable import write_json_atomic as _write_json_atomic_portable
 from .validation import (
     ChannelPackage,
     ChannelValidationError,
+    missing_historical_refs,
     validate_channel_package,
     validate_channel_state_document,
 )
 from .workflow import (
     FORWARD_TRANSITIONS,
     HUMAN_GATE_TRANSITIONS,
+    REVISION_INVALIDATIONS,
     REVISION_TARGETS,
     WORKFLOW_STATES,
     canonical_json_bytes,
@@ -48,6 +50,7 @@ class NextAllowedAction:
     requires_human_decision: bool
     next_action: str
     waiting_for: str | None
+    reference_warnings: tuple[str, ...] = ()
 
 
 def _timestamp(value: str | None) -> str:
@@ -77,23 +80,48 @@ class ChannelStateMachine:
         except RuntimeError as exc:
             raise ChannelStateError(str(exc)) from exc
 
-    def load(self) -> ChannelPackage:
+    def load(self, *, lenient: bool = False) -> ChannelPackage:
+        """Load and validate the package.
+
+        Strict mode (default) fails on any damage, including deleted
+        historical prerequisite files. Lenient mode still fails on escapes
+        and structural damage but downgrades *missing* historical references
+        to inspectable warnings, so a damaged channel can be examined and
+        repaired instead of going dark. Mutations always re-check their own
+        new references strictly.
+        """
         try:
-            return validate_channel_package(self.package_root, self.repository_root)
+            return validate_channel_package(
+                self.package_root, self.repository_root,
+                allow_missing_historical_refs=lenient,
+            )
         except ChannelValidationError as exc:
             raise ChannelStateError(str(exc)) from exc
 
+    def reference_warnings(self) -> list[str]:
+        try:
+            package = self.load(lenient=True)
+        except ChannelStateError:
+            return []
+        return missing_historical_refs(package.state, self.repository_root)
+
     def show(self) -> dict[str, Any]:
-        package = self.load()
-        return {"identity": package.identity, "state": package.state}
+        package = self.load(lenient=True)
+        return {
+            "identity": package.identity,
+            "state": package.state,
+            "reference_warnings": self.reference_warnings(),
+        }
 
     def next_allowed_action(self) -> NextAllowedAction:
-        state = self.load().state
+        state = self.load(lenient=True).state
         status = state["status"]
         forward = FORWARD_TRANSITIONS.get(state["state"])
         operations: list[str] = []
         if status == "BLOCKED_ON_HUMAN":
-            operations = ["resume"]
+            # Abandoning a blocked direction is legal (abandon validates from
+            # any non-terminal status); only forward advance is closed.
+            operations = ["resume", "abandon"]
             forward = None
         elif status in {"ACTIVE", "REVISING"}:
             if forward and not state.get("legacy_mapping", False):
@@ -116,6 +144,9 @@ class ChannelStateMachine:
             ),
             next_action=state["next_action"],
             waiting_for=state["waiting_for"],
+            reference_warnings=tuple(
+                missing_historical_refs(state, self.repository_root)
+            ),
         )
 
     def _transition_requirements(
@@ -137,6 +168,15 @@ class ChannelStateMachine:
         refs = sorted(set(prerequisite_refs))
         if state["state"] != "CHANNEL_INIT" and not refs:
             raise ChannelStateError(f"{state['state']} -> {target} requires at least one prerequisite reference")
+        # New references are always checked strictly, even when historical
+        # references are tolerated elsewhere: an advance may never point at a
+        # file that does not exist right now.
+        for reference in refs:
+            path = (self.repository_root / reference).resolve()
+            if not path.is_relative_to(self.repository_root):
+                raise ChannelStateError(f"prerequisite path escapes repository root: {reference}")
+            if not path.exists():
+                raise ChannelStateError(f"prerequisite path does not exist: {reference}")
         requires_human = (state["state"], target) in HUMAN_GATE_TRANSITIONS
         if requires_human and not (human_decision_ref or "").strip():
             raise ChannelStateError(f"{state['state']} -> {target} requires an explicit human decision reference")
@@ -196,7 +236,10 @@ class ChannelStateMachine:
         if not actor.strip() or not reason.strip():
             raise ChannelStateError("actor and reason are required")
         with self._write_lock():
-            package = self.load()
+            # Lenient load: a deleted historical prerequisite must not freeze
+            # the channel shut. New references are still checked strictly by
+            # each operation's own requirements before anything is written.
+            package = self.load(lenient=True)
             current = package.state
             if expected_revision is not None and current["revision"] != expected_revision:
                 raise ChannelStateError(
@@ -223,13 +266,17 @@ class ChannelStateMachine:
                 "prerequisite_refs": refs,
                 "human_decision_ref": event_details.get("human_decision_ref"),
                 "invalidated_states": event_details.get("invalidated_states", []),
+                "invalidated_artifact_families": event_details.get("invalidated_artifact_families", []),
                 "state_revision": new_state["revision"],
                 "previous_event_id": events[-1]["event_id"] if events else None,
             }
             events.append({"event_id": event_id_for(seed), **seed})
             new_state["events"] = events
             try:
-                validate_channel_state_document(new_state, package.identity["id"], self.repository_root)
+                validate_channel_state_document(
+                    new_state, package.identity["id"], self.repository_root,
+                    allow_missing_historical_refs=True,
+                )
             except ChannelValidationError as exc:
                 raise ChannelStateError(str(exc)) from exc
             _write_atomic(self.state_path, new_state)
@@ -366,6 +413,7 @@ class ChannelStateMachine:
             return state, {
                 "human_decision_ref": decision_ref.strip(),
                 "invalidated_states": invalidated,
+                "invalidated_artifact_families": list(REVISION_INVALIDATIONS[target]),
             }
 
         return self._apply(

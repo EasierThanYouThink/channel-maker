@@ -60,7 +60,7 @@ Do not proceed to Stage 1 until step 6 succeeds or the user explicitly accepts t
 A fresh session never assumes it starts at the beginning. Before doing anything else:
 
 1. `.venv/bin/python tools/channel_state.py show channels/<channel_id>` — full identity + workflow state dump.
-2. `.venv/bin/python tools/channel_state.py next channels/<channel_id>` — the machine's own answer for what's legal now: `allowed_operations`, the single `forward_state`, whether prerequisite refs or a human decision are required, and the recorded `next_action`. **This output, not the stage list below, decides your next command.** If it says `BLOCKED_ON_HUMAN`, your only legal operation is `resume` (see step 5) — `advance` will fail.
+2. `.venv/bin/python tools/channel_state.py next channels/<channel_id>` — the machine's own answer for what's legal now: `allowed_operations`, the single `forward_state`, whether prerequisite refs or a human decision are required, and the recorded `next_action`. **This output, not the stage list below, decides your next command.** If it says `BLOCKED_ON_HUMAN`, your only legal operations are `resume` and `abandon` (see step 5) — `advance` will fail.
 3. Unsure an edge is legal? Dry-run it first: `.venv/bin/python tools/channel_state.py validate-transition channels/<channel_id> <TARGET> --prerequisite-ref ... [--human-decision-ref ...]` checks legality and path existence without bumping `revision`.
 4. Never re-run a scaffold step blindly — most constructors refuse duplicates (`init_channel`, `init_niche_study`, `design_dna init`, `channel_identity init`, `pilot/episode plan` all fail if the artifact exists). If the artifact already exists, skip to the step that consumes it. Conversely, never re-run a `write` (foundation, Script DNA) to "fix" a draft after decisions were attached or frozen: re-writing wipes `decision_refs` and frozen flags. If a re-write or re-freeze is refused, read the error — it tells you whether `--force` is the deliberate escape hatch or you are repeating finished work.
 5. If the user needs to pause for a human (or the channel is already blocked): `.venv/bin/python tools/channel_state.py block channels/<channel_id> --actor "<user>" --reason "..." --reason-code <code> --summary "..." --question "..." --required-action "..."`, then later `.venv/bin/python tools/channel_state.py resume channels/<channel_id> --actor "<user>" --reason "..." --human-response-ref <a-real-path> --next-action "..."`. While blocked, only `resume` is legal.
@@ -350,14 +350,21 @@ Only create a component when a real, immediate need exists (never a speculative 
    .venv/bin/python tools/pilot.py record-review channels/<channel_id> <pilot-id> --decision GO --decided-by "<user>" --decision-ref <a-real-path> --rationale "..." --yes
    ```
    (`--yes` is required non-interactively; without it the CLI stops and asks. Re-recording a review overwrites the previous decision deliberately — check the current one first.)
-   REVISE requires `--revise-target <STATE>` where `<STATE>` is one of the fixed re-entry states (`STRATEGY_SELECTION`, `CHANNEL_FOUNDATION`, `SCRIPT_DNA_DISCOVERY`, `VISUAL_DNA_DISCOVERY`, `MOTION_DNA_DISCOVERY`, `CHANNEL_IDENTITY`, `STARTER_VISUAL_LIBRARY`, `PILOT_PLAN`, `PILOT_PRODUCTION` — niche-intelligence states and `PILOT_REVIEW` itself are not valid targets) and routes via `tools/channel_state.py revise channels/<channel_id> <STATE> --actor "<user>" --decision-ref <same-ref> --next-action "..." --reason "..." --yes`. A revise truncates `completed` at the target and sets status `REVISING`: re-walk forward with fresh `advance` calls (each needing its own prerequisite refs) until `PILOT_REVIEW`, then record the new review. Frozen DNA/identity artifacts are not auto-unfrozen — only the state pointer moves.
+   REVISE requires `--revise-target <STATE>` where `<STATE>` is one of the fixed re-entry states (`STRATEGY_SELECTION`, `CHANNEL_FOUNDATION`, `SCRIPT_DNA_DISCOVERY`, `VISUAL_DNA_DISCOVERY`, `MOTION_DNA_DISCOVERY`, `CHANNEL_IDENTITY`, `STARTER_VISUAL_LIBRARY`, `PILOT_PLAN`, `PILOT_PRODUCTION` — niche-intelligence states and `PILOT_REVIEW` itself are not valid targets) and routes via `tools/channel_state.py revise channels/<channel_id> <STATE> --actor "<user>" --decision-ref <same-ref> --next-action "..." --reason "..." --yes`. A revise truncates `completed` at the target and sets status `REVISING`: re-walk forward with fresh `advance` calls (each needing its own prerequisite refs) until `PILOT_REVIEW`, then record the new review. Frozen DNA/identity artifacts are not auto-unfrozen — only the state pointer moves. The revise event records `invalidated_artifact_families` naming what must be re-approved on the way forward — check it with `channel_state.py show` before re-walking.
    ABANDON_DIRECTION routes via `tools/channel_state.py abandon channels/<channel_id> --actor "<user>" --decision-ref <same-ref> --reason "..." --yes`, and is terminal — there is no un-abandon.
 5. On GO, cross the workflow's second human gate, then freeze (each with explicit confirmation):
    ```
    .venv/bin/python tools/channel_state.py advance channels/<channel_id> CHANNEL_FREEZE --next-action "..." --actor "<user>" --reason "..." --prerequisite-ref channels/<channel_id>/pilots/<pilot-id>/pilot.json --human-decision-ref <the-same-real-reference>
    .venv/bin/python tools/pilot.py freeze channels/<channel_id> <pilot-id> --new-channel-version <next-version> --frozen-by "<user>" --yes
    ```
-   Re-freezing an already-frozen pilot is refused unless you pass `--force` (which bumps the channel version again) — treat that refusal as a signal, not an error to route around.
+    Retrying a freeze at the same version with unchanged content completes
+    idempotently (crash-safe); the same version with *changed* content is
+    refused — freeze it as a new version, or pass `--force` to replace the
+    release deliberately. Treat any refusal as a signal, not an error to
+    route around. A production change under a GO archives the review and
+    restores "needs review", and unfreezes the pilot (the frozen release is
+    preserved on disk under `releases/`) — record a new review before
+    freezing again.
 
 ## Stage 10 — Readiness and Channel Ready
 

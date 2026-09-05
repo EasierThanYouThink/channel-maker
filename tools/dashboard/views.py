@@ -34,7 +34,7 @@ def list_channels(root: Path) -> list[dict[str, Any]]:
 def channel_detail(root: Path, channel_id: str) -> dict[str, Any]:
     package_root = root / "channels" / channel_id
     machine = ChannelStateMachine(package_root, root)
-    package = machine.load()
+    package = machine.load(lenient=True)
     try:
         next_action = asdict(machine.next_allowed_action())
     except ChannelStateError as exc:
@@ -42,6 +42,7 @@ def channel_detail(root: Path, channel_id: str) -> dict[str, Any]:
     return {
         "identity": package.identity, "state": package.state, "next_allowed_action": next_action,
         "recent_events": package.state["events"][-10:],
+        "reference_warnings": machine.reference_warnings(),
     }
 
 
@@ -131,7 +132,7 @@ def channel_overview(root: Path, channel_id: str) -> dict[str, Any]:
 
     package_root = root / "channels" / channel_id
     machine = ChannelStateMachine(package_root, root)
-    package = machine.load()
+    package = machine.load(lenient=True)
     try:
         from dataclasses import asdict
 
@@ -197,6 +198,7 @@ def channel_overview(root: Path, channel_id: str) -> dict[str, Any]:
         },
         "progress": progress,
         "next_allowed_action": next_action,
+        "reference_warnings": machine.reference_warnings(),
         "waiting_for": package.state.get("waiting_for"),
         "next_action_text": package.state.get("next_action"),
         "review_counts": {category: len(items) for category, items in queue.items()},

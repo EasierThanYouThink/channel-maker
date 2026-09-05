@@ -44,6 +44,21 @@ REVISION_TARGETS = frozenset({
     "PILOT_PRODUCTION",
 })
 
+# Artifact families a revision puts back under review. Frozen artifacts are
+# not auto-unfrozen — only the state pointer moves — but the families name
+# what must be re-approved on the way forward. Ordered outer to inner.
+REVISION_INVALIDATIONS = {
+    "STRATEGY_SELECTION": ("strategy", "foundation", "script-dna", "design-dna", "identity", "library", "pilot"),
+    "CHANNEL_FOUNDATION": ("foundation", "script-dna", "design-dna", "identity", "library", "pilot"),
+    "SCRIPT_DNA_DISCOVERY": ("script-dna", "pilot",),
+    "VISUAL_DNA_DISCOVERY": ("visual-dna", "identity", "library", "pilot"),
+    "MOTION_DNA_DISCOVERY": ("motion-dna", "pilot"),
+    "CHANNEL_IDENTITY": ("identity", "library", "pilot"),
+    "STARTER_VISUAL_LIBRARY": ("library", "pilot"),
+    "PILOT_PLAN": ("pilot-plan", "pilot"),
+    "PILOT_PRODUCTION": ("pilot",),
+}
+
 
 def canonical_json_bytes(value: Any) -> bytes:
     return (json.dumps(value, sort_keys=True, separators=(",", ":"), ensure_ascii=False) + "\n").encode("utf-8")

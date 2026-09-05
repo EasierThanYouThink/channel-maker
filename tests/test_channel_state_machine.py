@@ -168,7 +168,7 @@ def test_human_block_survives_restart_and_resume_requires_response(tmp_path: Pat
     assert blocked["blocker"]["question"] == "Choose A or B?"
 
     restarted = ChannelStateMachine(package, tmp_path)
-    assert restarted.next_allowed_action().allowed_operations == ("resume",)
+    assert restarted.next_allowed_action().allowed_operations == ("resume", "abandon")
     with pytest.raises(ChannelStateError, match="human response"):
         restarted.resume(human_response_ref="", next_action="Continue.", actor="test")
     resumed = restarted.resume(
@@ -260,3 +260,63 @@ def test_abandon_requires_explicit_decision_and_is_terminal(tmp_path: Path) -> N
     )
     assert abandoned["status"] == "ABANDONED"
     assert runtime.next_allowed_action().allowed_operations == ()
+
+
+def test_revise_event_names_invalidated_artifact_families(tmp_path: Path) -> None:
+    package = write_runtime_package(tmp_path, state_name="PILOT_REVIEW")
+    runtime = ChannelStateMachine(package, tmp_path)
+    revised = runtime.revise(
+        "VISUAL_DNA_DISCOVERY",
+        decision_ref="human-review:pilot-001-revise-visual",
+        next_action="Revise Visual DNA candidates.",
+        reason="Pilot visuals are inconsistent.",
+        actor="test",
+        occurred_at=AT,
+    )
+    event = revised["events"][-1]
+    assert event["invalidated_artifact_families"] == ["visual-dna", "identity", "library", "pilot"]
+    assert revised["state"] == "VISUAL_DNA_DISCOVERY"
+
+
+def test_deleted_historical_prereq_is_recoverable_not_fatal(tmp_path: Path) -> None:
+    package = write_runtime_package(tmp_path, channel_id="recover-demo")
+    runtime = ChannelStateMachine(package, tmp_path)
+    ref = evidence(tmp_path, "recover-demo", "note")
+    runtime.advance(
+        "NICHE_INTELLIGENCE", next_action="Collect.", actor="test",
+        reason="r", prerequisite_refs=[ref], occurred_at=AT,
+    )
+    (tmp_path / ref).unlink()
+
+    # Strict inspection still reports the damage ...
+    with pytest.raises(ChannelStateError, match="does not exist"):
+        runtime.load()
+    with pytest.raises(ChannelValidationError, match="does not exist"):
+        validate_channel_package(package, tmp_path)
+
+    # ... but the channel stays inspectable and operable, with warnings.
+    shown = runtime.show()
+    assert shown["reference_warnings"]
+    assert any("note.md" in warning for warning in shown["reference_warnings"])
+    nxt = runtime.next_allowed_action()
+    assert "advance" in nxt.allowed_operations
+    assert nxt.reference_warnings
+    blocked = runtime.block_on_human(
+        reason_code="strategy_choice", summary="Need input.", question="A or B?",
+        required_action="Choose.", actor="test", occurred_at=AT,
+    )
+    assert blocked["status"] == "BLOCKED_ON_HUMAN"
+    assert runtime.next_allowed_action().allowed_operations == ("resume", "abandon")
+
+
+def test_abandon_from_blocked_is_legal(tmp_path: Path) -> None:
+    package = write_runtime_package(tmp_path, channel_id="quit-demo")
+    runtime = ChannelStateMachine(package, tmp_path)
+    ref = evidence(tmp_path, "quit-demo", "decision")
+    runtime.block_on_human(
+        reason_code="stuck", summary="Stuck.", question="Q?",
+        required_action="Answer.", actor="test", occurred_at=AT,
+    )
+    (tmp_path / ref).write_text("# decision\n", encoding="utf-8")
+    abandoned = runtime.abandon(reason="Giving up.", decision_ref=ref, actor="test", occurred_at=AT)
+    assert abandoned["status"] == "ABANDONED"

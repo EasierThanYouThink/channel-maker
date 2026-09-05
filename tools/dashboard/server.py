@@ -164,6 +164,10 @@ def _overview_page(channel_id: str) -> bytes:
     ops = overview["next_allowed_action"]
     ops_badges = " ".join(f"<span class='badge'>{html.escape(op)}</span>" for op in ops.get("allowed_operations", []))
     gate = "<span class='badge bad'>human gate — decision ref required</span>" if ops.get("requires_human_decision") else ""
+    ref_warnings = "".join(
+        f"<p><span class='badge warn'>recoverable</span> {html.escape(warning)}</p>"
+        for warning in overview.get("reference_warnings", [])
+    )
     events = "".join(
         f"<tr><td>{e['sequence']}</td><td>{html.escape(e['operation'])}</td><td>{html.escape(e['from_state'])} -&gt; {html.escape(e['to_state'])}</td>"
         f"<td>{html.escape(e['actor'])}</td><td>{html.escape(e['reason'])}</td></tr>"
@@ -182,6 +186,7 @@ def _overview_page(channel_id: str) -> bytes:
       <div class="card"><h3>▶ Next action</h3>
         <p class="big">{html.escape(overview['next_action_text'] or '—')}</p>
         <p>{ops_badges} {gate}</p>
+        {ref_warnings}
         <details><summary style="color:var(--muted);cursor:pointer;">machine detail</summary>
         <pre>{html.escape(json.dumps(ops, indent=2))}</pre></details>
       </div>
