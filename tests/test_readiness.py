@@ -249,3 +249,17 @@ def test_full_incremental_build_flips_every_item_and_persists_at_the_end(tmp_pat
     # A completed channel cannot advance further (there is no forward transition from CHANNEL_READY).
     with pytest.raises(ChannelStateError):
         machine.advance("CHANNEL_INIT", next_action="n", actor="a", reason="r")
+
+
+def test_approved_component_waived_by_honest_no_component_plan(tmp_path: Path) -> None:
+    from engine.pilot import plan_pilot as _plan_pilot
+
+    package = write_package(tmp_path)
+    _plan_pilot(
+        package, tmp_path, pilot_id="pilot-1", topic="t",
+        target_duration_seconds=25.0, integration_goals=["g"],
+        no_reusable_components=True,
+    )
+    report = check_readiness(package, tmp_path)
+    assert item_status(report, "approved_component")
+    assert report["overall_passed"] is False

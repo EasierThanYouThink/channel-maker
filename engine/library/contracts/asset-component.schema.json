@@ -32,13 +32,13 @@
     "interface": {"type": "object"},
     "justification": {"type": "string", "minLength": 1},
     "produced_for_pilot_ref": {"oneOf": [{"type": "null"}, {"$ref": "common.schema.json#/$defs/relativePath"}]},
-    "status": {"enum": ["experimental", "approved", "deprecated"]},
+    "status": {"enum": ["experimental", "approved", "rejected", "deprecated"]},
     "review_ids": {"type": "array", "items": {"type": "string", "pattern": "^component-review:[a-f0-9]{16}$"}, "uniqueItems": true},
     "created_by": {"$ref": "common.schema.json#/$defs/creationProvenance"}
   },
   "allOf": [
     {"if": {"properties": {"scope": {"const": "ENGINE"}}}, "then": {"properties": {"channel_id": {"type": "null"}}}},
     {"if": {"properties": {"scope": {"const": "CHANNEL"}}}, "then": {"required": ["channel_id"], "properties": {"channel_id": {"$ref": "common.schema.json#/$defs/channelId"}}}},
-    {"if": {"properties": {"status": {"enum": ["approved", "deprecated"]}}}, "then": {"properties": {"review_ids": {"minItems": 1}}}}
+    {"if": {"properties": {"status": {"enum": ["approved", "rejected", "deprecated"]}}}, "then": {"properties": {"review_ids": {"minItems": 1}}}}
   ]
 }

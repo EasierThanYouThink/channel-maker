@@ -176,14 +176,21 @@ def check_readiness(package_root: Path, repository_root: Path) -> dict[str, Any]
         approved_exemplars, "No approved design exemplar was found." if not approved_exemplars else "Recorded.",
     ))
 
-    # 7. At least one approved asset component for this channel.
+    # 7. At least one approved asset component — or an honest declaration
+    # that the pilot needs none (scene-local construction, not a token part).
     approved_components = [
         component for component in list_components(repository_root, scope="CHANNEL", channel_id=channel_id, status="approved")
     ]
+    waived = any(
+        pilot.get("plan", {}).get("no_reusable_components") is True
+        for _, pilot in _iter_pilots(root)
+    )
+    component_ok = bool(approved_components) or waived
     items.append(_item(
-        "approved_component", "At least one approved asset component", bool(approved_components),
-        [c["component_id"] for c in approved_components],
-        "No approved asset component was found for this channel." if not approved_components else "Recorded.",
+        "approved_component", "At least one approved asset component (or an honest no-component pilot plan)",
+        component_ok,
+        [c["component_id"] for c in approved_components] if approved_components else [],
+        "No approved asset component was found for this channel." if not component_ok else "Recorded.",
     ))
 
     # 8. Validated workflow: every structured artifact produced so far re-validates cleanly.

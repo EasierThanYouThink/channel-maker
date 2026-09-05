@@ -317,8 +317,8 @@ short About-page bio, in the frozen Script DNA voice).
 Only create a component when a real, immediate need exists (never a speculative catalog):
 
 1. `.venv/bin/python tools/asset_registry.py register --scope CHANNEL --channel-id <channel_id> --category <primitive|object|character|diagram|mechanism|effect> --name "..." --description "..." --renderer <renderer> --source-kind tsx --source-path <renderer>/src/channels/<channel_id>/<Name>.tsx --export <ExportName> --justification "..."` after actually writing the component.
-2. Get the user's review: `tools/asset_registry.py review <component_path> --decision <approved|rejected|deprecated> --reviewer "<user>" --reason "..."` (interactive confirm, or `--yes` if already confirmed in chat). `tools/asset_registry.py list --channel-id <channel_id>` shows what's registered.
-3. `.venv/bin/python tools/channel_state.py advance channels/<channel_id> PILOT_PLAN --next-action "..." --actor "<user>" --reason "..." --prerequisite-ref <approved-component-path>` once at least one component is approved.
+2. Get the user's review against a rendered scene using the component — never approve source code the user hasn't seen working: `tools/asset_registry.py review <component_path> --decision <approved|rejected|deprecated> --reviewer "<user>" --reason "..."` (interactive confirm, or `--yes` if already confirmed in chat). The review binds the verdict to the source bytes. A rejection is terminal: the component leaves the queue for good.
+3. `.venv/bin/python tools/channel_state.py advance channels/<channel_id> PILOT_PLAN --next-action "..." --actor "<user>" --reason "..." --prerequisite-ref <approved-component-path>` once at least one component is approved. If the pilot honestly needs no reusable component (scene-local construction), skip the library instead of registering a token part: pass `--no-reusable-components` to `tools/pilot.py plan`.
 
 ## Stage 9 — Pilot Plan, Production, Review
 

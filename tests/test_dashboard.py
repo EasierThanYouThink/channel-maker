@@ -94,3 +94,23 @@ def test_render_markdown_handles_headings_lists_and_code() -> None:
     assert "<h1>Title</h1>" in output
     assert "<li>one</li>" in output
     assert "<pre>" in output and "code line" in output
+
+
+def test_review_queue_keeps_revise_visible_until_resolved(tmp_path: Path) -> None:
+    from engine.episode import episode_path, plan_episode
+    from engine.pilot import pilot_path, plan_pilot
+
+    package = write_package(tmp_path)
+    plan_pilot(package, tmp_path, pilot_id="pilot-1", topic="t",
+               target_duration_seconds=25.0, integration_goals=["g"])
+    pilot_doc = json.loads(pilot_path(package, "pilot-1").read_text(encoding="utf-8"))
+    pilot_doc["review"]["decision"] = "REVISE"
+    pilot_doc["review"]["revise_target"] = "PILOT_PRODUCTION"
+    (package / "pilots" / "pilot-1" / "pilot.json").write_text(json.dumps(pilot_doc), encoding="utf-8")
+    plan_episode(package, tmp_path, episode_id="ep-1", topic="t", target_duration_seconds=25.0)
+    episode_doc = json.loads(episode_path(package, "ep-1").read_text(encoding="utf-8"))
+    episode_doc["review"]["decision"] = "REVISE"
+    (package / "episodes" / "ep-1" / "episode.json").write_text(json.dumps(episode_doc), encoding="utf-8")
+    queue = review_queue(tmp_path)
+    assert [item["pilot_id"] for item in queue["pilots"]] == ["pilot-1"]
+    assert [item["episode_id"] for item in queue["episodes"]] == ["ep-1"]

@@ -246,7 +246,9 @@ def review_queue(root: Path) -> dict[str, list[dict[str, Any]]]:
                 candidate = pilot_dir / "pilot.json"
                 if candidate.is_file():
                     document = json.loads(candidate.read_text(encoding="utf-8"))
-                    if document["review"]["decision"] is None:
+                    # REVISE stays visible until reworked and re-reviewed:
+                    # removing it would erase the outstanding obligation.
+                    if document["review"]["decision"] in (None, "REVISE"):
                         queue["pilots"].append({"channel_id": channel_id, **document})
         episodes_root = package_root / "episodes"
         if episodes_root.is_dir():
@@ -254,7 +256,7 @@ def review_queue(root: Path) -> dict[str, list[dict[str, Any]]]:
                 candidate = episode_dir / "episode.json"
                 if candidate.is_file():
                     document = json.loads(candidate.read_text(encoding="utf-8"))
-                    if document["review"]["decision"] is None:
+                    if document["review"]["decision"] in (None, "REVISE"):
                         queue["episodes"].append({"channel_id": channel_id, **document})
         studies_root = package_root / "intelligence" / "studies"
         if studies_root.is_dir():

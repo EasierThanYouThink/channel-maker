@@ -114,3 +114,28 @@ def test_list_components_filters_by_scope_category_status(tmp_path: Path) -> Non
     assert len(list_components(tmp_path, scope="ENGINE")) == 1
     assert len(list_components(tmp_path, scope="CHANNEL", channel_id="library-channel")) == 1
     assert len(list_components(tmp_path, status="approved")) == 0
+
+
+def test_rejected_component_is_terminal_and_binds_source(tmp_path: Path) -> None:
+    import hashlib
+
+    write_package(tmp_path)
+    make_component_source(tmp_path, "remotion/src/channels/library-channel/Arrow.tsx")
+    path = register_component(
+        tmp_path, scope="CHANNEL", channel_id="library-channel", category="primitive",
+        name="Arrow", description="d", renderer="remotion", source_kind="tsx",
+        source_path="remotion/src/channels/library-channel/Arrow.tsx", exports=["Arrow"], interface={},
+        justification="j", produced_for_pilot_ref=None,
+    )
+    review = review_component(
+        tmp_path, path, decision="rejected", reviewer="Seb", reason="Wrong metaphor.",
+        created_at=AT, human_confirmed=True,
+    )
+    expected_source_sha = hashlib.sha256(
+        (tmp_path / "remotion/src/channels/library-channel/Arrow.tsx").read_bytes()
+    ).hexdigest()
+    assert review["source_sha256"] == expected_source_sha
+    record = json.loads(path.read_text(encoding="utf-8"))
+    assert record["status"] == "rejected"
+    # A rejected component never returns to the experimental queue on its own.
+    assert list_components(tmp_path, scope="CHANNEL", channel_id="library-channel", status="experimental") == []

@@ -83,6 +83,7 @@ def plan_pilot(
     topic: str,
     target_duration_seconds: float,
     integration_goals: list[str],
+    no_reusable_components: bool = False,
 ) -> Path:
     package = _load_package(package_root, repository_root)
     path = pilot_path(package.root, pilot_id)
@@ -95,6 +96,7 @@ def plan_pilot(
         "plan": {
             "topic": topic, "format": "SHORTS", "target_duration_seconds": target_duration_seconds,
             "integration_goals": integration_goals,
+            "no_reusable_components": no_reusable_components,
         },
         "production": {
             "script_ref": None, "voiceover_ref": None, "scene_candidate_manifest_refs": [],

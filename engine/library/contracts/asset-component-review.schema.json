@@ -4,7 +4,7 @@
   "title": "Asset Component Human Review v1",
   "type": "object",
   "additionalProperties": false,
-  "required": ["schema_version", "artifact_type", "review_id", "component_id", "target_sha256", "decision", "reviewer", "reason", "created_at"],
+  "required": ["schema_version", "artifact_type", "review_id", "component_id", "target_sha256", "decision", "reviewer", "reason", "created_at", "source_sha256"],
   "properties": {
     "schema_version": {"const": "1.0.0"},
     "artifact_type": {"const": "asset_component_review"},
@@ -14,6 +14,7 @@
     "decision": {"enum": ["approved", "rejected", "deprecated"]},
     "reviewer": {"type": "string", "minLength": 1},
     "reason": {"type": "string", "minLength": 1},
-    "created_at": {"type": "string", "format": "date-time"}
+    "created_at": {"type": "string", "format": "date-time"},
+    "source_sha256": {"type": ["string", "null"], "pattern": "^[a-f0-9]{64}$"}
   }
 }

@@ -19,7 +19,8 @@
         "topic": {"type": "string", "minLength": 1},
         "format": {"const": "SHORTS"},
         "target_duration_seconds": {"type": "number", "exclusiveMinimum": 0},
-        "integration_goals": {"type": "array", "minItems": 1, "items": {"type": "string", "minLength": 1}}
+        "integration_goals": {"type": "array", "minItems": 1, "items": {"type": "string", "minLength": 1}},
+        "no_reusable_components": {"type": "boolean", "description": "True when the pilot honestly needs no reusable component (scene-local construction)."}
       }
     },
     "production": {

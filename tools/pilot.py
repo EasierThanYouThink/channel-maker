@@ -34,6 +34,7 @@ def parse_args() -> argparse.Namespace:
     plan.add_argument("--topic", required=True)
     plan.add_argument("--target-duration-seconds", type=float, required=True)
     plan.add_argument("--integration-goal", action="append", required=True, dest="integration_goals")
+    plan.add_argument("--no-reusable-components", action="store_true", help="Declare honestly that this pilot needs no reusable component (scene-local construction).")
 
     production = subparsers.add_parser("record-production")
     production.add_argument("package_root", type=Path)
@@ -88,6 +89,7 @@ def main() -> int:
             path = plan_pilot(
                 args.package_root, args.root, pilot_id=args.pilot_id, topic=args.topic,
                 target_duration_seconds=args.target_duration_seconds, integration_goals=args.integration_goals,
+                no_reusable_components=args.no_reusable_components,
             )
         elif args.command == "record-production":
             path = record_production(

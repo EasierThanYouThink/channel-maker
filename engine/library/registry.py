@@ -113,6 +113,7 @@ def review_component(
 ) -> dict[str, Any]:
     if not human_confirmed:
         raise LibraryValidationError("asset component classification requires an explicit human confirmation")
+    repository_root = repository_root.resolve()
     try:
         record_bytes = component_path.read_bytes()
         record = json.loads(record_bytes)
@@ -120,10 +121,22 @@ def review_component(
         raise LibraryValidationError(f"cannot read component record {component_path}: {exc}") from exc
     validate_component(record)
     target_sha256 = hashlib.sha256(record_bytes).hexdigest()
+    # Bind the verdict to the reviewed source bytes, not just the registry
+    # record: a later source edit cannot hide behind an old approval.
+    source_sha256: str | None = None
+    source_relative = (record.get("source") or {}).get("path")
+    if source_relative:
+        source_resolved = (repository_root / source_relative).resolve()
+        if source_resolved.is_relative_to(repository_root) and source_resolved.is_file():
+            digest = hashlib.sha256()
+            with source_resolved.open("rb") as handle:
+                while chunk := handle.read(1024 * 1024):
+                    digest.update(chunk)
+            source_sha256 = digest.hexdigest()
     seed = {
         "schema_version": "1.0.0", "artifact_type": "asset_component_review", "component_id": record["component_id"],
         "target_sha256": target_sha256, "decision": decision, "reviewer": reviewer.strip(),
-        "reason": reason.strip(), "created_at": created_at,
+        "reason": reason.strip(), "created_at": created_at, "source_sha256": source_sha256,
     }
     review_id = f"component-review:{hashlib.sha256(_canonical_bytes(seed)).hexdigest()[:16]}"
     review = {**seed, "review_id": review_id}
@@ -132,7 +145,9 @@ def review_component(
     _write_new(reviews_dir / f"{review_id.removeprefix('component-review:')}.json", _canonical_bytes(review))
 
     updated = dict(record)
-    updated["status"] = {"approved": "approved", "deprecated": "deprecated"}.get(decision, "experimental")
+    # Rejection is terminal: a rejected component never returns to the
+    # experimental queue on its own. Reconsidering it takes a new review.
+    updated["status"] = {"approved": "approved", "rejected": "rejected", "deprecated": "deprecated"}.get(decision, "experimental")
     updated["review_ids"] = [*record["review_ids"], review_id]
     validate_component(updated)
     _write_atomic(component_path, _canonical_bytes(updated))
