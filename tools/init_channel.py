@@ -34,9 +34,11 @@ def init_channel(
     archetype: str,
     language: str,
     formats: list[str],
-    creation_mode: str,
     renderer: str,
 ) -> Path:
+    # v1 is CREATE-only: every channel is ORIGINAL. Clone mode (EXISTING_CHANNEL)
+    # was cut for v1 and returns in v2 — see the skill's Stage 1.
+    creation_mode = "ORIGINAL"
     root = root.resolve()
     package = root / "channels" / channel_id
     if package.exists():
@@ -103,7 +105,6 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--archetype", required=True, choices=["ILLUSTRATED_EXPLAINER", "DATA_STORY", "MAP_STORY"])
     parser.add_argument("--language", default="en")
     parser.add_argument("--formats", action="append", default=[], choices=["SHORTS", "LONG_FORM"])
-    parser.add_argument("--creation-mode", required=True, choices=["ORIGINAL", "EXISTING_CHANNEL"])
     parser.add_argument("--renderer", required=True, help="Name of the rendering pipeline this channel's pilots will use, e.g. 'remotion'. See docs/RENDER_CONTRACT.md.")
     return parser.parse_args()
 
@@ -114,7 +115,7 @@ def main() -> int:
         package = init_channel(
             args.root, args.channel_id, name=args.name, niche_primary=args.niche_primary,
             topic_family=args.topic_family, archetype=args.archetype, language=args.language,
-            formats=args.formats or ["SHORTS"], creation_mode=args.creation_mode, renderer=args.renderer,
+            formats=args.formats or ["SHORTS"], renderer=args.renderer,
         )
     except (InitChannelError, ChannelValidationError, KnowledgeError) as exc:
         print(f"INIT CHANNEL ERROR\n{exc}")

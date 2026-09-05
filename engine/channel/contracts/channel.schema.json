@@ -71,7 +71,7 @@
       "additionalProperties": false,
       "required": ["mode"],
       "properties": {
-        "mode": {"enum": ["ORIGINAL", "REFERENCE_GUIDED", "EXISTING_CHANNEL"]}
+        "mode": {"enum": ["ORIGINAL"]}
       }
     },
     "canonical_sources": {

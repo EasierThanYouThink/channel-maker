@@ -108,3 +108,43 @@ def test_fail_records_error_and_moves_to_failed(tmp_path: Path) -> None:
     assert failed["status"] == "failed"
     assert failed["error"] == "hermes CLI returned a non-zero exit code"
     assert (queue / "failed" / f"{job_id}.json").exists()
+
+
+def test_collection_request_supports_competitor_glance(tmp_path: Path) -> None:
+    from build_niche_collection_request import build_request as build_collection_request
+
+    output = tmp_path / "request.json"
+    build_collection_request(
+        channel_id="test-channel", study_id="test-study", target="science shorts",
+        sample_size_hint=10,
+        allowed_channel_roles=["GROWTH_CANDIDATE", "BASELINE_COMPARATOR"],
+        allowed_video_roles=["BREAKOUT", "CHANNEL_BASELINE"],
+        output=output,
+        reference_channels=["https://www.youtube.com/@somechannel", "@anotherhandle"],
+    )
+    request = json.loads(output.read_text(encoding="utf-8"))
+    assert request["mode"] == "CREATE"
+    assert request["reference_channels"] == ["https://www.youtube.com/@somechannel", "@anotherhandle"]
+
+
+def test_collection_request_caps_reference_channels(tmp_path: Path) -> None:
+    from build_niche_collection_request import build_request as build_collection_request
+
+    with pytest.raises(ChannelMakerError, match="at most 3 reference channels"):
+        build_collection_request(
+            channel_id="test-channel", study_id="test-study", target="science shorts",
+            sample_size_hint=10,
+            allowed_channel_roles=["GROWTH_CANDIDATE"],
+            allowed_video_roles=["BREAKOUT"],
+            output=tmp_path / "request.json",
+            reference_channels=["@one", "@two", "@three", "@four"],
+        )
+    with pytest.raises(ChannelMakerError, match="must be a public https:// URL or an @handle"):
+        build_collection_request(
+            channel_id="test-channel", study_id="test-study", target="science shorts",
+            sample_size_hint=10,
+            allowed_channel_roles=["GROWTH_CANDIDATE"],
+            allowed_video_roles=["BREAKOUT"],
+            output=tmp_path / "request.json",
+            reference_channels=["not a channel ref"],
+        )

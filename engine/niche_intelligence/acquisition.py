@@ -338,7 +338,8 @@ def _add_component(
     }
     directory = {
         "niche_observation": "observations", "niche_hypothesis": "hypotheses",
-        "opportunity_proposal": "opportunities",
+        "opportunity_proposal": "opportunities", "content_annotation": "annotations",
+        "script_annotation": "annotations", "visual_market_annotation": "annotations",
     }[document["artifact_type"]]
     path = study_root / directory / f"{_slug(key)}.json"
     if path.exists():
@@ -433,4 +434,82 @@ def add_opportunity(
     return _add_component(
         study_root, repository_root=repository_root, category="opportunity_proposals",
         artifact_id_prefix="opportunity", key=key, document_without_ids=document,
+    )
+
+
+def add_content_annotation(
+    study_root: Path,
+    *,
+    key: str,
+    video_evidence_id: str,
+    annotation: dict[str, Any],
+    confidence: float | None,
+    repository_root: Path,
+) -> Path:
+    """Record a what-works content teardown of one video: hook family + text,
+    structure, characteristics, ending. `annotation` must match the
+    content-annotation schema's `annotation` object."""
+    document = {
+        "artifact_type": "content_annotation", "authority": "ANNOTATION",
+        "video_evidence_id": video_evidence_id, "evidence_refs": [video_evidence_id],
+        "annotation": annotation, "confidence": confidence,
+        "created_by": _creation_provenance("engine.niche_intelligence.acquisition.add_content_annotation"),
+    }
+    return _add_component(
+        study_root, repository_root=repository_root, category="content_annotations",
+        artifact_id_prefix="content-annotation", key=key, document_without_ids=document,
+    )
+
+
+def add_script_annotation(
+    study_root: Path,
+    *,
+    key: str,
+    video_evidence_id: str,
+    transcript: dict[str, Any],
+    statistics: dict[str, Any],
+    annotations: dict[str, Any],
+    confidence: float | None,
+    repository_root: Path,
+) -> Path:
+    """Record a what-works script teardown of one video: transcript provenance,
+    measured statistics (word count, WPS, opening excerpt, question/numeric
+    counts), and hook/structure/density/ending judgments."""
+    document = {
+        "artifact_type": "script_annotation", "authority": "ANNOTATION",
+        "video_evidence_id": video_evidence_id, "evidence_refs": [video_evidence_id],
+        "transcript": transcript, "statistics": statistics, "annotations": annotations,
+        "confidence": confidence,
+        "created_by": _creation_provenance("engine.niche_intelligence.acquisition.add_script_annotation"),
+    }
+    return _add_component(
+        study_root, repository_root=repository_root, category="script_annotations",
+        artifact_id_prefix="script-annotation", key=key, document_without_ids=document,
+    )
+
+
+def add_visual_market_annotation(
+    study_root: Path,
+    *,
+    key: str,
+    video_evidence_id: str,
+    annotation: dict[str, Any],
+    confidence: float | None,
+    repository_root: Path,
+) -> Path:
+    """Record a what-works visual teardown of one video: production approaches,
+    pacing/text-density proxies, metaphor usage, continuity. Market evidence
+    only — never design authority (`design_authority` is always PROHIBITED and
+    the teardown is never renderer-eligible)."""
+    document = {
+        "artifact_type": "visual_market_annotation", "authority": "ANNOTATION",
+        "video_evidence_id": video_evidence_id, "reference_role": "MARKET_EVIDENCE",
+        "design_authority": "PROHIBITED", "renderer_eligible": False,
+        "evidence_refs": [video_evidence_id],
+        "annotation": annotation, "confidence": confidence,
+        "created_by": _creation_provenance("engine.niche_intelligence.acquisition.add_visual_market_annotation"),
+    }
+    return _add_component(
+        study_root, repository_root=repository_root, category="visual_market_annotations",
+        artifact_id_prefix="visual-annotation", key=key, document_without_ids=document,
     )

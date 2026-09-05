@@ -27,6 +27,7 @@ WIKI_DIRECTORIES = (
     "market/observations",
     "market/hypotheses",
     "market/opportunities",
+    "market/teardowns",
     "script",
     "visual",
     "motion",
@@ -35,6 +36,7 @@ WIKI_DIRECTORIES = (
     "experiments",
     "lessons",
     "failures",
+    "style",
 )
 
 
@@ -102,23 +104,9 @@ def _canonical_bytes(value: Any) -> bytes:
 
 
 def _write_atomic(path: Path, content: bytes) -> None:
-    path.parent.mkdir(parents=True, exist_ok=True)
-    descriptor, temporary_name = tempfile.mkstemp(prefix=f".{path.name}.", suffix=".tmp", dir=path.parent)
-    temporary = Path(temporary_name)
-    try:
-        with os.fdopen(descriptor, "wb") as handle:
-            handle.write(content)
-            handle.flush()
-            os.fsync(handle.fileno())
-        os.replace(temporary, path)
-        directory = os.open(path.parent, os.O_RDONLY)
-        try:
-            os.fsync(directory)
-        finally:
-            os.close(directory)
-    finally:
-        if temporary.exists():
-            temporary.unlink()
+    from engine.channel._portable import write_bytes_atomic
+
+    write_bytes_atomic(path, content)
 
 
 def _timestamp(value: str | None) -> str:

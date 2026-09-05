@@ -365,8 +365,10 @@ def test_cm2_memory_summary_integration_is_scoped_opt_in_and_bounded(tmp_path: P
     for package in (finance, science, radicat):
         initialize_channel_wiki(package, root, created_at=AT)
     repository = NicheIntelligenceRepository(root)
-    assert len(repository.publish_semantic_summaries(finance, finance_root)) == 3
-    assert len(repository.publish_semantic_summaries(science, science_root)) == 3
+    # 3 interpretive summaries (observation/hypothesis/opportunity) + 3 what-works
+    # teardown summaries (content/script/visual) published to market/teardowns/.
+    assert len(repository.publish_semantic_summaries(finance, finance_root)) == 6
+    assert len(repository.publish_semantic_summaries(science, science_root)) == 6
     memory = ChannelMemoryRepository(root)
     memory.write_page("method.md", {
         "schema_version": "0.3.0", "knowledge_id": "wiki:engine/niche-method", "title": "Niche Evidence Method",
@@ -382,8 +384,12 @@ def test_cm2_memory_summary_integration_is_scoped_opt_in_and_bounded(tmp_path: P
     }, "Radicat-only synthetic vacuum note.")
     bundle = repository.build_context_bundle(finance, finance_root, "mechanism niche vacuum", artifact_limit=2, memory_limit=8, max_summary_chars=240)
     assert bundle["channel_id"] == "finance-demo"
-    assert len(bundle["semantic_artifacts"]) == 2
+    # Teardown summaries sort highest by confidence and are long: the 240-char
+    # budget is consumed by the first, so fewer than artifact_limit fit. The
+    # bound — not the count — is the invariant under test.
+    assert len(bundle["semantic_artifacts"]) <= 2
     assert sum(len(item["summary"]) for item in bundle["semantic_artifacts"]) <= 240
+    assert any(item["artifact_type"] == "content_annotation" for item in bundle["semantic_artifacts"])
     memory_ids = {item["knowledge_id"] for item in bundle["memory"]}
     assert not any("radicat" in item for item in memory_ids)
     assert "wiki:engine/niche-method" not in memory_ids

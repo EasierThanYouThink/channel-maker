@@ -1,14 +1,31 @@
-# Hermes Agent Setup Checklist
+# Hermes Agent Setup Checklist (Windows / macOS / Linux)
 
 Hermes Agent (hermes-agent.nousresearch.com) is a self-hosted CLI/desktop
 scraping agent. Its exact CLI surface changes over time and was not fully
-confirmed when this skill was written — treat every command below except
-`which hermes` as provisional until discovered live in step 2.
+confirmed when this skill was written — treat every command below except the
+presence check as provisional until discovered live in step 2.
 
-## 1. Presence check
+> OS note: use `where hermes` on Windows PowerShell, `which hermes` on
+> macOS/Linux. `ollama list | Select-String ornith-1.5` on PowerShell,
+> `ollama list | grep ornith-1.5` elsewhere. Python commands: activate the
+> venv first (`.venv\Scripts\Activate.ps1` on Windows,
+> `source .venv/bin/activate` elsewhere), then `python tools/...`.
+> Full per-OS setup: `docs/SETUP.md` (`python tools/setup.py --check-only`
+> reports service presence without changing anything).
+
+## 0. Machine check (run first, every session)
 
 ```
-which hermes
+python tools/setup.py --check-only --json
+```
+
+One report: venv presence, Python version, and Hermes / Ollama / Piper /
+Node availability. Act on every `MISS` in the sections below. Without
+`--json` the same report prints human-readable.
+
+```
+which hermes        # macOS / Linux
+where hermes        # Windows PowerShell
 ```
 
 If missing: tell the user to install it from hermes-agent.nousresearch.com and
@@ -41,7 +58,8 @@ Stage 2, using Hermes only for capabilities it's confirmed to do well
 ## 3. Local model (ornith-1.5:9b)
 
 ```
-ollama list | grep ornith-1.5
+ollama list | grep ornith-1.5            # macOS / Linux
+ollama list | Select-String ornith-1.5   # Windows PowerShell
 ```
 
 If absent, confirm with the user (this is a ~6.6GB download) then:

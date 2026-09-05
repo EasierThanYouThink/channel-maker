@@ -18,12 +18,26 @@ BOUNDARY_INSTRUCTIONS = [
     "Every source URL must be public and start with https://.",
     "Assign a sample role and a one-sentence rationale for every channel/video you collect.",
     "Do not copy scripts, thumbnails, or other protected expression — only structured public metadata/statistics.",
+    "reference_channels (max 3) are studied for calibration only — what formats, pacing, and topics are "
+    "working. Record their public metadata like any other evidence; never reproduce their expression.",
 ]
+
+MAX_REFERENCE_CHANNELS = 3
+
+
+def _check_reference_channel(value: str) -> str:
+    text = value.strip()
+    if not text:
+        raise ChannelMakerError("reference channel must not be empty")
+    if not (text.startswith("https://") or text.startswith("@")):
+        raise ChannelMakerError(
+            f"reference channel must be a public https:// URL or an @handle: {value!r}"
+        )
+    return text
 
 
 def build_request(
     *,
-    mode: str,
     channel_id: str,
     study_id: str,
     target: str,
@@ -31,12 +45,18 @@ def build_request(
     allowed_channel_roles: list[str],
     allowed_video_roles: list[str],
     output: Path,
+    reference_channels: list[str] | None = None,
 ) -> Path:
-    if mode not in {"CREATE", "CLONE"}:
-        raise ChannelMakerError(f"unsupported mode: {mode!r}")
+    # v1 is CREATE-only (niche keywords). CLONE (single target channel) returns in v2.
+    mode = "CREATE"
+    references = [_check_reference_channel(item) for item in (reference_channels or [])]
+    if len(references) > MAX_REFERENCE_CHANNELS:
+        raise ChannelMakerError(
+            f"at most {MAX_REFERENCE_CHANNELS} reference channels per request, got {len(references)}"
+        )
     request_core = {
         "mode": mode, "channel_id": channel_id, "study_id": study_id, "target": target,
-        "sample_size_hint": sample_size_hint,
+        "sample_size_hint": sample_size_hint, "reference_channels": references,
     }
     digest = content_hash(request_core)
     request: dict[str, Any] = {
@@ -57,10 +77,14 @@ def build_request(
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--mode", required=True, choices=["CREATE", "CLONE"])
     parser.add_argument("--channel-id", required=True)
     parser.add_argument("--study-id", required=True)
-    parser.add_argument("--target", required=True, help="Niche keywords (CREATE) or the one target channel URL/handle (CLONE)")
+    parser.add_argument("--target", required=True, help="Niche keywords describing what Hermes should collect (v1 CREATE-only)")
+    parser.add_argument(
+        "--reference-channel", action="append", default=[], dest="reference_channels",
+        help="Competitor channel to study for calibration (public https:// URL or @handle). "
+             f"Repeatable, max {MAX_REFERENCE_CHANNELS}. Study what's working; never copy expression.",
+    )
     parser.add_argument("--sample-size-hint", type=int, default=10)
     parser.add_argument(
         "--allowed-channel-role", action="append", required=True, dest="allowed_channel_roles",
@@ -78,9 +102,10 @@ def main() -> int:
     args = parse_args()
     try:
         output = build_request(
-            mode=args.mode, channel_id=args.channel_id, study_id=args.study_id, target=args.target,
+            channel_id=args.channel_id, study_id=args.study_id, target=args.target,
             sample_size_hint=args.sample_size_hint, allowed_channel_roles=args.allowed_channel_roles,
             allowed_video_roles=args.allowed_video_roles, output=args.output,
+            reference_channels=args.reference_channels,
         )
     except ChannelMakerError as exc:
         print(f"ERROR: {exc}")

@@ -67,9 +67,9 @@ def load_state(package: Path) -> dict:
 @pytest.mark.parametrize(
     ("channel_id", "archetype", "mode"),
     [
-        ("science-demo", "ILLUSTRATED_EXPLAINER", "REFERENCE_GUIDED"),
+        ("science-demo", "ILLUSTRATED_EXPLAINER", "ORIGINAL"),
         ("finance-demo", "DATA_STORY", "ORIGINAL"),
-        ("history-demo", "MAP_STORY", "EXISTING_CHANNEL"),
+        ("history-demo", "MAP_STORY", "ORIGINAL"),
     ],
 )
 def test_contract_is_not_radicat_specific(

@@ -9,12 +9,15 @@ lifecycle (plan → production → human review → freeze), ending at
 component review, a pilot GO/REVISE/ABANDON_DIRECTION call — requires a real,
 non-fabricated human decision reference, enforced in code.
 
-## Install
+## Install (Windows / macOS / Linux)
 
 ```
-python3 -m venv .venv
-.venv/bin/pip install -r requirements.txt
+python tools/setup.py
 ```
+
+Creates `.venv`, installs `requirements.txt`, and reports the external-services
+status. Details per OS: [`docs/SETUP.md`](docs/SETUP.md). Verify with
+`python tools/check.py` (venv activated).
 
 You'll also need [Hermes Agent](https://hermes-agent.nousresearch.com) and a
 local model for niche/market research (see Stage 0 of the skill below) —
@@ -33,7 +36,7 @@ You can also run any tool directly, e.g.:
 ```
 .venv/bin/python tools/init_channel.py my-channel --name "My Channel" \
   --niche-primary "..." --archetype ILLUSTRATED_EXPLAINER \
-  --creation-mode ORIGINAL --renderer remotion
+  --renderer remotion
 .venv/bin/python tools/validate_channel.py channels/my-channel
 ```
 

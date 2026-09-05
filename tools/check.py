@@ -11,6 +11,13 @@ from pathlib import Path
 
 
 ROOT = Path(__file__).resolve().parents[1]
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
+
+try:
+    from tools._platform import project_python as _project_python
+except ImportError:  # check.py run from a bare checkout without package path
+    _project_python = None  # type: ignore[assignment]
 
 
 @dataclass(frozen=True)
@@ -45,8 +52,11 @@ def commands(root: Path, python: str) -> list[CheckCommand]:
 
 def main() -> int:
     failures = []
-    project_python = ROOT / ".venv" / "bin" / "python"
-    test_python = str(project_python) if project_python.is_file() else sys.executable
+    if _project_python is not None:
+        test_python = _project_python(ROOT)
+    else:
+        candidates = [ROOT / ".venv" / "Scripts" / "python.exe", ROOT / ".venv" / "bin" / "python"]
+        test_python = next((str(p) for p in candidates if p.is_file()), sys.executable)
 
     for path in sorted((ROOT / "tools").glob("*.py")):
         try:

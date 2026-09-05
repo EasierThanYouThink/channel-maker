@@ -24,11 +24,12 @@ def test_init_channel_creates_minimal_valid_package(tmp_path: Path) -> None:
     package = init_channel(
         root, "new-channel", name="New Channel", niche_primary="science",
         topic_family=None, archetype="ILLUSTRATED_EXPLAINER", language="en",
-        formats=["SHORTS"], creation_mode="ORIGINAL", renderer="remotion",
+        formats=["SHORTS"], renderer="remotion",
     )
     validated = validate_channel_package(package, root)
     assert validated.identity["id"] == "new-channel"
     assert validated.identity["canonical_sources"] == {"channel_state": "channels/new-channel/CHANNEL_STATE.json"}
+    assert validated.identity["creation"] == {"mode": "ORIGINAL"}
     assert validated.state["state"] == "CHANNEL_INIT"
     assert validated.state["status"] == "ACTIVE"
     assert (package / "wiki" / "HOME.md").is_file()
@@ -38,31 +39,26 @@ def test_init_channel_refuses_to_overwrite_existing_package(tmp_path: Path) -> N
     root = root_with_memory(tmp_path)
     init_channel(
         root, "dup-channel", name="Dup", niche_primary="science", topic_family=None,
-        archetype="ILLUSTRATED_EXPLAINER", language="en", formats=["SHORTS"], creation_mode="ORIGINAL",
+        archetype="ILLUSTRATED_EXPLAINER", language="en", formats=["SHORTS"],
         renderer="remotion",
     )
     with pytest.raises(InitChannelError, match="already exists"):
         init_channel(
             root, "dup-channel", name="Dup Again", niche_primary="science", topic_family=None,
-            archetype="ILLUSTRATED_EXPLAINER", language="en", formats=["SHORTS"], creation_mode="ORIGINAL",
+            archetype="ILLUSTRATED_EXPLAINER", language="en", formats=["SHORTS"],
             renderer="remotion",
         )
 
 
-def test_create_mode_sets_original_clone_mode_sets_existing_channel(tmp_path: Path) -> None:
+def test_init_channel_is_always_original_in_v1(tmp_path: Path) -> None:
+    # Clone mode (EXISTING_CHANNEL) was cut for v1 and returns in v2: every
+    # channel scaffolds as ORIGINAL, no creation-mode flag exists.
     root = root_with_memory(tmp_path)
-    original = init_channel(
-        root, "create-mode", name="Create", niche_primary="science", topic_family=None,
-        archetype="ILLUSTRATED_EXPLAINER", language="en", formats=["SHORTS"], creation_mode="ORIGINAL",
+    package = init_channel(
+        root, "create-mode", name="Create", niche_primary="science", topic_family="mechanisms",
+        archetype="ILLUSTRATED_EXPLAINER", language="en", formats=["SHORTS"],
         renderer="remotion",
     )
-    cloned = init_channel(
-        root, "clone-mode", name="Clone", niche_primary="science", topic_family="mechanisms",
-        archetype="ILLUSTRATED_EXPLAINER", language="en", formats=["SHORTS"], creation_mode="EXISTING_CHANNEL",
-        renderer="remotion",
-    )
-    original_identity = validate_channel_package(original, root).identity
-    cloned_identity = validate_channel_package(cloned, root).identity
-    assert original_identity["creation"]["mode"] == "ORIGINAL"
-    assert cloned_identity["creation"]["mode"] == "EXISTING_CHANNEL"
-    assert cloned_identity["niche"]["topic_family"] == "mechanisms"
+    identity = validate_channel_package(package, root).identity
+    assert identity["creation"]["mode"] == "ORIGINAL"
+    assert identity["niche"]["topic_family"] == "mechanisms"

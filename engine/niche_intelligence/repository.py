@@ -17,7 +17,49 @@ SUMMARY_TYPES = {
     "niche_observation": ("observation", "descriptive", "market/observations", "statement"),
     "niche_hypothesis": ("hypothesis", "ai_proposed", "market/hypotheses", "statement"),
     "opportunity_proposal": ("opportunity_proposal", "ai_proposed", "market/opportunities", "proposal"),
+    "content_annotation": ("concept", "descriptive", "market/teardowns", None),
+    "script_annotation": ("concept", "descriptive", "market/teardowns", None),
+    "visual_market_annotation": ("concept", "descriptive", "market/teardowns", None),
 }
+
+
+def _teardown_summary(item: dict[str, Any]) -> str:
+    """One-paragraph plain-text summary of a what-works teardown annotation."""
+    video = item["video_evidence_id"]
+    kind = item["artifact_type"]
+    if kind == "content_annotation":
+        ann = item["annotation"]
+        chars = ann["characteristics"]
+        return (
+            f"Content teardown of {video}: hook {ann['hook_family']} "
+            f"({ann['hook_text'] or 'no transcript excerpt'}), structure {ann['structure']}, "
+            f"ending {ann['ending']}, promise {ann['viewer_promise'] or 'unstated'}, "
+            f"density {chars['information_density']}, depth {chars['technical_depth']}, "
+            f"numeric specificity {chars['numeric_specificity']}."
+        )
+    if kind == "script_annotation":
+        stats = item["statistics"]
+        anns = item["annotations"]
+        return (
+            f"Script teardown of {video}: {stats['word_count']} words "
+            f"@ {stats['words_per_second']} wps, hook: {anns['hook'] or 'undescribed'}, "
+            f"structure: {anns['narrative_structure'] or 'undescribed'}, "
+            f"ending: {anns['ending_behavior'] or 'undescribed'}, "
+            f"transcript {item['transcript']['availability']} "
+            f"({item['transcript']['method']})."
+        )
+    ann = item["annotation"]
+    return (
+        f"Visual teardown of {video}: approaches {', '.join(ann['production_approaches'])}, "
+        f"text density {ann['text_density_proxy']}, metaphors {ann['visual_metaphor_usage']}, "
+        f"continuity {ann['continuity']}. Market evidence only — never design authority."
+    )
+
+
+def _summary_text(item: dict[str, Any], text_field: str | None) -> str:
+    if text_field is not None:
+        return item[text_field]
+    return _teardown_summary(item)
 
 
 class NicheIntelligenceRepository:
@@ -68,7 +110,7 @@ class NicheIntelligenceRepository:
         selected = []
         for item in candidates[:artifact_limit]:
             _, _, _, text_field = SUMMARY_TYPES[item["artifact_type"]]
-            text = item[text_field][:remaining]
+            text = _summary_text(item, text_field)[:remaining]
             remaining -= len(text)
             selected.append({
                 "artifact_id": item["artifact_id"],
@@ -115,7 +157,8 @@ class NicheIntelligenceRepository:
             suffix = artifact_id.rsplit(":", 1)[-1]
             structured_path = validated.paths[artifact_id].relative_to(self.root).as_posix()
             created_at = item["created_by"]["created_at"]
-            title = item[text_field].split(".", 1)[0][:100]
+            text = _summary_text(item, text_field)
+            title = text.split(".", 1)[0][:100]
             metadata = {
                 "schema_version": "0.3.0",
                 "knowledge_id": f"wiki:channel/{item['channel_id']}/market/{kind}/{suffix}",
@@ -134,7 +177,7 @@ class NicheIntelligenceRepository:
                 "provenance": [{"kind": "repository", "ref": structured_path}],
             }
             body = (
-                f"# {title}\n\n{item[text_field]}\n\n"
+                f"# {title}\n\n{text}\n\n"
                 f"Authority: `{item['authority']}`. Exact structured source: `{structured_path}`. "
                 "This summary does not create a channel, script, design, or Engine rule."
             )
