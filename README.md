@@ -33,14 +33,43 @@ You'll also need [Hermes Agent](https://hermes-agent.nousresearch.com) and a
 local model for niche/market research (see Stage 0 of the skill below) —
 Hermes does the public web research; nothing here has its own scraper.
 
-## Using it
+## Using it — works with Claude Code today
 
-Open this repo in Claude Code and invoke the `channel-maker` skill (see
+> **Compatibility:** this skill currently targets **Claude Code only**. The
+> workflow itself (versioned contracts, CLI tools, file-based state) is
+> model-agnostic by design, and support for more coding agents (Codex-class,
+> Gemini-class, strong local models) is on the roadmap — but only Claude Code
+> has walked the full path end to end so far.
+
+**Start here — open this repo in Claude Code and paste:**
+
+```
+Read .claude/skills/channel-maker/SKILL.md and README.md, then walk me through
+creating a YouTube channel in <your niche here> per the skill, starting at
+Stage 0.
+```
+
+What happens next is a live, conversational walkthrough (see
 `.claude/skills/channel-maker/SKILL.md`, which walks Stage 0 through Stage 10
 plus the Ongoing episode loop, with a Stage 0.5 resume procedure for picking up
-mid-channel). It's a live, conversational walkthrough — Claude runs the CLIs
-below and asks you for every real decision (strategy selection, DNA freezes,
-reviews, the pilot GO/REVISE/ABANDON_DIRECTION call).
+mid-channel). Claude runs the CLIs below and asks you for every real decision:
+
+- **Stages 0–1** — environment bootstrap (Hermes + local model), channel
+  intent, and a hard CEO-style interrogation of your channel thesis before
+  anything is scaffolded.
+- **Stages 2–3** — Hermes-driven niche research, video teardowns, and an
+  opportunity map, ending at a human strategy gate.
+- **Stages 4–7** — channel foundation, Script/Visual/Motion DNA discovery, and
+  channel identity, each frozen only on your explicit sign-off.
+- **Stages 8–10** — starter asset library, pilot production with real
+  voiceover, human GO/REVISE/ABANDON review, and the `CHANNEL_READY`
+  checklist.
+- **Ongoing** — the episode loop that produces the channel's actual videos
+  without ever touching the frozen channel version.
+
+Resuming later is normal: reopen the repo, tell Claude your channel id, and it
+reconstructs state from `channels/<id>/CHANNEL_STATE.json` and continues where
+you stopped.
 
 You can also run any tool directly, e.g.:
 
@@ -59,13 +88,28 @@ plus measured timing evidence, and `tools/voiceover.py validate` gates the
 result against the target duration before any scene is built. One voice per
 channel, picked once and reused.
 
-### Dashboard
+### Control panel (interactive)
 
 `.venv/bin/python tools/dashboard/server.py --port 8420` starts a local-only
-(127.0.0.1) control panel: channel list, per-channel state/next-action/event
-log, wiki browsing, and a unified review queue. It shells out to the exact
-same CLIs for gated decisions, never re-implementing their logic; gated
-actions require an explicit confirm step in the browser.
+(127.0.0.1) control panel that stays open beside your Claude session while you
+work. It is the creator dashboard — one glance answers *where are we, what's
+next, what needs my eyes, is the machine healthy*:
+
+- **Channel list + per-channel detail** — live workflow state, next action,
+  and the full event log (every advance, freeze, review, and revision).
+- **Unified review queue** — everything waiting on a human across niche
+  opportunities, script examples, design exemplars, identity candidates, asset
+  components, pilots, and episodes, each linking back to its evidence.
+- **Wiki browsing** — channel memory pages (strategy, hypotheses, lessons)
+  as they accumulate.
+- **One-click gated actions** — freezes, reviews, and GO/REVISE calls run as
+  buttons, but every one shells out to the exact same CLI with an explicit
+  browser confirm step first. The panel never re-implements tool logic and
+  never fabricates an approval.
+
+Keep it open for the whole lifecycle: the skill's Stage 1.5 tells Claude to
+start it right after scaffolding, and the per-channel contents fill in live as
+stages complete.
 
 ### Rendering
 
