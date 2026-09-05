@@ -38,10 +38,12 @@ def test_align_words_measured_from_phoneme_stream() -> None:
     records, method = align_words(["hello", "world"], phonemes, tokens, samples, 1000, 1.0)
     assert method == "measured_alignment"
     assert [record["text"] for record in records] == ["hello", "world"]
-    assert records[0]["start_s"] == 1.0
-    assert records[0]["end_s"] == pytest.approx(1.4)
-    assert records[1]["start_s"] == pytest.approx(1.45)
-    assert records[1]["end_s"] == pytest.approx(1.85)
+    # Boundary markers '^' (200 samples) and '$' (300) occupy real audio time,
+    # so the cursor advances through them: hello spans 1.2-1.6, world 1.65-2.05.
+    assert records[0]["start_s"] == pytest.approx(1.2)
+    assert records[0]["end_s"] == pytest.approx(1.6)
+    assert records[1]["start_s"] == pytest.approx(1.65)
+    assert records[1]["end_s"] == pytest.approx(2.05)
     assert all(record["method"] == "measured_alignment" for record in records)
 
 
@@ -63,6 +65,11 @@ def _write_wav(path: Path, *, frames: int, rate: int = 22050) -> None:
 
 
 def _timing_doc(audio_path: Path, duration_s: float) -> dict:
+    import hashlib
+
+    # Fixture audio is always 22050 frames of silence; bind the timing doc to
+    # those exact PCM bytes the way synthesize_script does for real narration.
+    pcm_sha = hashlib.sha256(b"\x00\x00" * 22050).hexdigest()
     return {
         "schema_version": "1.0.0", "artifact_type": "voiceover_timing",
         "voice": {"name": "lessac-medium", "model": "en_US-lessac-medium.onnx", "sample_rate_hz": 22050},
@@ -73,7 +80,7 @@ def _timing_doc(audio_path: Path, duration_s: float) -> dict:
             {"text": "world", "start_s": duration_s / 2, "end_s": duration_s, "method": "measured_alignment"},
         ],
         "total_duration_s": duration_s,
-        "audio": {"path": str(audio_path), "sha256": "0" * 64, "duration_s": duration_s, "sample_rate_hz": 22050},
+        "audio": {"path": str(audio_path), "sha256": pcm_sha, "duration_s": duration_s, "sample_rate_hz": 22050},
         "created_by": {"tool": "test", "version": "1.0.0"},
     }
 
@@ -107,6 +114,28 @@ def test_validate_timing_rejects_missing_audio_and_bad_target(tmp_path: Path) ->
     timing.write_text(json.dumps(_timing_doc(audio, 1.0)), encoding="utf-8")
     with pytest.raises(VoiceoverValidationError, match="exceeds"):
         validate_timing(timing, target_duration_s=25.0)
+
+
+def test_validate_timing_rejects_swapped_recording_with_same_duration(tmp_path: Path) -> None:
+    audio = tmp_path / "voice.wav"
+    _write_wav(audio, frames=22050)
+    timing = tmp_path / "timing.json"
+    document = _timing_doc(audio, 1.0)
+    document["audio"]["sha256"] = "1" * 64
+    timing.write_text(json.dumps(document), encoding="utf-8")
+    with pytest.raises(VoiceoverValidationError, match="do not match the timing document"):
+        validate_timing(timing)
+
+
+def test_validate_timing_rejects_overlapping_spans(tmp_path: Path) -> None:
+    audio = tmp_path / "voice.wav"
+    _write_wav(audio, frames=22050)
+    timing = tmp_path / "timing.json"
+    document = _timing_doc(audio, 1.0)
+    document["words"][1]["start_s"] = 0.1
+    timing.write_text(json.dumps(document), encoding="utf-8")
+    with pytest.raises(VoiceoverValidationError, match="ordered and non-overlapping"):
+        validate_timing(timing)
 
 
 def test_validate_timing_document_rejects_unknown_voice(tmp_path: Path) -> None:

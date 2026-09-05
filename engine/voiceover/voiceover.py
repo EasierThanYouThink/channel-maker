@@ -184,7 +184,10 @@ def _measured_word_spans(
     ):
         return None
     # The alignment stream may carry boundary markers ('^', '$', ...) the
-    # phoneme list lacks. Compare content streams with markers stripped.
+    # phoneme list lacks. Compare content streams with markers stripped, but
+    # advance the time cursor through *every* token's samples — boundary
+    # markers occupy real time in the rendered sentence audio, and dropping
+    # them shifts all later word positions earlier.
     content_phonemes = [phoneme for phoneme in phonemes if phoneme not in _BOUNDARY_MARKERS]
     content_stream = [
         (token, samples)
@@ -193,22 +196,28 @@ def _measured_word_spans(
     ]
     if [token for token, _ in content_stream] != content_phonemes:
         return None
-    stream = content_stream
     spans: list[tuple[float, float]] = []
     cursor = 0
+    content_end = 0
     word_start: float | None = None
-    for phoneme, samples in stream:
-        if phoneme == " ":
+    for token, samples in zip(alignment_tokens, alignment_samples):
+        if token in _BOUNDARY_MARKERS:
+            cursor += samples
+            continue
+        if token == " ":
             if word_start is not None:
                 spans.append((word_start, cursor / sample_rate_hz))
                 word_start = None
             cursor += samples
+            content_end = cursor
         else:
             if word_start is None:
                 word_start = cursor / sample_rate_hz
             cursor += samples
+            content_end = cursor
     if word_start is not None:
-        spans.append((word_start, cursor / sample_rate_hz))
+        # Trailing boundary silence belongs to the recording, not the word.
+        spans.append((word_start, content_end / sample_rate_hz))
     if len(spans) != len(words) or any(end <= start for start, end in spans):
         return None
     return spans
