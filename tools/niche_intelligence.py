@@ -25,6 +25,7 @@ from engine.niche_intelligence import (
     add_visual_market_annotation,
     import_evidence,
     relative_views_same_channel_v1,
+    study_coverage,
     validate_contracts,
     validate_study,
 )
@@ -37,6 +38,8 @@ def parse_args() -> argparse.Namespace:
     subparsers.add_parser("validate-contracts")
     validate = subparsers.add_parser("validate")
     validate.add_argument("study_root", type=Path)
+    coverage = subparsers.add_parser("coverage", help="Report what a study covers — and what it leaves out")
+    coverage.add_argument("study_root", type=Path)
     metric = subparsers.add_parser("relative-views")
     metric.add_argument("request_json", type=Path, help="JSON object matching metric function arguments")
     context = subparsers.add_parser("context")
@@ -142,6 +145,9 @@ def main() -> int:
                 "channel_id": study.study["channel_id"], "study_id": study.study["study_id"],
                 "study_version": study.study["study_version"], "artifact_count": len(study.artifacts),
             }, indent=2, sort_keys=True))
+        elif args.command == "coverage":
+            study = validate_study(args.study_root)
+            print(json.dumps(study_coverage(study), indent=2, sort_keys=True))
         elif args.command == "relative-views":
             request = json.loads(args.request_json.read_text(encoding="utf-8"))
             if not isinstance(request, dict):

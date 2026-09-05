@@ -242,7 +242,7 @@ stage (see `docs/OBSIDIAN_WIKI.md`).
       --key <slug> --observed-market "..." --underrepresented "..." --proposal "..." \
       --hypothesis-ref <hypothesis-artifact-id> --evidence-ref <observation-artifact-id> --risk "..." --confidence 0.4
     ```
-12. `.venv/bin/python tools/niche_intelligence.py validate channels/<channel_id>/intelligence/studies/<study-id>` must pass before Stage 3. `publish-summaries` (Stage 3) carries teardowns into `wiki/market/teardowns/` alongside the stats, so the wiki remembers *how* the winners work, not just their numbers.
+12. Every what-works claim needs an ordinary comparator: collect at least one BASELINE_COMPARATOR channel or CHANNEL_BASELINE/RECENT_NORMAL/UNDERPERFORMER video per study — `validate` refuses breakout-only studies. Check the sampling gaps first: `.venv/bin/python tools/niche_intelligence.py coverage channels/<channel_id>/intelligence/studies/<study-id>` (roles, formats, missing fields, chain depths). `.venv/bin/python tools/niche_intelligence.py validate channels/<channel_id>/intelligence/studies/<study-id>` must pass before Stage 3. `publish-summaries` (Stage 3) carries teardowns into `wiki/market/teardowns/` alongside the stats, so the wiki remembers *how* the winners work, not just their numbers.
 
 Sample-role assignment (`GROWTH_CANDIDATE`, `BREAKOUT`, etc.) is a judgment call — there is no deterministic threshold in this repo's philosophy (`docs/NICHE_INTELLIGENCE.md`). Use your own analysis and say so plainly.
 

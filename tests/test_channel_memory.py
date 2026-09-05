@@ -305,3 +305,53 @@ def test_fresh_process_reconstructs_search_from_canonical_files(tmp_path: Path) 
     assert result.returncode == 0, result.stdout + result.stderr
     values = json.loads(result.stdout)
     assert values[0]["knowledge_id"] == "wiki:channel/finance-demo/home"
+
+
+def test_broken_channel_does_not_break_unrelated_search(tmp_path: Path) -> None:
+    root = memory_root(tmp_path)
+    good = write_package(root, "good-demo")
+    bad = write_package(root, "bad-demo")
+    initialize_channel_wiki(good, root, created_at=AT)
+    initialize_channel_wiki(bad, root, created_at=AT)
+    repository = ChannelMemoryRepository(root)
+    repository.write_page(
+        "observations/signal.md",
+        metadata(
+            "wiki:channel/good-demo/signal", "Good Signal", scope="CHANNEL",
+            channel_id="good-demo", provenance_ref="channels/good-demo/channel.yaml",
+        ),
+        "A clear synthetic signal.",
+    )
+    (root / "channels" / "bad-demo" / "wiki" / "broken.md").write_text(
+        "# Missing frontmatter\n", encoding="utf-8",
+    )
+    # The good channel reads fine despite the broken neighbor ...
+    results = repository.search("signal", channel_id="good-demo")
+    assert [item.knowledge_id for item in results] == ["wiki:channel/good-demo/signal"]
+    assert results[0].status == "active"
+    # ... while the broken channel's own reads fail loudly, not silently.
+    with pytest.raises(KnowledgeError, match="memory scope is unreadable"):
+        repository.search("signal", channel_id="bad-demo")
+    # Strict global reads still report the damage (check.py path).
+    with pytest.raises(KnowledgeError, match="requires YAML frontmatter"):
+        repository.documents()
+
+
+def test_context_bundle_marks_status_and_skips_superseded(tmp_path: Path) -> None:
+    root = memory_root(tmp_path)
+    package = write_package(root, "finance-demo")
+    initialize_channel_wiki(package, root, created_at=AT)
+    repository = ChannelMemoryRepository(root)
+    repository.write_page(
+        "observations/old.md",
+        {**metadata(
+            "wiki:channel/finance-demo/old", "Old Note", scope="CHANNEL",
+            channel_id="finance-demo", provenance_ref="channels/finance-demo/channel.yaml",
+        ), "status": "superseded"},
+        "Outdated synthetic note.",
+    )
+    bundle = repository.build_context_bundle(package, "outdated synthetic")
+    assert bundle["memory"] == []
+    bundle_all = repository.build_context_bundle(package, "outdated synthetic", include_superseded=True)
+    assert [item["knowledge_id"] for item in bundle_all["memory"]] == ["wiki:channel/finance-demo/old"]
+    assert bundle_all["memory"][0]["status"] == "superseded"

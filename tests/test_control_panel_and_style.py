@@ -132,3 +132,26 @@ def test_dashboard_overview_page(tmp_path: Path) -> None:
     )
     assert result.returncode == 0, result.stderr
     assert int(result.stdout.strip()) > 1000
+
+
+def test_style_voice_page_reads_nested_pacing_and_audition(tmp_path: Path) -> None:
+    from tools.channel_style import render_facts_to_pages
+
+    package = write_package(tmp_path)
+    (package / "script").mkdir(parents=True, exist_ok=True)
+    (package / "script" / "script-dna.yaml").write_text(
+        yaml.safe_dump({
+            "hook_philosophy": "Mechanism first.",
+            "narrator_personality": ["curious"],
+            "sentence_length": {"qualitative": "Short.", "target_words": 9},
+            "words_per_second": {"target": 2.8, "range": [2.4, 3.2]},
+            "audition": {"example_id": "script-example:hook-1234abcd", "timing_ref": "channels/panel-chan/script/audition-timing.json"},
+        }),
+        encoding="utf-8",
+    )
+    from tools.channel_style import collect
+
+    pages = render_facts_to_pages(collect(package, tmp_path), tmp_path)
+    voice = pages["voice"][1]
+    assert "Short. " in voice and "~9 words @ 2.8 wps" in voice
+    assert "script-example:hook-1234abcd" in voice

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import re
 from dataclasses import asdict
 from pathlib import Path
 from typing import Any
@@ -96,27 +97,31 @@ class NicheIntelligenceRepository:
         if artifact_limit < 1 or memory_limit < 1 or max_summary_chars < 0:
             raise NicheValidationError("context bounds must be positive (summary chars may be zero)")
         validated = self._validated(package_root, study_root)
-        candidates = [
-            item for item in validated.artifacts.values()
-            if item["artifact_type"] in SUMMARY_TYPES
-        ]
-        candidates.sort(
-            key=lambda item: (
-                -(item["confidence"] if item["confidence"] is not None else -1),
-                item["artifact_id"],
-            )
-        )
+        # Relevance before confidence: the query decides what matters; a
+        # confident but irrelevant interpretation must not crowd out a
+        # tentative but on-point one.
+        query_terms = set(re.findall(r"[a-z0-9]+", query.lower()))
+        scored = []
+        for item in validated.artifacts.values():
+            if item["artifact_type"] not in SUMMARY_TYPES:
+                continue
+            _, _, _, text_field = SUMMARY_TYPES[item["artifact_type"]]
+            full_text = _summary_text(item, text_field)
+            hits = sum(full_text.lower().count(term) for term in query_terms) if query_terms else 0
+            confidence = item["confidence"] if item["confidence"] is not None else -1
+            scored.append((hits, confidence, item, full_text))
+        scored.sort(key=lambda entry: (-entry[0], -entry[1], entry[2]["artifact_id"]))
         remaining = max_summary_chars
         selected = []
-        for item in candidates[:artifact_limit]:
-            _, _, _, text_field = SUMMARY_TYPES[item["artifact_type"]]
-            text = _summary_text(item, text_field)[:remaining]
+        for hits, _, item, full_text in scored[:artifact_limit]:
+            text = full_text[:remaining]
             remaining -= len(text)
             selected.append({
                 "artifact_id": item["artifact_id"],
                 "artifact_type": item["artifact_type"],
                 "authority": item["authority"],
                 "confidence": item["confidence"],
+                "relevance_hits": hits,
                 "summary": text,
                 "path": validated.paths[item["artifact_id"]].relative_to(self.root).as_posix(),
             })
@@ -146,22 +151,30 @@ class NicheIntelligenceRepository:
         }
 
     def publish_semantic_summaries(self, package_root: Path, study_root: Path) -> list[Path]:
-        """Create channel-scoped Wiki summaries that point to exact structured artifacts."""
+        """Create channel-scoped Wiki summaries that point to exact structured artifacts.
+
+        Summaries are namespaced by study (``<directory>/<study-id>-<key>.md``)
+        so reused keys across studies never collide, and publishing is
+        idempotent: an identical summary already on disk is skipped, not an
+        error.
+        """
 
         validated = self._validated(package_root, study_root)
+        study_id = validated.study["study_id"]
         created = []
         for artifact_id, item in sorted(validated.artifacts.items()):
             if item["artifact_type"] not in SUMMARY_TYPES:
                 continue
             kind, authority, directory, text_field = SUMMARY_TYPES[item["artifact_type"]]
             suffix = artifact_id.rsplit(":", 1)[-1]
+            namespaced = f"{study_id}-{suffix}"
             structured_path = validated.paths[artifact_id].relative_to(self.root).as_posix()
             created_at = item["created_by"]["created_at"]
             text = _summary_text(item, text_field)
             title = text.split(".", 1)[0][:100]
             metadata = {
                 "schema_version": "0.3.0",
-                "knowledge_id": f"wiki:channel/{item['channel_id']}/market/{kind}/{suffix}",
+                "knowledge_id": f"wiki:channel/{item['channel_id']}/market/{kind}/{namespaced}",
                 "title": title,
                 "kind": kind,
                 "status": "active" if item.get("status", "ACTIVE") in {"ACTIVE", "PROPOSED"} else "superseded",
@@ -181,8 +194,14 @@ class NicheIntelligenceRepository:
                 f"Authority: `{item['authority']}`. Exact structured source: `{structured_path}`. "
                 "This summary does not create a channel, script, design, or Engine rule."
             )
+            relative = f"{directory}/{namespaced}.md"
+            existing = (
+                self.memory.channels_root / item["channel_id"] / "wiki" / relative
+            )
+            if existing.is_file():
+                continue
             try:
-                created.append(self.memory.write_page(f"{directory}/{suffix}.md", metadata, body))
+                created.append(self.memory.write_page(relative, metadata, body))
             except KnowledgeError as exc:
                 raise NicheValidationError(str(exc)) from exc
         return created

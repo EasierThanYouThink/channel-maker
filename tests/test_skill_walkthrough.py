@@ -63,6 +63,12 @@ RESPONSE = {
         "sample_rationale": "Synthetic walkthrough fixture.",
         "public_fields": {"subscriber_count": 84000, "public_video_count": 212, "created_at": None,
                           "observed_uploads_per_30d": 6.0, "shorts_fraction": 0.9},
+    }, {
+        "source_id": "ucwalkthrough002", "url": "https://www.youtube.com/channel/UCwalkthrough002",
+        "channel_name": "Ordinary Science", "sample_role": "BASELINE_COMPARATOR",
+        "sample_rationale": "Ordinary comparator for what-works claims.",
+        "public_fields": {"subscriber_count": 40000, "public_video_count": 150, "created_at": None,
+                          "observed_uploads_per_30d": 4.0, "shorts_fraction": 0.8},
     }],
     "videos": [{
         "channel_source_id": "ucwalkthrough001", "source_id": "walkvid001",
@@ -72,6 +78,14 @@ RESPONSE = {
         "public_fields": {"published_at": "2026-06-01T00:00:00+00:00", "duration_seconds": 25.0,
                           "views": 950000, "likes": None, "comment_count": None,
                           "description": None, "age_at_observation_days": 12.4},
+    }, {
+        "channel_source_id": "ucwalkthrough002", "source_id": "walkvid002",
+        "url": "https://www.youtube.com/shorts/walkvid002", "title": "A normal science topic",
+        "format": "SHORTS", "sample_role": "CHANNEL_BASELINE",
+        "sample_rationale": "Ordinary comparator output.",
+        "public_fields": {"published_at": "2026-05-01T00:00:00+00:00", "duration_seconds": 24.0,
+                          "views": 8000, "likes": None, "comment_count": None,
+                          "description": None, "age_at_observation_days": 30.0},
     }],
 }
 

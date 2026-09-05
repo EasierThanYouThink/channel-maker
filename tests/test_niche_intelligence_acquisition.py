@@ -75,6 +75,11 @@ def hermes_response(**overrides) -> dict:
             "channel_name": "Target", "sample_role": "GROWTH_CANDIDATE", "sample_rationale": "growth",
             "public_fields": {"subscriber_count": 5000, "public_video_count": 20, "created_at": None,
                               "observed_uploads_per_30d": 4.0, "shorts_fraction": 1.0},
+        }, {
+            "source_id": "uc-baseline", "url": "https://www.youtube.com/channel/uc-baseline",
+            "channel_name": "Baseline", "sample_role": "BASELINE_COMPARATOR", "sample_rationale": "ordinary comparator",
+            "public_fields": {"subscriber_count": 4000, "public_video_count": 30, "created_at": None,
+                              "observed_uploads_per_30d": 3.0, "shorts_fraction": 0.8},
         }],
         "videos": [{
             "channel_source_id": "uc-target", "source_id": "vid-breakout",
@@ -83,6 +88,13 @@ def hermes_response(**overrides) -> dict:
             "public_fields": {"published_at": "2026-06-01T00:00:00+00:00", "duration_seconds": 40.0,
                               "views": 900000, "likes": None, "comment_count": None, "description": None,
                               "age_at_observation_days": 29.0},
+        }, {
+            "channel_source_id": "uc-baseline", "source_id": "vid-ordinary",
+            "url": "https://www.youtube.com/shorts/vid-ordinary", "title": "An ordinary topic",
+            "format": "SHORTS", "sample_role": "CHANNEL_BASELINE", "sample_rationale": "typical output",
+            "public_fields": {"published_at": "2026-05-01T00:00:00+00:00", "duration_seconds": 35.0,
+                              "views": 5000, "likes": None, "comment_count": None, "description": None,
+                              "age_at_observation_days": 60.0},
         }],
     }
     base.update(overrides)
@@ -97,7 +109,7 @@ def test_import_evidence_requires_reviewed_by(tmp_path: Path) -> None:
     with pytest.raises(NicheValidationError, match="explicit human reviewer"):
         import_evidence(validated.root, response_path, reviewed_by="", repository_root=tmp_path)
     created = import_evidence(validated.root, response_path, reviewed_by="Seb", repository_root=tmp_path)
-    assert len(created) == 2
+    assert len(created) == 4
     log = (tmp_path / "channels" / "acq-channel" / "intelligence" / "review-log.jsonl").read_text(encoding="utf-8")
     assert "Seb" in log
 
@@ -136,7 +148,7 @@ def test_import_evidence_updates_report_incrementally_without_duplicating(tmp_pa
     response_path = tmp_path / "response.json"
     write_json(response_path, hermes_response())
     first = import_evidence(validated.root, response_path, reviewed_by="Seb", repository_root=tmp_path)
-    assert len(first) == 2
+    assert len(first) == 4
 
     second_response = hermes_response(
         channels=[],
@@ -160,7 +172,7 @@ def test_import_evidence_updates_report_incrementally_without_duplicating(tmp_pa
 
     result = validate_study(validated.root, repository_root=tmp_path, expected_channel_id="acq-channel")
     videos = [item for item in result.artifacts.values() if item["artifact_type"] == "video_evidence"]
-    assert len(videos) == 2
+    assert len(videos) == 3
 
 
 def test_add_observation_hypothesis_opportunity_enforce_authority_ladder(tmp_path: Path) -> None:
@@ -248,10 +260,58 @@ def test_full_study_via_new_tools_validates_and_publishes_summaries(tmp_path: Pa
         repository_root=tmp_path,
     )
     final = validate_study(validated.root, repository_root=tmp_path, expected_channel_id="acq-channel")
-    assert len(final.artifacts) == 7  # study + report + channel + video + observation + hypothesis + opportunity
+    assert len(final.artifacts) == 9  # study + report + 2 channels + 2 videos + observation + hypothesis + opportunity
 
     repository = NicheIntelligenceRepository(tmp_path)
     created = repository.publish_semantic_summaries(package, validated.root)
     assert len(created) == 3
     for path in created:
         assert path.is_file()
+
+
+def test_study_coverage_reports_roles_gaps_and_baselines(tmp_path: Path) -> None:
+    from engine.niche_intelligence import study_coverage
+
+    package = build_package(tmp_path)
+    validated = build_empty_study(tmp_path, package)
+    response_path = tmp_path / "response.json"
+    write_json(response_path, hermes_response())
+    import_evidence(validated.root, response_path, reviewed_by="Seb", repository_root=tmp_path)
+    result = validate_study(validated.root, repository_root=tmp_path, expected_channel_id="acq-channel")
+    coverage = study_coverage(result)
+    assert coverage["channels"] == {"total": 2, "by_role": {"GROWTH_CANDIDATE": 1, "BASELINE_COMPARATOR": 1}}
+    assert coverage["videos"]["by_role"] == {"BREAKOUT": 1, "CHANNEL_BASELINE": 1}
+    assert coverage["has_baseline_comparator"] is True
+    assert coverage["videos"]["null_public_fields"]["likes"] == 2
+    assert coverage["interpretive_chain"]["niche_observation"] == 0
+
+
+def test_context_bundle_ranks_relevance_before_confidence(tmp_path: Path) -> None:
+    from engine.niche_intelligence import NicheIntelligenceRepository
+
+    package = build_package(tmp_path)
+    validated = build_empty_study(tmp_path, package)
+    response_path = tmp_path / "response.json"
+    write_json(response_path, hermes_response())
+    import_evidence(validated.root, response_path, reviewed_by="Seb", repository_root=tmp_path)
+    result = validate_study(validated.root, repository_root=tmp_path, expected_channel_id="acq-channel")
+    videos = [v for v in result.artifacts.values() if v["artifact_type"] == "video_evidence"]
+    breakout = next(v["artifact_id"] for v in videos if v["sample"]["role"] == "BREAKOUT")
+    baseline = next(v["artifact_id"] for v in videos if v["sample"]["role"] == "CHANNEL_BASELINE")
+    add_observation(
+        validated.root, key="confident-noise", statement="Unrelated production trivia.",
+        observation_type="PERFORMANCE_PATTERN", scope="test", basis="PUBLIC_FACT",
+        evidence_refs=[breakout], confidence=0.99, limitations=["none"],
+        repository_root=tmp_path,
+    )
+    add_observation(
+        validated.root, key="tentative-caffeine", statement="Caffeine mechanism hook pattern.",
+        observation_type="CONTENT_PATTERN", scope="test", basis="PUBLIC_FACT",
+        evidence_refs=[baseline], confidence=0.3, limitations=["single sample"],
+        repository_root=tmp_path,
+    )
+    repository = NicheIntelligenceRepository(tmp_path)
+    bundle = repository.build_context_bundle(package, validated.root, "caffeine mechanism")
+    first, second = bundle["semantic_artifacts"][:2]
+    assert "caffeine" in first["summary"].lower()
+    assert first["relevance_hits"] > second["relevance_hits"]

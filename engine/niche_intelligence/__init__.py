@@ -12,9 +12,17 @@ from .acquisition import (
 )
 from .metrics import MetricError, relative_views_same_channel_v1
 from .repository import NicheIntelligenceRepository
-from .validation import NicheValidationError, ValidatedStudy, validate_contracts, validate_study
+from .validation import (
+    COMPARATOR_VIDEO_ROLES,
+    NicheValidationError,
+    ValidatedStudy,
+    study_coverage,
+    validate_contracts,
+    validate_study,
+)
 
 __all__ = [
+    "COMPARATOR_VIDEO_ROLES",
     "MetricError",
     "NicheIntelligenceRepository",
     "NicheValidationError",
@@ -28,6 +36,7 @@ __all__ = [
     "import_evidence",
     "init_study",
     "relative_views_same_channel_v1",
+    "study_coverage",
     "validate_contracts",
     "validate_study",
 ]

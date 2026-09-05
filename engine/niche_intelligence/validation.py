@@ -299,6 +299,87 @@ def validate_study(
             if ref not in artifacts or artifacts[ref]["artifact_type"] not in allowed_observation_evidence | {"niche_observation"}:
                 errors.append(f"{artifact_id}: opportunity evidence ref is invalid: {ref}")
 
+    # Every "what works" claim needs an ordinary comparator: without a
+    # baseline, a breakout sample looks more conclusive than it is. Empty
+    # scaffolds are exempt — the rule bites once videos or interpretations
+    # exist.
+    baseline_channels = [
+        key for key, item in artifacts.items()
+        if item["artifact_type"] == "channel_evidence"
+        and item["sample"]["role"] == "BASELINE_COMPARATOR"
+    ]
+    baseline_videos = [
+        key for key, item in artifacts.items()
+        if item["artifact_type"] == "video_evidence"
+        and item["sample"]["role"] in {"CHANNEL_BASELINE", "RECENT_NORMAL", "UNDERPERFORMER"}
+    ]
+    claiming = any(
+        item["artifact_type"] in {
+            "video_evidence", "niche_observation", "niche_hypothesis",
+            "opportunity_proposal",
+        }
+        for item in artifacts.values()
+    )
+    if claiming and not baseline_channels and not baseline_videos:
+        errors.append(
+            "study has no baseline comparator: add at least one BASELINE_COMPARATOR channel "
+            "or one CHANNEL_BASELINE/RECENT_NORMAL/UNDERPERFORMER video before claiming what works"
+        )
+
     if errors:
         raise NicheValidationError("\n".join(errors))
+    return ValidatedStudy(root, study, report, artifacts, paths)
+
+
+COMPARATOR_VIDEO_ROLES = frozenset({"CHANNEL_BASELINE", "RECENT_NORMAL", "UNDERPERFORMER"})
+
+
+def study_coverage(validated: ValidatedStudy) -> dict[str, Any]:
+    """Summarize what a study covers — and what it leaves out.
+
+    Read-only: counts roles, formats, windows, missing fields, and chain
+    depths so reviewers can see sampling gaps before trusting a claim.
+    """
+    channels = [item for item in validated.artifacts.values() if item["artifact_type"] == "channel_evidence"]
+    videos = [item for item in validated.artifacts.values() if item["artifact_type"] == "video_evidence"]
+    channel_roles: dict[str, int] = {}
+    for item in channels:
+        channel_roles[item["sample"]["role"]] = channel_roles.get(item["sample"]["role"], 0) + 1
+    video_roles: dict[str, int] = {}
+    video_formats: dict[str, int] = {}
+    null_fields: dict[str, int] = {}
+    published: list[str] = []
+    for item in videos:
+        video_roles[item["sample"]["role"]] = video_roles.get(item["sample"]["role"], 0) + 1
+        video_formats[item["format"]] = video_formats.get(item["format"], 0) + 1
+        for field, value in item["public_fields"].items():
+            if value is None:
+                null_fields[field] = null_fields.get(field, 0) + 1
+        seen = item["public_fields"].get("published_at")
+        if seen:
+            published.append(seen)
+    chain = {
+        kind: sum(1 for item in validated.artifacts.values() if item["artifact_type"] == kind)
+        for kind in (
+            "niche_observation", "niche_hypothesis", "opportunity_proposal",
+            "content_annotation", "script_annotation", "visual_market_annotation",
+        )
+    }
+    return {
+        "study_id": validated.study["study_id"],
+        "channel_id": validated.study["channel_id"],
+        "study_window": validated.study["study_window"],
+        "channels": {"total": len(channels), "by_role": channel_roles},
+        "videos": {
+            "total": len(videos), "by_role": video_roles, "by_format": video_formats,
+            "null_public_fields": null_fields,
+            "published_range": [min(published), max(published)] if published else None,
+        },
+        "interpretive_chain": chain,
+        "has_baseline_comparator": bool(
+            channel_roles.get("BASELINE_COMPARATOR")
+            or any(role in COMPARATOR_VIDEO_ROLES for role in video_roles)
+        ),
+        "limitations": validated.report["limitations"],
+    }
     return ValidatedStudy(root, study, report, artifacts, paths)

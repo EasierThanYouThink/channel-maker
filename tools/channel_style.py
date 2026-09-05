@@ -179,14 +179,19 @@ def render_facts_to_pages(facts: dict[str, Any], root: Path) -> dict[str, tuple[
         f"({_summarize_dna(facts['motion'])}; identity candidates {facts['approved_candidates']}/{facts['total_candidates']} approved)\n\n"
         f"## Lessons feeding the style\n\n{lessons}\n\n## Failures (what the style avoids)\n\n{failures}\n"
     )
+    sentence_length = script.get("sentence_length", {}) or {}
+    words_per_second = script.get("words_per_second", {}) or {}
+    audition = script.get("audition") or {}
     voice_body = (
         f"# {facts['name']} — Voice\n\n"
         f"Script DNA {_summarize_dna(facts['script'])} "
         f"(`{base}/script/script-dna.yaml`).\n\n"
         f"- Hook: {script.get('hook_philosophy', '_—_')}\n"
         f"- Narrator: {', '.join(script.get('narrator_personality', [])) or '_—_'}\n"
-        f"- Sentence: {script.get('sentence_length_qualitative', '_—_')} "
-        f"(~{script.get('sentence_length_target_words', '—')} words @ {script.get('words_per_second_target', '—')} wps)\n"
+        f"- Sentence: {sentence_length.get('qualitative', '_—_')} "
+        f"(~{sentence_length.get('target_words', '—')} words @ {words_per_second.get('target', '—')} wps)\n"
+        f"- Audition: {audition.get('example_id', '_no recorded audition_')} "
+        f"({audition.get('timing_ref', 'no timing evidence')})\n"
         f"- Depth / humor / density: {script.get('technical_depth', '—')} / "
         f"{script.get('humor_level', '—')} / {script.get('information_density', '—')}\n"
         f"- Story: {script.get('story_structure', '_—_')} → {script.get('ending_behavior', '_—_')}\n"

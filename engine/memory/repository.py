@@ -66,6 +66,7 @@ class MemorySearchResult:
     scope: str
     channel_id: str | None
     video_id: str | None
+    status: str
     score: int
     path: str
     excerpt: str
@@ -272,32 +273,130 @@ class ChannelMemoryRepository:
             for document in documents
         ]
 
-    def rebuild_index(self) -> dict[str, Any]:
-        documents = self.documents()
-        payload = {
+    def _scope_keys(self) -> list[str]:
+        """Scope keys parsed independently: engine, one per channel, legacy."""
+        keys = ["engine"]
+        if self.channels_root.exists():
+            keys.extend(
+                f"channel:{path.name}"
+                for path in sorted(self.channels_root.iterdir())
+                if path.is_dir()
+            )
+        if self.legacy_radicat_wiki.exists():
+            keys.append("legacy:radicat")
+        return keys
+
+    def _scope_documents(self, scope_key: str) -> list[MemoryDocument]:
+        """Parse one scope only. A broken channel never poisons another scope."""
+        if scope_key == "engine":
+            return [
+                self._document(path, expected_scope="ENGINE")
+                for path in sorted(self.engine_wiki.rglob("*.md"))
+                if self.engine_wiki.exists()
+            ]
+        if scope_key == "legacy:radicat":
+            return self._legacy_documents()
+        _, _, channel_id = scope_key.partition(":")
+        wiki = self.channels_root / channel_id / "wiki"
+        documents = []
+        for path in sorted(wiki.rglob("*.md")) if wiki.exists() else []:
+            relative = path.relative_to(wiki)
+            expected_scope = "VIDEO" if relative.parts and relative.parts[0] == "videos" else "CHANNEL"
+            documents.append(
+                self._document(path, expected_scope=expected_scope, channel_id=channel_id)
+            )
+        return documents
+
+    def _scoped_payload(self) -> dict[str, Any]:
+        """Build the index payload, isolating per-scope parse failures.
+
+        A malformed note breaks only its own scope (recorded in
+        ``scope_errors`` and raised when that scope is actually queried), so
+        one bad channel cannot disrupt reads for unrelated channels.
+        """
+        documents: list[MemoryDocument] = []
+        scope_errors: dict[str, str] = {}
+        for scope_key in self._scope_keys():
+            try:
+                documents.extend(self._scope_documents(scope_key))
+            except KnowledgeError as exc:
+                scope_errors[scope_key] = str(exc)
+        by_id: dict[str, list[str]] = {}
+        for document in documents:
+            by_id.setdefault(document.knowledge_id, []).append(document.path)
+        duplicates = {key: value for key, value in by_id.items() if len(value) > 1}
+        if duplicates:
+            raise KnowledgeError(f"duplicate scoped knowledge IDs: {duplicates}")
+        documents = sorted(documents, key=lambda item: item.knowledge_id)
+        digest = hashlib.sha256()
+        digest.update(self.contract.read_bytes())
+        for document in documents:
+            digest.update(document.path.encode("utf-8"))
+            digest.update(b"\0")
+            digest.update((self.root / document.path).read_bytes())
+            digest.update(b"\0")
+        for scope_key in sorted(scope_errors):
+            digest.update(scope_key.encode("utf-8"))
+            digest.update(b"\0")
+            digest.update(scope_errors[scope_key].encode("utf-8"))
+            digest.update(b"\0")
+        return {
             "schema_version": self.INDEX_SCHEMA_VERSION,
-            "canonical_fingerprint": self.canonical_fingerprint(documents),
+            "canonical_fingerprint": digest.hexdigest(),
             "documents": self._indexed_documents(documents),
+            "scope_errors": scope_errors,
         }
+
+    def rebuild_index(self) -> dict[str, Any]:
+        payload = self._scoped_payload()
         _write_atomic(self.index_path, _canonical_bytes(payload))
         return payload
 
     def _index(self) -> dict[str, Any]:
-        canonical_documents = self.documents()
-        canonical_fingerprint = self.canonical_fingerprint(canonical_documents)
-        indexed_documents = self._indexed_documents(canonical_documents)
         try:
-            payload = json.loads(self.index_path.read_text(encoding="utf-8"))
-            if not isinstance(payload, dict) or payload.get("schema_version") != self.INDEX_SCHEMA_VERSION:
+            payload = self._scoped_payload()
+        except KnowledgeError:
+            # Cross-scope corruption (duplicate IDs) cannot be scoped away.
+            return self.rebuild_index()
+        try:
+            stored = json.loads(self.index_path.read_text(encoding="utf-8"))
+            if not isinstance(stored, dict) or stored.get("schema_version") != self.INDEX_SCHEMA_VERSION:
                 raise ValueError("unsupported memory index")
             if (
-                payload.get("canonical_fingerprint") != canonical_fingerprint
-                or payload.get("documents") != indexed_documents
+                stored.get("canonical_fingerprint") != payload["canonical_fingerprint"]
+                or stored.get("documents") != payload["documents"]
+                or stored.get("scope_errors", {}) != payload["scope_errors"]
             ):
                 return self.rebuild_index()
-            return payload
+            return stored
         except (OSError, json.JSONDecodeError, ValueError):
             return self.rebuild_index()
+
+    @staticmethod
+    def _visible_scope_keys(
+        *, channel_id: str | None, video_id: str | None, include_engine: bool,
+    ) -> set[str]:
+        keys = set()
+        if include_engine:
+            keys.add("engine")
+        if channel_id is not None:
+            keys.add(f"channel:{channel_id}")
+        if channel_id == "radicat":
+            keys.add("legacy:radicat")
+        return keys
+
+    def _raise_for_broken_visible_scopes(
+        self, payload: dict[str, Any], *, channel_id: str | None,
+        video_id: str | None, include_engine: bool,
+    ) -> None:
+        errors = payload.get("scope_errors", {})
+        visible = self._visible_scope_keys(
+            channel_id=channel_id, video_id=video_id, include_engine=include_engine,
+        )
+        broken = {key: errors[key] for key in sorted(visible) if key in errors}
+        if broken:
+            details = "; ".join(f"{key}: {error}" for key, error in broken.items())
+            raise KnowledgeError(f"memory scope is unreadable: {details}")
 
     def search(
         self,
@@ -309,15 +408,21 @@ class ChannelMemoryRepository:
         kinds: set[str] | None = None,
         authorities: set[str] | None = None,
         tags: set[str] | None = None,
+        statuses: set[str] | None = None,
         limit: int = 10,
     ) -> list[MemorySearchResult]:
         if limit < 1:
             raise KnowledgeError("search limit must be positive")
         if video_id and not channel_id:
             raise KnowledgeError("video-scoped search requires channel_id")
+        payload = self._index()
+        self._raise_for_broken_visible_scopes(
+            payload, channel_id=channel_id, video_id=video_id,
+            include_engine=include_engine,
+        )
         terms = TOKEN.findall(query.lower())
         results = []
-        for document in self._index()["documents"]:
+        for document in payload["documents"]:
             scope = document["scope"]
             visible = (
                 (scope == "ENGINE" and include_engine)
@@ -335,6 +440,8 @@ class ChannelMemoryRepository:
                 continue
             if tags and not tags.issubset(set(document["tags"])):
                 continue
+            if statuses and document["status"] not in statuses:
+                continue
             title = document["title"].lower()
             tag_text = " ".join(document["tags"]).lower()
             body = document["body"].lower()
@@ -346,7 +453,7 @@ class ChannelMemoryRepository:
                 MemorySearchResult(
                     document["knowledge_id"], document["title"], document["kind"],
                     document["authority"], scope, document["channel_id"], document["video_id"],
-                    score, document["path"], excerpt,
+                    document["status"], score, document["path"], excerpt,
                 )
             )
         return sorted(results, key=lambda item: (-item.score, item.knowledge_id))[:limit]
@@ -359,13 +466,33 @@ class ChannelMemoryRepository:
         video_id: str | None = None,
         include_engine: bool = False,
     ) -> MemoryDocument | None:
-        visible = {result.knowledge_id for result in self.search(
-            "", channel_id=channel_id, video_id=video_id, include_engine=include_engine, limit=100000
-        )}
-        return next(
-            (document for document in self.documents() if document.knowledge_id == knowledge_id and document.knowledge_id in visible),
-            None,
+        payload = self._index()
+        self._raise_for_broken_visible_scopes(
+            payload, channel_id=channel_id, video_id=video_id,
+            include_engine=include_engine,
         )
+        for document in payload["documents"]:
+            if document["knowledge_id"] != knowledge_id:
+                continue
+            scope = document["scope"]
+            visible = (
+                (scope == "ENGINE" and include_engine)
+                or (scope == "CHANNEL" and channel_id is not None and document["channel_id"] == channel_id)
+                or (
+                    scope == "VIDEO" and channel_id is not None and video_id is not None
+                    and document["channel_id"] == channel_id and document["video_id"] == video_id
+                )
+            )
+            if not visible:
+                continue
+            return MemoryDocument(
+                document["knowledge_id"], document["title"], document["kind"],
+                document["status"], document["authority"], document["scope"],
+                document["channel_id"], document["video_id"],
+                tuple(document["tags"]), document["confidence"],
+                document["path"], document["body"], document["metadata"],
+            )
+        return None
 
     def build_context_bundle(
         self,
@@ -376,6 +503,7 @@ class ChannelMemoryRepository:
         include_engine: bool = False,
         limit: int = 8,
         max_body_chars: int = 2400,
+        include_superseded: bool = False,
     ) -> dict[str, Any]:
         try:
             package = validate_channel_package(package_root.resolve(), self.root)
@@ -386,14 +514,20 @@ class ChannelMemoryRepository:
             channel_id=package.identity["id"],
             video_id=video_id,
             include_engine=include_engine,
+            statuses=None if include_superseded else {"active"},
             limit=limit,
         )
-        documents = {document.knowledge_id: document for document in self.documents()}
+        payload = self._index()
+        self._raise_for_broken_visible_scopes(
+            payload, channel_id=package.identity["id"], video_id=video_id,
+            include_engine=include_engine,
+        )
+        documents = {document["knowledge_id"]: document for document in payload["documents"]}
         remaining = max(0, max_body_chars)
         selected = []
         for result in results:
             document = documents[result.knowledge_id]
-            body = document.body[:remaining]
+            body = document["body"][:remaining]
             remaining -= len(body)
             selected.append({**asdict(result), "body": body})
             if remaining == 0:
@@ -459,7 +593,10 @@ class ChannelMemoryRepository:
             body.strip(), metadata,
         )
         self._validate_repository_provenance(candidate)
-        if any(document.knowledge_id == candidate.knowledge_id for document in self.documents()):
+        if any(
+            document["knowledge_id"] == candidate.knowledge_id
+            for document in self._index()["documents"]
+        ):
             raise KnowledgeError(f"duplicate scoped knowledge ID: {candidate.knowledge_id}")
         _write_atomic(target, _render_page(metadata, body))
         return target
