@@ -400,6 +400,14 @@ in Stage 9, and a genuine identity/DNA change later gets its own separate, delib
 5. Repeat from step 1 for the next episode. Publishing the finished render to YouTube is outside
    this skill's scope — the human does that.
 
+## Ongoing — Learning systems (taste, failures, programming)
+
+Three file-based systems compound across episodes (all optional until the channel has real productions to learn from):
+
+- **Taste** (`tools/taste.py`): after a review, record which of two productions the creator preferred and why (`compare`), generalize comparisons into proposed policies (`propose`), and promote a policy only after the human sees it on held-out examples (`promote --heldout-ref ... --yes`). Promoted guidance ranks and constrains — never approves.
+- **Failures** (`tools/failure_lab.py`): file recurring production failures as reproducible cases (`file --symptom ... --input-ref ... --reproduction-ref ...`), record verified repairs (`repair --verified`), and replay cases after voice/renderer/component upgrades (`replay --passed|--failed`).
+- **Programming** (`tools/programming.py`): turn opportunities into testable bets (`propose-hypothesis`), bind each episode to one hypothesis (`assign`), file production costs (`cost`), the human's publication receipts (`publish`), and later outcome snapshots with provenance (`outcome --provenance ... --window ...`, always correlational). Plan the next bounded slate (`propose-slate`) and get it approved (`approve-slate --yes`).
+
 ## Starting the dashboard
 
 Start it in Stage 1.5, not at the end: `python tools/dashboard/server.py --port 8420` — a local-only (127.0.0.1) creator control panel. `/overview/<channel_id>` is the control panel (header, workflow progress, next action, review queue, style snapshot, pilots/episodes, services, events, wiki shortcuts); `/channel/<id>` is the raw state/event detail; `/wiki/<id>` browses the Obsidian wiki; `/review` is the unified review queue across niche intelligence, design/script exemplars, identity candidates, asset components, pilots, and episodes. Action buttons for gated decisions (freeze/review/GO-REVISE/block/resume/etc.) require an explicit confirm step in the browser before they run — they shell out to the exact same CLI commands above via `tools/dashboard/actions.py`'s fixed whitelist, never re-implementing their logic. The whitelist covers gated decisions only; scaffolding and evidence-building steps stay in the chat walkthrough above. It is not started automatically; tell the user the command and let them open it themselves.
