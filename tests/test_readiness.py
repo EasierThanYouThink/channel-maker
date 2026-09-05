@@ -17,7 +17,7 @@ from engine.identity import init_identity
 from engine.library import register_component, review_component
 from engine.pilot import freeze_pilot, plan_pilot, record_production, record_review
 from engine.readiness import ReadinessError, check_readiness, write_readiness_report
-from engine.script import freeze_script_dna, write_script_dna
+from engine.script import ScriptExampleStore, freeze_script_dna, write_script_dna
 
 
 AT = "2026-09-05T12:00:00+00:00"
@@ -109,6 +109,15 @@ def test_full_incremental_build_flips_every_item_and_persists_at_the_end(tmp_pat
         preferred_cliches=[], forbidden_cliches=[], fact_verification_requirements="two sources",
         unresolved_variables=[],
     )
+    script_store = ScriptExampleStore(tmp_path, CHANNEL_ID)
+    script_example = script_store.add(
+        "A proven line.", tags=[], provenance_kind="human_authored",
+        created_by="Seb", source_ref="manual",
+    )
+    script_store.review(
+        script_example["example_id"], decision="approved", reviewer="Seb",
+        reason="Good.", created_at=AT, human_confirmed=True,
+    )
     freeze_script_dna(package, tmp_path, human_confirmed=True, decision_ref=any_ref)
     machine.advance("SCRIPT_DNA_DISCOVERY", next_action="n", actor="a", reason="r", prerequisite_refs=[any_ref])
     report = check_readiness(package, tmp_path)
@@ -117,13 +126,14 @@ def test_full_incremental_build_flips_every_item_and_persists_at_the_end(tmp_pat
 
     init_seed("visual", package, tmp_path)
     exemplar_store = ChannelExemplarStore(tmp_path, CHANNEL_ID)
-    image = make_png(tmp_path / "src" / "ref.png")
-    record = exemplar_store.add(
-        image, title="Ref frame", domain="visual_identity", tags=[],
-        provenance_kind="human_supplied_original", created_by="Seb", source_ref="manual upload",
-    )
-    exemplar_store.review(record["exemplar_id"], decision="approved", reviewer="Seb", reason="Matches direction.", created_at=AT, human_confirmed=True)
-    add_reference("visual", package, tmp_path, domain="visual_identity", exemplar_id=record["exemplar_id"])
+    for domain in ("visual_identity", "typography", "color_language", "composition_grammar", "scene_aesthetics"):
+        image = make_png(tmp_path / "src" / f"{domain}.png")
+        record = exemplar_store.add(
+            image, title=f"Ref {domain}", domain=domain, tags=[],
+            provenance_kind="human_supplied_original", created_by="Seb", source_ref="manual upload",
+        )
+        exemplar_store.review(record["exemplar_id"], decision="approved", reviewer="Seb", reason="Matches direction.", created_at=AT, human_confirmed=True)
+        add_reference("visual", package, tmp_path, domain=domain, exemplar_id=record["exemplar_id"])
     for domain in ("visual_identity", "typography", "color_language", "composition_grammar", "scene_aesthetics"):
         freeze_domain("visual", package, tmp_path, domain=domain, human_confirmed=True, decision_ref=any_ref)
     report = check_readiness(package, tmp_path)
@@ -132,6 +142,13 @@ def test_full_incremental_build_flips_every_item_and_persists_at_the_end(tmp_pat
     machine.advance("VISUAL_DNA_DISCOVERY", next_action="n", actor="a", reason="r", prerequisite_refs=[any_ref])
 
     init_seed("motion", package, tmp_path)
+    motion_image = make_png(tmp_path / "src" / "motion.png")
+    motion_record = exemplar_store.add(
+        motion_image, title="Ref motion", domain="motion_identity", tags=[],
+        provenance_kind="human_supplied_original", created_by="Seb", source_ref="manual upload",
+    )
+    exemplar_store.review(motion_record["exemplar_id"], decision="approved", reviewer="Seb", reason="Matches.", created_at=AT, human_confirmed=True)
+    add_reference("motion", package, tmp_path, domain="motion_identity", exemplar_id=motion_record["exemplar_id"])
     freeze_domain("motion", package, tmp_path, domain="motion_identity", human_confirmed=True, decision_ref=any_ref)
     machine.advance("MOTION_DNA_DISCOVERY", next_action="n", actor="a", reason="r", prerequisite_refs=[any_ref])
     report = check_readiness(package, tmp_path)

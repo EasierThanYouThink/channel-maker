@@ -139,6 +139,11 @@ def freeze_domain(
         raise DesignValidationError(
             f"{kind} DNA domain {domain!r} is already frozen; pass force=True to re-freeze deliberately"
         )
+    if not gate["reference_ids"]:
+        raise DesignValidationError(
+            f"cannot freeze {kind} DNA domain {domain!r} with no references: "
+            "attach at least one approved exemplar first"
+        )
     gate["discovery_status"] = "POPULATED"
     gate["authority_status"] = "FROZEN"
     gate["gate"] = "HUMAN_FROZEN"

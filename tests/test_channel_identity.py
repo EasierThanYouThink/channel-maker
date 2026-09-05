@@ -171,3 +171,13 @@ def test_list_filters_by_domain_and_classification(tmp_path: Path) -> None:
     review = store.review(description["candidate_id"], decision="approved", reviewer="Seb", reason="Good voice.", created_at=AT, human_confirmed=True)
     assert review["decision"] == "approved"
     assert len(store.list(classification="approved")) == 1
+
+
+def test_freeze_domain_requires_a_reference(tmp_path: Path) -> None:
+    package = write_package(tmp_path)
+    init_identity(package, tmp_path)
+    with pytest.raises(IdentityValidationError, match="no references"):
+        freeze_domain(
+            package, tmp_path, domain="logo",
+            human_confirmed=True, decision_ref="channels/identity-channel/channel.yaml",
+        )

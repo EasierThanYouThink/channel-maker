@@ -135,6 +135,11 @@ def freeze_domain(
         raise IdentityValidationError(
             f"channel identity domain {domain!r} is already frozen; pass force=True to re-freeze deliberately"
         )
+    if not gate["reference_ids"]:
+        raise IdentityValidationError(
+            f"cannot freeze channel identity domain {domain!r} with no references: "
+            "attach the selected approved candidate first"
+        )
     gate["discovery_status"] = "POPULATED"
     gate["authority_status"] = "FROZEN"
     gate["gate"] = "HUMAN_FROZEN"

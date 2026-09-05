@@ -69,7 +69,11 @@ ACTIONS: dict[str, ActionSpec] = {
     ),
     "freeze_script_dna": ActionSpec(
         argv=["tools/script_dna.py", "freeze", "{package_root}"],
-        flags={"decision_ref": "--decision-ref"},
+        flags={
+            "decision_ref": "--decision-ref",
+            "audition_example": "--audition-example",
+            "audition_timing": "--audition-timing",
+        },
         gated=True,
     ),
     "review_script_example": ActionSpec(

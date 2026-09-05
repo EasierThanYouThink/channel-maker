@@ -65,6 +65,8 @@ def parse_args() -> argparse.Namespace:
     freeze.add_argument("--decision-ref", required=True)
     freeze.add_argument("--yes", action="store_true")
     freeze.add_argument("--force", action="store_true", help="Re-freeze already-frozen Script DNA.")
+    freeze.add_argument("--audition-example", default=None, help="Approved example id heard as audio before freezing.")
+    freeze.add_argument("--audition-timing", default=None, help="Voiceover timing JSON for the auditioned example.")
 
     add_example = subparsers.add_parser("add-example")
     add_example.add_argument("package_root", type=Path)
@@ -124,7 +126,11 @@ def main() -> int:
             print(path.relative_to(args.root.resolve()).as_posix())
         elif args.command == "freeze":
             _confirm(f"Freeze Script DNA for {args.package_root}? Type yes: ", assume_yes=args.yes)
-            path = freeze_script_dna(args.package_root, args.root, human_confirmed=True, decision_ref=args.decision_ref, force=args.force)
+            path = freeze_script_dna(
+                args.package_root, args.root, human_confirmed=True, decision_ref=args.decision_ref,
+                force=args.force, audition_example_id=args.audition_example,
+                audition_timing_ref=args.audition_timing,
+            )
             print(path.relative_to(args.root.resolve()).as_posix())
         elif args.command == "add-example":
             store = ScriptExampleStore(args.root, _channel_id(args.root, args.package_root))

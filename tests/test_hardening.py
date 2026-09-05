@@ -38,7 +38,7 @@ from engine.pilot import (
     record_production,
     record_review,
 )
-from engine.script import ScriptValidationError, freeze_script_dna, write_script_dna
+from engine.script import ScriptExampleStore, ScriptValidationError, freeze_script_dna, write_script_dna
 
 
 AT = "2026-09-05T12:00:00+00:00"
@@ -125,6 +125,15 @@ def test_script_dna_refreeze_refuses_without_force(tmp_path: Path) -> None:
     package = write_package(tmp_path)
     ref = "channels/harden-channel/channel.yaml"
     write_script_dna(package, tmp_path, **script_kwargs())
+    store = ScriptExampleStore(tmp_path, "harden-channel")
+    record = store.add(
+        "A proven line.", tags=[], provenance_kind="human_authored",
+        created_by="Seb", source_ref="manual",
+    )
+    store.review(
+        record["example_id"], decision="approved", reviewer="Seb",
+        reason="Good.", created_at=AT, human_confirmed=True,
+    )
     freeze_script_dna(package, tmp_path, human_confirmed=True, decision_ref=ref)
     with pytest.raises(ScriptValidationError, match="already frozen"):
         freeze_script_dna(package, tmp_path, human_confirmed=True, decision_ref=ref)

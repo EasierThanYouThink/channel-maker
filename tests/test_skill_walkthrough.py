@@ -280,8 +280,25 @@ def _walkthrough_init_to_ready(root: Path, tmp_path: Path) -> None:
         "--question-usage", "One mid-video.", "--number-usage", "One number.",
         "--story-structure", "Problem, mechanism, consequence.", "--ending-behavior", "Implication.",
         "--cta-philosophy", "Soft.", "--fact-verification-requirements", "Two sources.")
+    # Proof before adjectives: an approved example plus a heard audition.
+    example_out = cli_json(root, "script_dna.py", "add-example", str(package),
+        "--text", "Caffeine blocks the sleep signal. That is the whole trick.",
+        "--provenance-kind", "human_authored", "--created-by", REVIEWER,
+        "--source-ref", "walkthrough")
+    example_id = example_out["example_id"]
+    cli(root, "script_dna.py", "review-example", str(package), example_id,
+        "--decision", "approved", "--reviewer", REVIEWER,
+        "--reason", "Sounds like us.", "--yes")
+    audition_text = package / "script" / "audition.txt"
+    audition_text.write_text("Caffeine blocks the sleep signal. That is the whole trick.\n", encoding="utf-8")
+    audition_audio = f"channels/{CHANNEL_ID}/script/audition.wav"
+    audition_timing = f"channels/{CHANNEL_ID}/script/audition-timing.json"
+    cli(root, "voiceover.py", "synthesize", "--script-path", str(audition_text),
+        "--output-audio", audition_audio, "--output-timing", audition_timing,
+        "--voice-model-dir", str(_shared_model_cache()))
     script_note = write_note(root, "script-freeze.md", "# Script DNA freeze\n\nApproved.\n")
-    cli(root, "script_dna.py", "freeze", str(package), "--decision-ref", script_note, "--yes")
+    cli(root, "script_dna.py", "freeze", str(package), "--decision-ref", script_note,
+        "--audition-example", example_id, "--audition-timing", audition_timing, "--yes")
     advance(root, package, "SCRIPT_DNA_DISCOVERY",
             prerequisite_ref=f"channels/{CHANNEL_ID}/script/script-dna.yaml")
 

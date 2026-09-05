@@ -118,3 +118,13 @@ def test_resolve_domain_references_detects_missing_exemplar(tmp_path: Path) -> N
     store_root = tmp_path / "channels" / "design-channel" / "design" / "exemplars"
     with pytest.raises(DesignValidationError, match="no exemplar record"):
         resolve_domain_references("visual", document, store_root)
+
+
+def test_freeze_domain_requires_a_reference(tmp_path: Path) -> None:
+    package = write_package(tmp_path)
+    init_seed("visual", package, tmp_path)
+    with pytest.raises(DesignValidationError, match="no references"):
+        freeze_domain(
+            "visual", package, tmp_path, domain="visual_identity",
+            human_confirmed=True, decision_ref="channels/design-channel/channel.yaml",
+        )

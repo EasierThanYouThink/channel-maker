@@ -50,6 +50,14 @@
     "unresolved_variables": {"type": "array", "uniqueItems": true, "items": {"type": "string", "minLength": 1}},
     "status": {"enum": ["ACTIVE_DISCOVERY", "FROZEN"]},
     "decision_refs": {"type": "array", "uniqueItems": true, "items": {"$ref": "common.schema.json#/$defs/relativePath"}},
+    "audition": {
+      "type": ["object", "null"], "additionalProperties": false,
+      "required": ["example_id", "timing_ref"],
+      "properties": {
+        "example_id": {"type": "string", "minLength": 1},
+        "timing_ref": {"$ref": "common.schema.json#/$defs/relativePath"}
+      }
+    },
     "created_by": {"$ref": "common.schema.json#/$defs/creationProvenance"}
   },
   "allOf": [

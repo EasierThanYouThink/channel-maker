@@ -12,6 +12,7 @@ import yaml
 
 from engine.channel import ChannelValidationError, validate_channel_package
 
+from .examples import ScriptExampleStore
 from .validation import ScriptValidationError, validate_script_dna
 
 
@@ -82,6 +83,7 @@ def write_script_dna(
         "preferred_cliches": preferred_cliches, "forbidden_cliches": forbidden_cliches,
         "fact_verification_requirements": fact_verification_requirements,
         "unresolved_variables": unresolved_variables, "status": "ACTIVE_DISCOVERY", "decision_refs": [],
+        "audition": None,
         "created_by": {
             "created_at": _timestamp(None), "creator": "MODEL_ASSISTED",
             "tool": "engine.script.dna.write_script_dna", "version": "1.0.0",
@@ -100,6 +102,8 @@ def freeze_script_dna(
     human_confirmed: bool,
     decision_ref: str,
     force: bool = False,
+    audition_example_id: str | None = None,
+    audition_timing_ref: str | None = None,
 ) -> Path:
     if not human_confirmed:
         raise ScriptValidationError("freezing Script DNA requires an explicit human confirmation")
@@ -122,9 +126,47 @@ def freeze_script_dna(
         raise ScriptValidationError(
             f"Script DNA is already frozen: {path}; pass force=True to re-freeze deliberately"
         )
+    # Proof before adjectives: at least one human-approved example must show
+    # the DNA working, not just describe it.
+    store = ScriptExampleStore(repository_root, package.identity["id"])
+    approved = store.list(classification="approved")
+    if not approved:
+        raise ScriptValidationError(
+            "freezing Script DNA requires at least one approved example: "
+            "add one with script_dna.py add-example, get it reviewed, then freeze"
+        )
+    audition = document.get("audition")
+    if audition_example_id is not None or audition_timing_ref is not None:
+        if not audition_example_id or not audition_timing_ref:
+            raise ScriptValidationError("an audition needs both an example id and a timing ref")
+        example_path = store.records / f"{audition_example_id.removeprefix('script-example:')}.json"
+        if not example_path.is_file():
+            raise ScriptValidationError(f"audition example does not exist: {audition_example_id}")
+        import json as _json
+
+        example = _json.loads(example_path.read_text(encoding="utf-8"))
+        if example.get("classification") != "approved":
+            raise ScriptValidationError(
+                f"audition example {audition_example_id} is {example.get('classification')!r}, not approved"
+            )
+        timing_path = (repository_root / audition_timing_ref).resolve()
+        if not timing_path.is_relative_to(repository_root) or not timing_path.is_file():
+            raise ScriptValidationError(f"audition timing does not exist: {audition_timing_ref}")
+        from engine.voiceover import VoiceoverValidationError
+        from engine.voiceover import validate_timing as _validate_timing
+
+        try:
+            audition_doc = _json.loads(timing_path.read_text(encoding="utf-8"))
+            audition_audio = (repository_root / audition_doc["audio"]["path"]).resolve()
+            _validate_timing(timing_path, audio_path=audition_audio)
+        except (VoiceoverValidationError, KeyError) as exc:
+            raise ScriptValidationError(f"audition timing is invalid: {exc}") from exc
+        audition = {"example_id": audition_example_id, "timing_ref": audition_timing_ref}
     document["status"] = "FROZEN"
     if decision_ref not in document["decision_refs"]:
         document["decision_refs"] = [*document["decision_refs"], decision_ref]
+    if audition is not None:
+        document["audition"] = audition
     validate_script_dna(document, expected_channel_id=package.identity["id"])
     _write_yaml_atomic(path, document)
     return path
