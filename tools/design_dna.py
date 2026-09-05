@@ -52,6 +52,7 @@ def parse_args() -> argparse.Namespace:
     freeze.add_argument("--domain", required=True)
     freeze.add_argument("--decision-ref", required=True)
     freeze.add_argument("--yes", action="store_true")
+    freeze.add_argument("--force", action="store_true", help="Re-freeze an already-frozen domain.")
 
     check_ready = subparsers.add_parser("check-ready")
     check_ready.add_argument("package_root", type=Path)
@@ -73,7 +74,7 @@ def main() -> int:
             _confirm(f"Freeze {args.kind} domain {args.domain!r} for {args.package_root}? Type yes: ", assume_yes=args.yes)
             path = freeze_domain(
                 args.kind, args.package_root, args.root, domain=args.domain,
-                human_confirmed=True, decision_ref=args.decision_ref,
+                human_confirmed=True, decision_ref=args.decision_ref, force=args.force,
             )
         elif args.command == "check-ready":
             resolved = args.package_root.resolve() if args.package_root.is_absolute() else args.root.resolve() / args.package_root

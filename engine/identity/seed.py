@@ -109,7 +109,7 @@ def add_reference(package_root: Path, repository_root: Path, *, domain: str, can
 
 def freeze_domain(
     package_root: Path, repository_root: Path, *, domain: str,
-    human_confirmed: bool, decision_ref: str,
+    human_confirmed: bool, decision_ref: str, force: bool = False,
 ) -> Path:
     if not human_confirmed:
         raise IdentityValidationError("freezing a channel identity domain requires an explicit human confirmation")
@@ -126,6 +126,10 @@ def freeze_domain(
     path = identity_path(package.root)
     document = yaml.safe_load(path.read_text(encoding="utf-8"))
     gate = document["domains"][domain]
+    if gate["authority_status"] == "FROZEN" and not force:
+        raise IdentityValidationError(
+            f"channel identity domain {domain!r} is already frozen; pass force=True to re-freeze deliberately"
+        )
     gate["discovery_status"] = "POPULATED"
     gate["authority_status"] = "FROZEN"
     gate["gate"] = "HUMAN_FROZEN"

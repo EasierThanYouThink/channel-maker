@@ -58,12 +58,19 @@ def write_script_dna(
     forbidden_cliches: list[str],
     fact_verification_requirements: str,
     unresolved_variables: list[str],
+    force: bool = False,
 ) -> Path:
     repository_root = repository_root.resolve()
     try:
         package = validate_channel_package(package_root.resolve(), repository_root)
     except ChannelValidationError as exc:
         raise ScriptValidationError(str(exc)) from exc
+    draft_path = _dna_path(package.root)
+    if draft_path.is_file() and not force:
+        raise ScriptValidationError(
+            f"Script DNA already drafted: {draft_path}; re-running write overwrites it and clears "
+            f"frozen status and decision_refs — pass force=True to overwrite deliberately"
+        )
     document = {
         "schema_version": "1.0.0", "artifact_type": "script_dna", "channel_id": package.identity["id"],
         "hook_philosophy": hook_philosophy, "narrator_personality": narrator_personality,
@@ -92,6 +99,7 @@ def freeze_script_dna(
     *,
     human_confirmed: bool,
     decision_ref: str,
+    force: bool = False,
 ) -> Path:
     if not human_confirmed:
         raise ScriptValidationError("freezing Script DNA requires an explicit human confirmation")
@@ -110,6 +118,10 @@ def freeze_script_dna(
     if not path.is_file():
         raise ScriptValidationError(f"no drafted Script DNA exists yet: {path}")
     document = yaml.safe_load(path.read_text(encoding="utf-8"))
+    if document.get("status") == "FROZEN" and not force:
+        raise ScriptValidationError(
+            f"Script DNA is already frozen: {path}; pass force=True to re-freeze deliberately"
+        )
     document["status"] = "FROZEN"
     if decision_ref not in document["decision_refs"]:
         document["decision_refs"] = [*document["decision_refs"], decision_ref]

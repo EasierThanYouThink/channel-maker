@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import copy
-import fcntl
 import json
 import os
 import tempfile
@@ -13,6 +12,9 @@ from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Callable
+
+from ._portable import file_lock as _portable_lock
+from ._portable import write_json_atomic as _write_json_atomic_portable
 
 from .validation import (
     ChannelPackage,
@@ -53,22 +55,7 @@ def _timestamp(value: str | None) -> str:
 
 
 def _write_atomic(path: Path, value: dict[str, Any]) -> None:
-    descriptor, temporary_name = tempfile.mkstemp(prefix=f".{path.name}.", suffix=".tmp", dir=path.parent)
-    temporary = Path(temporary_name)
-    try:
-        with os.fdopen(descriptor, "wb") as handle:
-            handle.write(canonical_json_bytes(value))
-            handle.flush()
-            os.fsync(handle.fileno())
-        os.replace(temporary, path)
-        directory = os.open(path.parent, os.O_RDONLY)
-        try:
-            os.fsync(directory)
-        finally:
-            os.close(directory)
-    finally:
-        if temporary.exists():
-            temporary.unlink()
+    _write_json_atomic_portable(path, value)
 
 
 class ChannelStateMachine:
@@ -84,20 +71,11 @@ class ChannelStateMachine:
 
     @contextmanager
     def _write_lock(self, timeout_s: float = 10.0):
-        with self.lock_path.open("a+b") as handle:
-            deadline = time.monotonic() + timeout_s
-            while True:
-                try:
-                    fcntl.flock(handle.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
-                    break
-                except BlockingIOError:
-                    if time.monotonic() >= deadline:
-                        raise ChannelStateError(f"timed out waiting for channel state lock {self.lock_path}")
-                    time.sleep(0.05)
-            try:
+        try:
+            with _portable_lock(self.lock_path, timeout_s):
                 yield
-            finally:
-                fcntl.flock(handle.fileno(), fcntl.LOCK_UN)
+        except RuntimeError as exc:
+            raise ChannelStateError(str(exc)) from exc
 
     def load(self) -> ChannelPackage:
         try:
@@ -162,6 +140,13 @@ class ChannelStateMachine:
         requires_human = (state["state"], target) in HUMAN_GATE_TRANSITIONS
         if requires_human and not (human_decision_ref or "").strip():
             raise ChannelStateError(f"{state['state']} -> {target} requires an explicit human decision reference")
+        if requires_human:
+            resolved = (self.repository_root / human_decision_ref).resolve()
+            if not resolved.is_relative_to(self.repository_root) or not resolved.exists():
+                raise ChannelStateError(
+                    f"{state['state']} -> {target} human decision reference does not resolve "
+                    f"to an existing repository path: {human_decision_ref}"
+                )
         return {
             "from_state": state["state"],
             "to_state": target,

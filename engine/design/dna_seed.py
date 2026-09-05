@@ -113,7 +113,7 @@ def add_reference(kind: str, package_root: Path, repository_root: Path, *, domai
 
 def freeze_domain(
     kind: str, package_root: Path, repository_root: Path, *, domain: str,
-    human_confirmed: bool, decision_ref: str,
+    human_confirmed: bool, decision_ref: str, force: bool = False,
 ) -> Path:
     if not human_confirmed:
         raise DesignValidationError(f"freezing a {kind} DNA domain requires an explicit human confirmation")
@@ -130,6 +130,10 @@ def freeze_domain(
     path = seed_path(kind, package.root)
     document = yaml.safe_load(path.read_text(encoding="utf-8"))
     gate = document["domains"][domain]
+    if gate["authority_status"] == "FROZEN" and not force:
+        raise DesignValidationError(
+            f"{kind} DNA domain {domain!r} is already frozen; pass force=True to re-freeze deliberately"
+        )
     gate["discovery_status"] = "POPULATED"
     gate["authority_status"] = "FROZEN"
     gate["gate"] = "HUMAN_FROZEN"

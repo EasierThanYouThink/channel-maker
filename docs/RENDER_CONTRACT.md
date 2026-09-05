@@ -1,6 +1,6 @@
 # Render Contract
 
-Stage 8 (pilot production) never assumes a specific rendering pipeline. A
+Stage 9 (pilot production) never assumes a specific rendering pipeline. A
 channel declares its renderer once, at `init_channel.py --renderer <name>`
 (stored at `channel.yaml`'s `production.renderer`), and every asset component
 registered for that channel (`tools/asset_registry.py register --renderer
@@ -8,7 +8,7 @@ registered for that channel (`tools/asset_registry.py register --renderer
 was originally generalized from a Remotion-based pipeline — but any renderer
 name is accepted; nothing in `engine/` or `tools/` special-cases it.
 
-What Stage 8 actually requires is evidence in two shapes, validated by
+What Stage 9 actually requires is evidence in two shapes, validated by
 `tools/build_scene_candidate.py` and `tools/evaluate_scene.py` against
 `schemas/scene_candidate_manifest.schema.json` and
 `schemas/evaluation_contract.schema.json` / `evaluation_result.schema.json`,

@@ -1,0 +1,76 @@
+{
+  "$id": "https://channel-maker.local/engine/voiceover/voiceover-timing.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Voiceover timing",
+  "description": "Measured sentence boundaries plus word timings for one synthesized narration track. Sentence boundaries are measured from real audio; word timings are either measured phoneme alignments or explicitly labeled uniform estimates.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "artifact_type", "voice", "text", "sentences", "words", "total_duration_s", "audio", "created_by"],
+  "properties": {
+    "schema_version": {"const": "1.0.0"},
+    "artifact_type": {"const": "voiceover_timing"},
+    "voice": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "model", "sample_rate_hz"],
+      "properties": {
+        "name": {"type": "string", "minLength": 1},
+        "model": {"type": "string", "minLength": 1},
+        "sample_rate_hz": {"type": "integer", "minimum": 8000}
+      }
+    },
+    "text": {"type": "string", "minLength": 1},
+    "sentences": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["index", "text", "start_s", "end_s", "method"],
+        "properties": {
+          "index": {"type": "integer", "minimum": 0},
+          "text": {"type": "string", "minLength": 1},
+          "start_s": {"type": "number", "minimum": 0},
+          "end_s": {"type": "number", "exclusiveMinimum": 0},
+          "method": {"const": "measured_audio"}
+        }
+      }
+    },
+    "words": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["text", "start_s", "end_s", "method"],
+        "properties": {
+          "text": {"type": "string", "minLength": 1},
+          "start_s": {"type": "number", "minimum": 0},
+          "end_s": {"type": "number", "exclusiveMinimum": 0},
+          "method": {"enum": ["measured_alignment", "uniform_estimate"]}
+        }
+      }
+    },
+    "total_duration_s": {"type": "number", "exclusiveMinimum": 0},
+    "audio": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["path", "sha256", "duration_s", "sample_rate_hz"],
+      "properties": {
+        "path": {"type": "string", "minLength": 1},
+        "sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+        "duration_s": {"type": "number", "exclusiveMinimum": 0},
+        "sample_rate_hz": {"type": "integer", "minimum": 8000}
+      }
+    },
+    "created_by": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["tool", "version"],
+      "properties": {
+        "tool": {"type": "string", "minLength": 1},
+        "version": {"type": "string", "minLength": 1}
+      }
+    }
+  }
+}

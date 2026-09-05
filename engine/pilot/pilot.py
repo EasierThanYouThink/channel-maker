@@ -192,11 +192,17 @@ def freeze_pilot(
     *,
     new_channel_version: str,
     frozen_by: str,
+    force: bool = False,
 ) -> Path:
     package = _load_package(package_root, repository_root)
     path, document = _load_pilot(package.root, pilot_id)
     if document["review"]["decision"] != "GO":
         raise PilotValidationError("a pilot can only be frozen after a GO review decision")
+    if document["freeze"]["frozen"] and not force:
+        raise PilotValidationError(
+            f"pilot {pilot_id} is already frozen at version "
+            f"{document['freeze']['new_channel_version']}; pass force=True to re-freeze deliberately"
+        )
     repository_root = repository_root.resolve()
 
     previous_version = package.identity["version"]

@@ -70,12 +70,24 @@ def parse_args() -> argparse.Namespace:
     revise.add_argument("--decision-ref", required=True)
     revise.add_argument("--next-action", required=True)
     revise.add_argument("--reason", required=True)
+    revise.add_argument("--yes", action="store_true")
 
     abandon = commands.add_parser("abandon")
     _mutation(abandon)
     abandon.add_argument("--decision-ref", required=True)
     abandon.add_argument("--reason", required=True)
+    abandon.add_argument("--yes", action="store_true")
     return parser.parse_args()
+
+
+def _require_human_confirm(args: argparse.Namespace, what: str) -> None:
+    if args.yes:
+        return
+    if not sys.stdin.isatty():
+        raise ChannelStateError(f"channel {what} requires --yes (non-interactive) or an interactive human terminal")
+    confirmation = input(f"Record human channel {what}? Type yes: ").strip().lower()
+    if confirmation != "yes":
+        raise ChannelStateError(f"human channel {what} cancelled")
 
 
 def main() -> int:
@@ -123,6 +135,7 @@ def main() -> int:
                 **mutation,
             )
         elif args.command == "revise":
+            _require_human_confirm(args, f"revise to {args.target}")
             result = runtime.revise(
                 args.target,
                 decision_ref=args.decision_ref,
@@ -131,6 +144,7 @@ def main() -> int:
                 **mutation,
             )
         else:
+            _require_human_confirm(args, "abandon")
             result = runtime.abandon(
                 decision_ref=args.decision_ref,
                 reason=args.reason,

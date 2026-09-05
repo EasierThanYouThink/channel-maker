@@ -52,6 +52,7 @@ def write_foundation(
     content_boundaries: list[str],
     primary_format: str,
     deliberately_avoids: list[str],
+    force: bool = False,
 ) -> Path:
     """Draft a channel's Foundation document. Not yet advance-eligible until a decision is attached."""
 
@@ -88,6 +89,11 @@ def write_foundation(
     }
     validate_foundation(document, expected_channel_id=channel_id)
     path = _foundation_path(package.root)
+    if path.is_file() and not force:
+        raise FoundationValidationError(
+            f"foundation already drafted: {path}; re-running write overwrites it and clears "
+            f"attached decision_refs — pass force=True to overwrite deliberately"
+        )
     _write_yaml_atomic(path, document)
     return path
 

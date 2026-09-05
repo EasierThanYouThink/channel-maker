@@ -52,12 +52,23 @@ def parse_args() -> argparse.Namespace:
     review.add_argument("--rationale", required=True)
     review.add_argument("--decision-ref", required=True)
     review.add_argument("--decided-at", default=None)
+    review.add_argument("--yes", action="store_true")
 
     validate = subparsers.add_parser("validate")
     validate.add_argument("package_root", type=Path)
     validate.add_argument("episode_id")
 
     return parser.parse_args()
+
+
+def _require_human_confirm(args: argparse.Namespace, what: str) -> None:
+    if args.yes:
+        return
+    if not sys.stdin.isatty():
+        raise EpisodeValidationError(f"episode {what} requires --yes (non-interactive) or an interactive human terminal")
+    confirmation = input(f"Record human episode {what}? Type yes: ").strip().lower()
+    if confirmation != "yes":
+        raise EpisodeValidationError(f"human episode {what} cancelled")
 
 
 def main() -> int:
@@ -76,6 +87,7 @@ def main() -> int:
                 production_log_ref=args.production_log_ref,
             )
         elif args.command == "record-review":
+            _require_human_confirm(args, f"{args.decision} review for {args.episode_id}")
             path = record_review(
                 args.package_root, args.root, args.episode_id, decision=args.decision, decided_by=args.decided_by,
                 rationale=args.rationale, decision_ref=args.decision_ref, decided_at=args.decided_at,

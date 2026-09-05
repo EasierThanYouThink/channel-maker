@@ -6,6 +6,7 @@ import argparse
 import json
 import sys
 from pathlib import Path
+from typing import Any
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -16,9 +17,12 @@ from engine.niche_intelligence import (
     MetricError,
     NicheIntelligenceRepository,
     NicheValidationError,
+    add_content_annotation,
     add_hypothesis,
     add_observation,
     add_opportunity,
+    add_script_annotation,
+    add_visual_market_annotation,
     import_evidence,
     relative_views_same_channel_v1,
     validate_contracts,
@@ -85,6 +89,45 @@ def parse_args() -> argparse.Namespace:
     add_opp.add_argument("--evidence-ref", action="append", required=True, dest="evidence_refs")
     add_opp.add_argument("--risk", action="append", required=True, dest="risks")
     add_opp.add_argument("--confidence", type=float, default=None)
+
+    content_ann = subparsers.add_parser(
+        "add-teardown-content",
+        help="Record a what-works content teardown of one video (hook family, structure, characteristics, ending)",
+    )
+    content_ann.add_argument("study_root", type=Path)
+    content_ann.add_argument("--key", required=True)
+    content_ann.add_argument("--video-evidence-id", required=True)
+    content_ann.add_argument(
+        "--payload-json", type=Path, required=True,
+        help="JSON file with the content-annotation 'annotation' object (primary_topic, hook_family, structure, ...)",
+    )
+    content_ann.add_argument("--confidence", type=float, default=None)
+
+    script_ann = subparsers.add_parser(
+        "add-teardown-script",
+        help="Record a what-works script teardown of one video (transcript provenance, statistics, hook/structure judgments)",
+    )
+    script_ann.add_argument("study_root", type=Path)
+    script_ann.add_argument("--key", required=True)
+    script_ann.add_argument("--video-evidence-id", required=True)
+    script_ann.add_argument(
+        "--payload-json", type=Path, required=True,
+        help="JSON file with 'transcript', 'statistics', and 'annotations' objects per the script-annotation schema",
+    )
+    script_ann.add_argument("--confidence", type=float, default=None)
+
+    visual_ann = subparsers.add_parser(
+        "add-teardown-visual",
+        help="Record a what-works visual teardown of one video (production approaches, pacing/text proxies, continuity). Market evidence only — never design authority.",
+    )
+    visual_ann.add_argument("study_root", type=Path)
+    visual_ann.add_argument("--key", required=True)
+    visual_ann.add_argument("--video-evidence-id", required=True)
+    visual_ann.add_argument(
+        "--payload-json", type=Path, required=True,
+        help="JSON file with the visual-market-annotation 'annotation' object (production_approaches, ...)",
+    )
+    visual_ann.add_argument("--confidence", type=float, default=None)
     return parser.parse_args()
 
 
@@ -105,14 +148,14 @@ def main() -> int:
                 raise NicheValidationError("metric request must be a JSON object")
             print(json.dumps(relative_views_same_channel_v1(**request), indent=2, sort_keys=True))
         elif args.command == "context":
-            repository = NicheIntelligenceRepository(ROOT)
+            repository = NicheIntelligenceRepository(args.root.resolve())
             print(json.dumps(repository.build_context_bundle(
                 args.package_root, args.study_root, args.query, include_engine=args.include_engine,
             ), indent=2, sort_keys=True))
         elif args.command == "publish-summaries":
-            repository = NicheIntelligenceRepository(ROOT)
+            repository = NicheIntelligenceRepository(args.root.resolve())
             created = repository.publish_semantic_summaries(args.package_root, args.study_root)
-            print(json.dumps([path.relative_to(ROOT).as_posix() for path in created], indent=2))
+            print(json.dumps([path.relative_to(args.root.resolve()).as_posix() for path in created], indent=2))
         elif args.command == "import-evidence":
             created = import_evidence(
                 args.study_root, args.response_json, reviewed_by=args.reviewed_by,
@@ -135,7 +178,7 @@ def main() -> int:
                 confidence=args.confidence, test_idea=args.test_idea, repository_root=args.root,
             )
             print(path.relative_to(args.root.resolve()).as_posix())
-        else:
+        elif args.command == "add-opportunity":
             path = add_opportunity(
                 args.study_root, key=args.key, observed_market=args.observed_market,
                 underrepresented=args.underrepresented, proposal=args.proposal,
@@ -143,10 +186,48 @@ def main() -> int:
                 risks=args.risks, confidence=args.confidence, repository_root=args.root,
             )
             print(path.relative_to(args.root.resolve()).as_posix())
+        elif args.command == "add-teardown-content":
+            payload = _load_payload(args.payload_json, "annotation")
+            path = add_content_annotation(
+                args.study_root, key=args.key, video_evidence_id=args.video_evidence_id,
+                annotation=payload["annotation"], confidence=args.confidence,
+                repository_root=args.root,
+            )
+            print(path.relative_to(args.root.resolve()).as_posix())
+        elif args.command == "add-teardown-script":
+            payload = _load_payload(args.payload_json, "transcript", "statistics", "annotations")
+            path = add_script_annotation(
+                args.study_root, key=args.key, video_evidence_id=args.video_evidence_id,
+                transcript=payload["transcript"], statistics=payload["statistics"],
+                annotations=payload["annotations"], confidence=args.confidence,
+                repository_root=args.root,
+            )
+            print(path.relative_to(args.root.resolve()).as_posix())
+        else:
+            payload = _load_payload(args.payload_json, "annotation")
+            path = add_visual_market_annotation(
+                args.study_root, key=args.key, video_evidence_id=args.video_evidence_id,
+                annotation=payload["annotation"], confidence=args.confidence,
+                repository_root=args.root,
+            )
+            print(path.relative_to(args.root.resolve()).as_posix())
     except (OSError, json.JSONDecodeError, MetricError, NicheValidationError) as exc:
         print(f"NICHE INTELLIGENCE ERROR\n{exc}")
         return 2
     return 0
+
+
+def _load_payload(path: Path, *required_keys: str) -> dict[str, Any]:
+    try:
+        payload = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as exc:
+        raise NicheValidationError(f"cannot read teardown payload {path}: {exc}") from exc
+    if not isinstance(payload, dict):
+        raise NicheValidationError(f"teardown payload {path} must be a JSON object")
+    missing = [key for key in required_keys if key not in payload]
+    if missing:
+        raise NicheValidationError(f"teardown payload {path} is missing keys: {missing}")
+    return payload
 
 
 if __name__ == "__main__":

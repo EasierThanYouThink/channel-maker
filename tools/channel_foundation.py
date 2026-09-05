@@ -40,6 +40,7 @@ def parse_args() -> argparse.Namespace:
     write.add_argument("--content-boundary", action="append", required=True, dest="content_boundaries")
     write.add_argument("--primary-format", required=True, choices=["SHORTS", "LONG_FORM"])
     write.add_argument("--avoids", action="append", required=True, dest="deliberately_avoids")
+    write.add_argument("--force", action="store_true", help="Overwrite an existing draft (clears attached decision_refs).")
 
     attach = subparsers.add_parser("attach-decision")
     attach.add_argument("package_root", type=Path)
@@ -62,7 +63,7 @@ def main() -> int:
                 personality=args.personality, education_entertainment_balance=args.balance,
                 differentiation=args.differentiation, emotional_goal=args.emotional_goal,
                 content_boundaries=args.content_boundaries, primary_format=args.primary_format,
-                deliberately_avoids=args.deliberately_avoids,
+                deliberately_avoids=args.deliberately_avoids, force=args.force,
             )
         elif args.command == "attach-decision":
             path = attach_foundation_decision(args.package_root, args.root, decision_ref=args.decision_ref)

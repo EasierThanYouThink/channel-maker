@@ -129,9 +129,27 @@ def test_transition_prerequisites_and_human_gate_are_enforced(tmp_path: Path) ->
     rule = runtime.validate_transition(
         "STRATEGY_SELECTION",
         prerequisite_refs=[opportunity_ref],
-        human_decision_ref="human-decision:strategy-001",
+        human_decision_ref=evidence(tmp_path, "gate-demo", "strategy-decision"),
     )
     assert rule["requires_human_decision"] is True
+
+
+def test_human_gate_rejects_fabricated_decision_ref(tmp_path: Path) -> None:
+    package = write_runtime_package(tmp_path, channel_id="gate-demo", state_name="OPPORTUNITY_MAP")
+    runtime = ChannelStateMachine(package, tmp_path)
+    opportunity_ref = evidence(tmp_path, "gate-demo", "opportunity-map")
+    with pytest.raises(ChannelStateError, match="human decision reference does not resolve"):
+        runtime.validate_transition(
+            "STRATEGY_SELECTION",
+            prerequisite_refs=[opportunity_ref],
+            human_decision_ref="human-decision:strategy-001",
+        )
+    with pytest.raises(ChannelStateError, match="human decision reference does not resolve"):
+        runtime.validate_transition(
+            "STRATEGY_SELECTION",
+            prerequisite_refs=[opportunity_ref],
+            human_decision_ref="channels/gate-demo/missing.md",
+        )
 
 
 def test_human_block_survives_restart_and_resume_requires_response(tmp_path: Path) -> None:

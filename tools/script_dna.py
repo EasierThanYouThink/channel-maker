@@ -58,11 +58,13 @@ def parse_args() -> argparse.Namespace:
     write.add_argument("--forbidden-cliche", action="append", default=[], dest="forbidden_cliches")
     write.add_argument("--fact-verification-requirements", required=True)
     write.add_argument("--unresolved-variable", action="append", default=[], dest="unresolved_variables")
+    write.add_argument("--force", action="store_true", help="Overwrite an existing draft (clears frozen status and decision_refs).")
 
     freeze = subparsers.add_parser("freeze")
     freeze.add_argument("package_root", type=Path)
     freeze.add_argument("--decision-ref", required=True)
     freeze.add_argument("--yes", action="store_true")
+    freeze.add_argument("--force", action="store_true", help="Re-freeze already-frozen Script DNA.")
 
     add_example = subparsers.add_parser("add-example")
     add_example.add_argument("package_root", type=Path)
@@ -117,12 +119,12 @@ def main() -> int:
                 ending_behavior=args.ending_behavior, cta_philosophy=args.cta_philosophy,
                 preferred_cliches=args.preferred_cliches, forbidden_cliches=args.forbidden_cliches,
                 fact_verification_requirements=args.fact_verification_requirements,
-                unresolved_variables=args.unresolved_variables,
+                unresolved_variables=args.unresolved_variables, force=args.force,
             )
             print(path.relative_to(args.root.resolve()).as_posix())
         elif args.command == "freeze":
             _confirm(f"Freeze Script DNA for {args.package_root}? Type yes: ", assume_yes=args.yes)
-            path = freeze_script_dna(args.package_root, args.root, human_confirmed=True, decision_ref=args.decision_ref)
+            path = freeze_script_dna(args.package_root, args.root, human_confirmed=True, decision_ref=args.decision_ref, force=args.force)
             print(path.relative_to(args.root.resolve()).as_posix())
         elif args.command == "add-example":
             store = ScriptExampleStore(args.root, _channel_id(args.root, args.package_root))
