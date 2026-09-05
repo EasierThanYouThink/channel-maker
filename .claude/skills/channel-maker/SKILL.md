@@ -260,8 +260,8 @@ Sample-role assignment (`GROWTH_CANDIDATE`, `BREAKOUT`, etc.) is a judgment call
    differentiator, or does some competitor already own it? Ask the killer
    question out loud ("your thesis says X, but competitor Y's numbers show Z —
    defend or revise"). Same push-back rule as Stage 1: weak reasoning gets
-   discussed, not waved through. Write the surviving decision down first — a
-   short markdown note under `channels/<channel_id>/strategy/` works, or point at the opportunity wiki page — because `human_decision_ref` must resolve to a real repository file, never a fabricated string. Then cross the workflow's first human gate:
+   discussed, not waved through. Write the surviving decision down first as a structured record (selected opportunity ids, the rejected alternative, the resource constraint, and the revisit condition) — a
+   `tools/decision_record.py write channels/<channel_id>/strategy/strategy.md --kind strategy --title "<title>" --summary "<why this direction>" --selected <opportunity-id> [--selected ...] --rejected <declined-alternative> [--constraint "<budget>"] --revisit "<when to reconsider>" --author "<user>" (a plain markdown note also works, but records the decision less precisely) — because `human_decision_ref` must resolve to a real repository file, never a fabricated string. Then cross the workflow's first human gate:
    ```
    .venv/bin/python tools/channel_state.py advance channels/<channel_id> STRATEGY_SELECTION --next-action "<next action>" --actor "<user>" --reason "<reason>" --prerequisite-ref <path-to-opportunity-map-evidence> --human-decision-ref <the-real-reference>
    ```
@@ -345,11 +345,11 @@ Only create a component when a real, immediate need exists (never a speculative 
       ```
    7. `.venv/bin/python tools/pilot.py validate channels/<channel_id> <pilot-id>` as a final evidence check.
 3. `.venv/bin/python tools/channel_state.py advance channels/<channel_id> PILOT_REVIEW --next-action "..." --actor "<user>" --reason "..." --prerequisite-ref channels/<channel_id>/pilots/<pilot-id>/pilot.json`.
-4. Get the user's real GO/REVISE/ABANDON_DIRECTION decision — never fabricate it. Write the decision note first (same create-file-first rule as Stage 3), then:
+4. Get the user's real GO/REVISE/ABANDON_DIRECTION decision — never fabricate it. Write the decision record first (same create-file-first rule as Stage 3): read the production rev from `channels/<channel_id>/pilots/<pilot-id>/pilot.json` (`production.revision`), then `tools/decision_record.py write channels/<channel_id>/pilots/<pilot-id>/review-<decision-lower>.md --kind review --title "<title>" --summary "<rationale>" --decision <GO|REVISE|ABANDON_DIRECTION> --rev <production-rev> --author "<user>" — the record binds the verdict to the exact production bytes it approves, then:
    ```
    .venv/bin/python tools/pilot.py record-review channels/<channel_id> <pilot-id> --decision GO --decided-by "<user>" --decision-ref <a-real-path> --rationale "..." --yes
    ```
-   (`--yes` is required non-interactively; without it the CLI stops and asks. Re-recording a review overwrites the previous decision deliberately — check the current one first.)
+   (`--yes` is required non-interactively; without it the CLI stops and asks. Re-recording a review archives the previous decision into the review history — check the current one first.)
    REVISE requires `--revise-target <STATE>` where `<STATE>` is one of the fixed re-entry states (`STRATEGY_SELECTION`, `CHANNEL_FOUNDATION`, `SCRIPT_DNA_DISCOVERY`, `VISUAL_DNA_DISCOVERY`, `MOTION_DNA_DISCOVERY`, `CHANNEL_IDENTITY`, `STARTER_VISUAL_LIBRARY`, `PILOT_PLAN`, `PILOT_PRODUCTION` — niche-intelligence states and `PILOT_REVIEW` itself are not valid targets) and routes via `tools/channel_state.py revise channels/<channel_id> <STATE> --actor "<user>" --decision-ref <same-ref> --next-action "..." --reason "..." --yes`. A revise truncates `completed` at the target and sets status `REVISING`: re-walk forward with fresh `advance` calls (each needing its own prerequisite refs) until `PILOT_REVIEW`, then record the new review. Frozen DNA/identity artifacts are not auto-unfrozen — only the state pointer moves. The revise event records `invalidated_artifact_families` naming what must be re-approved on the way forward — check it with `channel_state.py show` before re-walking.
    ABANDON_DIRECTION routes via `tools/channel_state.py abandon channels/<channel_id> --actor "<user>" --decision-ref <same-ref> --reason "..." --yes`, and is terminal — there is no un-abandon.
 5. On GO, cross the workflow's second human gate, then freeze (each with explicit confirmation):
@@ -394,7 +394,7 @@ in Stage 9, and a genuine identity/DNA change later gets its own separate, delib
    ```
    .venv/bin/python tools/episode.py record-review channels/<channel_id> <episode-id> --decision GO --decided-by "<user>" --decision-ref <a-real-path> --rationale "..." --yes
    ```
-    REVISE means rework this episode's production and record review again once it's ready (re-recording overwrites the previous decision);
+    REVISE means rework this episode's production and record review again once it's ready (re-recording archives the previous decision into history);
     ABANDON means this episode doesn't get made — neither routes through `channel_state.py`. Verify with `.venv/bin/python tools/episode.py validate channels/<channel_id> <episode-id>`.
     After the review, write what the episode taught the style as a `lessons/` (or `failures/`) wiki note, then `python tools/channel_style.py sync channels/<channel_id> --force` so the Obsidian style snapshot learns it (see `docs/OBSIDIAN_WIKI.md`).
 5. Repeat from step 1 for the next episode. Publishing the finished render to YouTube is outside

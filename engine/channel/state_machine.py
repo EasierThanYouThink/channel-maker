@@ -187,6 +187,18 @@ class ChannelStateMachine:
                     f"{state['state']} -> {target} human decision reference does not resolve "
                     f"to an existing repository path: {human_decision_ref}"
                 )
+            # Marked decision records carry a checkable shape (selected vs
+            # rejected, revisit condition); unmarked files keep working.
+            from engine.decisions import DecisionError, validate_record_file
+
+            expected_kind = {
+                ("OPPORTUNITY_MAP", "STRATEGY_SELECTION"): "strategy",
+                ("PILOT_REVIEW", "CHANNEL_FREEZE"): "review",
+            }.get((state["state"], target))
+            try:
+                validate_record_file(resolved, expected_kind=expected_kind)
+            except DecisionError as exc:
+                raise ChannelStateError(str(exc)) from exc
         return {
             "from_state": state["state"],
             "to_state": target,

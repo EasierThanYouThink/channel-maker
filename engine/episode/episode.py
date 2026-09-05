@@ -215,6 +215,23 @@ def record_review(
     resolved = (repository_root / decision_ref).resolve()
     if not resolved.is_relative_to(repository_root) or not resolved.exists():
         raise EpisodeValidationError(f"decision_ref does not resolve to an existing repository path: {decision_ref}")
+    from engine.decisions import DecisionError, validate_record_file
+
+    try:
+        marked = validate_record_file(resolved, expected_kind=None)
+    except DecisionError as exc:
+        raise EpisodeValidationError(str(exc)) from exc
+    if marked and marked.get("decision_record") == "review":
+        if marked.get("decision") != decision:
+            raise EpisodeValidationError(
+                f"decision_ref records {marked.get('decision')!r} but the review says {decision!r}"
+            )
+        current_rev = production_revision(document["production"], repository_root=repository_root)
+        if marked.get("rev") != current_rev:
+            raise EpisodeValidationError(
+                f"decision_ref approves rev {marked.get('rev')!r} but the production is "
+                f"{current_rev!r}"
+            )
 
     prior = document["review"]
     history = list(prior.get("history") or [])

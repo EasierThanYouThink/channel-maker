@@ -255,7 +255,15 @@ def _walkthrough_init_to_ready(root: Path, tmp_path: Path) -> None:
     cli(root, "niche_intelligence.py", "validate", str(study))
     cli(root, "niche_intelligence.py", "publish-summaries", str(package), str(study))
 
-    strategy_note = write_note(root, "strategy.md", "# Strategy\n\nMechanism-first science shorts.\n")
+    cli(root, "decision_record.py", "write", f"channels/{CHANNEL_ID}/strategy/strategy.md",
+        "--kind", "strategy", "--title", "Mechanism-first science shorts",
+        "--summary", "Own the caffeine-mechanism niche the teardowns surfaced.",
+        "--selected", study_artifact_id("opportunity_proposal", "opp-1"),
+        "--rejected", "General science news",
+        "--constraint", "One pilot, one voice.",
+        "--revisit", "Revisit after 3 episodes without traction.",
+        "--author", REVIEWER)
+    strategy_note = f"channels/{CHANNEL_ID}/strategy/strategy.md"
     opportunity_ref = f"channels/{CHANNEL_ID}/intelligence/studies/s1/study.json"
     advance(root, package, "OPPORTUNITY_MAP", prerequisite_ref=opportunity_ref)
     advance(root, package, "STRATEGY_SELECTION", prerequisite_ref=opportunity_ref,
@@ -430,7 +438,13 @@ def _walkthrough_init_to_ready(root: Path, tmp_path: Path) -> None:
         "--render-ref", render_ref)
     advance(root, package, "PILOT_REVIEW",
             prerequisite_ref=f"channels/{CHANNEL_ID}/pilots/pilot-1/pilot.json")
-    go_note = write_note(root, "pilot-go.md", "# Pilot GO\n\nApproved.\n")
+    go_production = json.loads((package / "pilots" / "pilot-1" / "pilot.json").read_text(encoding="utf-8"))
+    cli(root, "decision_record.py", "write", f"channels/{CHANNEL_ID}/pilots/pilot-1/review-go.md",
+        "--kind", "review", "--title", "Pilot GO",
+        "--summary", "Fixed pacing; narration, scenes, and render approved.",
+        "--decision", "GO", "--rev", go_production["production"]["revision"],
+        "--author", REVIEWER)
+    go_note = f"channels/{CHANNEL_ID}/pilots/pilot-1/review-go.md"
     cli(root, "pilot.py", "record-review", str(package), "pilot-1", "--decision", "GO",
         "--decided-by", REVIEWER, "--rationale", "Fixed pacing.", "--decision-ref", go_note, "--yes")
     cli(root, "pilot.py", "validate", str(package), "pilot-1")
