@@ -94,6 +94,11 @@ def add_reference(package_root: Path, repository_root: Path, *, domain: str, can
     record = json.loads(record_path.read_text(encoding="utf-8"))
     if record["domain"] != domain:
         raise IdentityValidationError(f"candidate {candidate_id} is tagged for domain {record['domain']!r}, not {domain!r}")
+    if record.get("classification") != "approved":
+        raise IdentityValidationError(
+            f"candidate {candidate_id} has classification {record.get('classification')!r}; "
+            "only approved candidates may be attached as identity references"
+        )
 
     path = identity_path(package.root)
     document = yaml.safe_load(path.read_text(encoding="utf-8"))

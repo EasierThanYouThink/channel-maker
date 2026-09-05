@@ -78,6 +78,11 @@ def resolve_domain_references(seed_document: dict[str, Any], candidates_root: Pa
             record = _load(record_path)
             if record.get("domain") != domain:
                 problems.append(f"{domain}: reference {candidate_id!r} is tagged for domain {record.get('domain')!r}, not {domain!r}")
+            elif record.get("classification") != "approved":
+                problems.append(
+                    f"{domain}: reference {candidate_id!r} has classification "
+                    f"{record.get('classification')!r}, not 'approved'"
+                )
     if problems:
         raise IdentityValidationError("\n".join(problems))
     return sorted({ref for gate in seed_document["domains"].values() for ref in gate["reference_ids"]})

@@ -90,6 +90,11 @@ def resolve_domain_references(kind: str, seed_document: dict[str, Any], exemplar
             record = _load(record_path)
             if record.get("domain") not in (None, domain):
                 problems.append(f"{domain}: reference {exemplar_id!r} is tagged for domain {record.get('domain')!r}, not {domain!r}")
+            elif record.get("classification") != "approved":
+                problems.append(
+                    f"{domain}: reference {exemplar_id!r} has classification "
+                    f"{record.get('classification')!r}, not 'approved'"
+                )
     if problems:
         raise DesignValidationError("\n".join(problems))
     return sorted({ref for gate in seed_document["domains"].values() for ref in gate["reference_ids"]})

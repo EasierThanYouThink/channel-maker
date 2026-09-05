@@ -149,6 +149,14 @@ def test_full_incremental_build_flips_every_item_and_persists_at_the_end(tmp_pat
         domain="description", title="Bio", text="Short, clear science explainers.",
         provenance_kind="human_supplied_original", created_by="Seb", source_ref="draft",
     )
+    identity_store.review(
+        logo["candidate_id"], decision="approved", reviewer="Seb",
+        reason="Good mark.", created_at=AT, human_confirmed=True,
+    )
+    identity_store.review(
+        description["candidate_id"], decision="approved", reviewer="Seb",
+        reason="Good bio.", created_at=AT, human_confirmed=True,
+    )
     add_identity_reference(package, tmp_path, domain="logo", candidate_id=logo["candidate_id"])
     add_identity_reference(package, tmp_path, domain="description", candidate_id=description["candidate_id"])
     freeze_identity_domain(package, tmp_path, domain="logo", human_confirmed=True, decision_ref=any_ref)

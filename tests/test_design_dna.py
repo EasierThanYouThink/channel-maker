@@ -70,6 +70,11 @@ def test_init_add_reference_and_freeze_domain(tmp_path: Path, kind: str, domain:
         image, title="Reference frame", domain=domain, tags=["ref"],
         provenance_kind="human_supplied_original", created_by="Seb", source_ref="manual upload",
     )
+    store.review(
+        record["exemplar_id"], decision="approved", reviewer="Seb",
+        reason="Matches direction.", created_at="2026-09-05T12:00:00+00:00",
+        human_confirmed=True,
+    )
     add_reference(kind, package, tmp_path, domain=domain, exemplar_id=record["exemplar_id"])
     document = yaml.safe_load(path.read_text(encoding="utf-8"))
     assert document["domains"][domain]["reference_ids"] == [record["exemplar_id"]]

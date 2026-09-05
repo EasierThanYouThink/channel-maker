@@ -50,6 +50,22 @@ def test_init_channel_refuses_to_overwrite_existing_package(tmp_path: Path) -> N
         )
 
 
+def test_init_channel_refuses_when_thesis_written_before_scaffold(tmp_path: Path) -> None:
+    # Regression for the thesis-before-scaffold ordering bug: creating files
+    # under channels/<id>/ before scaffolding must fail with guidance, not
+    # with a bare "already exists".
+    root = root_with_memory(tmp_path)
+    premature = root / "channels" / "early-channel" / "strategy"
+    premature.mkdir(parents=True)
+    (premature / "channel-thesis.md").write_text("# Thesis\n", encoding="utf-8")
+    with pytest.raises(InitChannelError, match="only after init_channel succeeds"):
+        init_channel(
+            root, "early-channel", name="Early", niche_primary="science",
+            topic_family=None, archetype="ILLUSTRATED_EXPLAINER", language="en",
+            formats=["SHORTS"], renderer="remotion",
+        )
+
+
 def test_init_channel_is_always_original_in_v1(tmp_path: Path) -> None:
     # Clone mode (EXISTING_CHANNEL) was cut for v1 and returns in v2: every
     # channel scaffolds as ORIGINAL, no creation-mode flag exists.

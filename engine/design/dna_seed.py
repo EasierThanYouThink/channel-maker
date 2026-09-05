@@ -98,6 +98,11 @@ def add_reference(kind: str, package_root: Path, repository_root: Path, *, domai
     record = json.loads(record_path.read_text(encoding="utf-8"))
     if record.get("domain") not in (None, domain):
         raise DesignValidationError(f"exemplar {exemplar_id} is tagged for domain {record.get('domain')!r}, not {domain!r}")
+    if record.get("classification") != "approved":
+        raise DesignValidationError(
+            f"exemplar {exemplar_id} has classification {record.get('classification')!r}; "
+            "only approved exemplars may be attached as DNA references"
+        )
 
     path = seed_path(kind, package.root)
     document = yaml.safe_load(path.read_text(encoding="utf-8"))

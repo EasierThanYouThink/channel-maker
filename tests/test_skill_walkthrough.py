@@ -76,11 +76,20 @@ RESPONSE = {
 }
 
 
+SCRATCH_MARKER = ".walkthrough-scratch"
+
+
 def scaffold_channel(root: Path) -> Path:
     package = root / "channels" / CHANNEL_ID
+    if package.exists() and not (package / SCRATCH_MARKER).is_file():
+        raise AssertionError(
+            f"refusing to use pre-existing channel {package}: "
+            "it was not created by this walkthrough (missing scratch marker)"
+        )
     cli(root, "init_channel.py", CHANNEL_ID, "--name", "Walk Channel",
         "--niche-primary", "science", "--archetype", "ILLUSTRATED_EXPLAINER",
         "--renderer", "remotion")
+    (package / SCRATCH_MARKER).write_text("walkthrough scratch channel\n", encoding="utf-8")
     cli(root, "validate_channel.py", str(package))
     state = cli_json(root, "channel_state.py", "show", str(package))
     assert state["state"]["state"] == "CHANNEL_INIT"
@@ -110,6 +119,11 @@ def _remove_scratch_channel(root: Path) -> None:
 
     package = root / "channels" / CHANNEL_ID
     if package.is_dir():
+        if not (package / SCRATCH_MARKER).is_file():
+            raise AssertionError(
+                f"refusing to delete {package}: missing scratch marker; "
+                "it may be a real channel"
+            )
         shutil.rmtree(package)
 
 

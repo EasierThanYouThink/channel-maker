@@ -42,7 +42,11 @@ def init_channel(
     root = root.resolve()
     package = root / "channels" / channel_id
     if package.exists():
-        raise InitChannelError(f"channel package already exists: {package}")
+        raise InitChannelError(
+            f"channel package already exists: {package} "
+            "(do not create files under channels/<id>/ before scaffolding; "
+            "write the channel thesis only after init_channel succeeds)"
+        )
 
     niche: dict[str, str] = {"primary": niche_primary}
     if topic_family:

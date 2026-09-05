@@ -141,6 +141,10 @@ def test_design_domain_refreeze_refuses_without_force(tmp_path: Path) -> None:
         image, title="Reference", domain="motion_identity", tags=[],
         provenance_kind="human_supplied_original", created_by="Seb", source_ref="manual",
     )
+    store.review(
+        record["exemplar_id"], decision="approved", reviewer="Seb",
+        reason="Good.", created_at=AT, human_confirmed=True,
+    )
     add_design_reference("motion", package, tmp_path, domain="motion_identity", exemplar_id=record["exemplar_id"])
     freeze_design_domain("motion", package, tmp_path, domain="motion_identity", human_confirmed=True, decision_ref=ref)
     with pytest.raises(DesignValidationError, match="already frozen"):
@@ -157,6 +161,10 @@ def test_identity_domain_refreeze_refuses_without_force(tmp_path: Path) -> None:
     logo = store.add(
         domain="logo", title="Mark", image=image, provenance_kind="human_supplied_original",
         created_by="Seb", source_ref="manual",
+    )
+    store.review(
+        logo["candidate_id"], decision="approved", reviewer="Seb",
+        reason="Good.", created_at=AT, human_confirmed=True,
     )
     add_identity_reference(package, tmp_path, domain="logo", candidate_id=logo["candidate_id"])
     freeze_identity_domain(package, tmp_path, domain="logo", human_confirmed=True, decision_ref=ref)

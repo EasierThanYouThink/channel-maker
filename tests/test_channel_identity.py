@@ -70,6 +70,16 @@ def test_init_add_reference_and_freeze_both_domains(tmp_path: Path) -> None:
         domain="description", title="Bio v1", text="Short, clear science explainers.",
         provenance_kind="human_supplied_original", created_by="Seb", source_ref="draft",
     )
+    store.review(
+        logo["candidate_id"], decision="approved", reviewer="Seb",
+        reason="Good mark.", created_at="2026-09-05T12:00:00+00:00",
+        human_confirmed=True,
+    )
+    store.review(
+        description["candidate_id"], decision="approved", reviewer="Seb",
+        reason="Good bio.", created_at="2026-09-05T12:00:00+00:00",
+        human_confirmed=True,
+    )
     add_reference(package, tmp_path, domain="logo", candidate_id=logo["candidate_id"])
     add_reference(package, tmp_path, domain="description", candidate_id=description["candidate_id"])
     document = yaml.safe_load(path.read_text(encoding="utf-8"))

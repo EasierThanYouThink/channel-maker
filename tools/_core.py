@@ -271,7 +271,8 @@ def _find_value(value: Any, target: str) -> bool:
 
 
 def require_valid(record: dict[str, Any], *, label: str = "record") -> None:
-    taxonomies = load_yaml(ROOT / "config" / "taxonomies.yaml")
+    taxonomies_path = ROOT / "config" / "taxonomies.yaml"
+    taxonomies = load_yaml(taxonomies_path) if taxonomies_path.is_file() else None
     errors = validate_record(record, taxonomies)
     if errors:
         raise ChannelMakerError(f"invalid {label}:\n" + "\n".join(f"- {error}" for error in errors))

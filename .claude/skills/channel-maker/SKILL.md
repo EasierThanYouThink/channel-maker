@@ -92,15 +92,16 @@ If `channels/<channel_id>` already exists (Stage 0.5), skip the scaffold and con
    differentiate the channel on paper. If the user's reasoning is weak, argue
    with it: steelman the competitor, attack the thesis, and only move on when
    the thesis survives. Never fabricate confidence the user didn't earn.
-4. Write the surviving answers down as the channel thesis:
-   `channels/<channel_id>/strategy/channel-thesis.md` (thesis, named audience,
-   the differentiator in one sentence, the every-video promise). This file
-   becomes the `human_decision_ref` the strategy gate in Stage 3 points at.
-5. Run:
+4. Run the scaffold first (the package directory must not exist yet — do not
+   create any files under `channels/<channel_id>/` beforehand):
    ```
    .venv/bin/python tools/init_channel.py <channel_id> --name "<name>" --niche-primary "<niche>" \
      --archetype <ARCHETYPE> --renderer <renderer>
    ```
+5. Write the surviving answers down as the channel thesis:
+   `channels/<channel_id>/strategy/channel-thesis.md` (thesis, named audience,
+   the differentiator in one sentence, the every-video promise). This file
+   becomes the `human_decision_ref` the strategy gate in Stage 3 points at.
 6. `.venv/bin/python tools/validate_channel.py channels/<channel_id>` to confirm.
 7. `.venv/bin/python tools/channel_state.py advance channels/<channel_id> NICHE_INTELLIGENCE --next-action "Run Hermes-driven niche research." --actor "<user or 'claude'>" --reason "Channel initialized."
 
