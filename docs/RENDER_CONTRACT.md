@@ -46,3 +46,33 @@ To plug in a renderer other than Remotion: build whatever pipeline produces
 the evidence artifacts above, point `tools/build_scene_candidate.py` at its
 output files, and write an `evaluation_contract.schema.json` describing what
 "good" means for your scenes. Nothing else in this repo changes.
+
+## Adapter floor (what "a renderer" must provide)
+
+Renderers stay independent internally, but each channel's production must
+record the following so a review binds to an exact, reproducible export:
+
+- **Declared capabilities** — renderer name and version, recorded in the
+  pilot/episode production log alongside the scene manifest.
+- **Reproducible invocation** — the command (or equivalent record) that turns
+  pinned inputs into the export, so the same inputs rebuild the same video.
+- **Pinned inputs** — every source file that feeds the render is either a
+  content-hashed manifest artifact or a recorded `script_ref`/`voiceover_ref`;
+  nothing enters the export from an unrecorded path.
+- **Output manifest** — the export itself is attached as `render_ref` and
+  must exist and be non-empty before any GO decision
+  (`engine/production/completeness.py`).
+- **Final-composition evaluation** — evaluate the assembled composition, not
+  just individual scenes: scene order, narration mix, and timeline coverage
+  against the sentence spans in the voiceover timing.
+
+Byte-level media probing (dimensions, decoded duration, audio presence) is
+future work pending a pinned probing tool — no new binary dependencies are
+introduced for it in v1.
+
+## Word-timing caveat
+
+Voiceover word records carry a `method`: `measured_alignment` (phoneme-timed)
+or `uniform_estimate` (proportionally laid out across a measured sentence
+span). Downstream consumers — beats, captions, scene timing — must treat
+`uniform_estimate` words as estimates: never silent-precision caption cues.
