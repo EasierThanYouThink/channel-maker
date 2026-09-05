@@ -7,7 +7,7 @@ import mimetypes
 from pathlib import Path
 
 from artifact_paths import ArtifactPathError, ArtifactPathResolver
-from _core import TOOL_VERSION, ChannelMakerError, content_hash, require_valid, sha256_file, slugify, write_json_atomic
+from _core import ROOT, TOOL_VERSION, ChannelMakerError, content_hash, require_valid, sha256_file, slugify, write_json_atomic
 
 
 KINDS = {"scene_json", "still", "contact_sheet", "video", "narration_timing", "audio", "validator_output", "source_packet"}
@@ -73,6 +73,7 @@ def build_candidate(
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--root", type=Path, default=ROOT, help="Repository root used to resolve evidence locations.")
     parser.add_argument("--scene-id", required=True)
     parser.add_argument("--generator-agent", required=True)
     parser.add_argument("--model", required=True)
@@ -90,7 +91,7 @@ def main() -> int:
         record = build_candidate(
             args.scene_id, args.generator_agent, args.model, args.prompt_version, args.input,
             model_version=args.model_version, benchmark_case_id=args.benchmark_case_id,
-            repository_root=Path(__file__).resolve().parents[1],
+            repository_root=args.root,
         )
         write_json_atomic(args.output, record)
     except ChannelMakerError as exc:
