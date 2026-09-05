@@ -1,0 +1,32 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://channel-maker.local/engine/niche-intelligence/study-report.schema.json",
+  "title": "Niche Intelligence Study Report v1",
+  "type": "object", "additionalProperties": false,
+  "required": ["schema_version", "artifact_type", "artifact_id", "study_id", "channel_id", "authority", "study_ref", "components", "limitations", "methodology", "created_by"],
+  "properties": {
+    "schema_version": {"const": "1.0.0"}, "artifact_type": {"const": "niche_study_report"},
+    "artifact_id": {"$ref": "common.schema.json#/$defs/artifactId"}, "study_id": {"type": "string", "pattern": "^[a-z][a-z0-9-]*$"},
+    "channel_id": {"$ref": "common.schema.json#/$defs/channelId"}, "authority": {"const": "DESCRIPTIVE_ONLY"},
+    "study_ref": {"$ref": "common.schema.json#/$defs/relativePath"},
+    "components": {
+      "type": "object", "additionalProperties": false,
+      "required": ["channel_evidence", "video_evidence", "relative_performance", "content_annotations", "script_annotations", "visual_market_annotations", "audience_signals", "observations", "hypotheses", "opportunity_proposals"],
+      "properties": {
+        "channel_evidence": {"$ref": "#/$defs/refs"}, "video_evidence": {"$ref": "#/$defs/refs"}, "relative_performance": {"$ref": "#/$defs/refs"},
+        "content_annotations": {"$ref": "#/$defs/refs"}, "script_annotations": {"$ref": "#/$defs/refs"}, "visual_market_annotations": {"$ref": "#/$defs/refs"},
+        "audience_signals": {"$ref": "#/$defs/refs"}, "observations": {"$ref": "#/$defs/refs"}, "hypotheses": {"$ref": "#/$defs/refs"}, "opportunity_proposals": {"$ref": "#/$defs/refs"}
+      }
+    },
+    "limitations": {"type": "array", "minItems": 1, "items": {"type": "string", "minLength": 1}},
+    "methodology": {
+      "type": "object", "additionalProperties": false, "required": ["study_contract_version", "sampling_policy_version", "metric_versions", "causality_claimed"],
+      "properties": {
+        "study_contract_version": {"const": "1.0.0"}, "sampling_policy_version": {"type": "string", "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$"},
+        "metric_versions": {"type": "array", "uniqueItems": true, "items": {"const": "relative_views_same_channel.v1"}}, "causality_claimed": {"const": false}
+      }
+    },
+    "created_by": {"$ref": "common.schema.json#/$defs/creationProvenance"}
+  },
+  "$defs": {"refs": {"type": "array", "uniqueItems": true, "items": {"$ref": "common.schema.json#/$defs/relativePath"}}}
+}

@@ -1,0 +1,23 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://radicat.local/schemas/scene_candidate_manifest.schema.json",
+  "title": "Scene Candidate Evidence Manifest",
+  "type": "object", "additionalProperties": false,
+  "required": ["schema_version", "artifact_type", "artifact_id", "lifecycle_state", "scene_id", "generator", "artifacts", "created_by"],
+  "properties": {
+    "schema_version": {"enum": ["1.0.0", "1.1.0"]}, "artifact_type": {"const": "scene_candidate_manifest"},
+    "artifact_id": {"type": "string", "pattern": "^scene-candidate:[a-z0-9][a-z0-9._-]*:[a-f0-9]{12}$"}, "lifecycle_state": {"const": "complete"},
+    "scene_id": {"type": "string", "pattern": "^[a-z0-9][a-z0-9._-]*$"}, "benchmark_case_id": {"type": "string", "pattern": "^[a-z0-9][a-z0-9._-]*$"},
+    "generator": {"type": "object", "additionalProperties": false, "required": ["agent", "model", "prompt_version"], "properties": {"agent": {"type": "string", "minLength": 1}, "model": {"type": "string", "minLength": 1}, "model_version": {"type": "string", "minLength": 1}, "prompt_version": {"type": "string", "minLength": 1}}},
+    "artifacts": {"type": "array", "minItems": 1, "items": {"$ref": "#/$defs/artifact"}},
+    "created_by": {"type": "object", "additionalProperties": false, "required": ["tool", "version"], "properties": {"tool": {"const": "radicat.build_scene_candidate"}, "version": {"type": "string", "minLength": 1}}}
+  },
+  "$defs": {
+    "location": {"type": "object", "additionalProperties": false, "required": ["root", "path"], "properties": {"root": {"type": "string", "pattern": "^[a-z][a-z0-9_-]*$"}, "path": {"type": "string", "minLength": 1}}},
+    "artifact": {"type": "object", "additionalProperties": false, "required": ["evidence_id", "kind", "sha256", "media_type"], "properties": {"evidence_id": {"type": "string", "pattern": "^[a-z0-9][a-z0-9._-]*$"}, "kind": {"enum": ["scene_json", "still", "contact_sheet", "video", "narration_timing", "audio", "validator_output", "source_packet"]}, "path": {"type": "string", "minLength": 1}, "location": {"$ref": "#/$defs/location"}, "sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"}, "media_type": {"type": "string", "minLength": 1}}, "oneOf": [{"required": ["path"], "not": {"required": ["location"]}}, {"required": ["location"], "not": {"required": ["path"]}}]}
+  },
+  "allOf": [
+    {"if": {"properties": {"schema_version": {"const": "1.0.0"}}}, "then": {"properties": {"artifacts": {"items": {"required": ["path"], "not": {"required": ["location"]}}}}}},
+    {"if": {"properties": {"schema_version": {"const": "1.1.0"}}}, "then": {"properties": {"artifacts": {"items": {"required": ["location"], "not": {"required": ["path"]}}}}}}
+  ]
+}

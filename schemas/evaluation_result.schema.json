@@ -1,0 +1,14 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema", "$id": "https://radicat.local/schemas/evaluation_result.schema.json", "title": "Deterministic Scene Evaluation Result",
+  "type": "object", "additionalProperties": false,
+  "required": ["schema_version", "artifact_type", "artifact_id", "lifecycle_state", "candidate_artifact_id", "candidate_sha256", "contract_artifact_id", "contract_sha256", "assessment_artifact_id", "assessment_sha256", "score_100", "dimension_scores", "hard_gate_results", "machine_recommendation", "authority", "created_by"],
+  "properties": {
+    "schema_version": {"const": "1.0.0"}, "artifact_type": {"const": "evaluation_result"}, "artifact_id": {"type": "string", "pattern": "^evaluation-result:[a-f0-9]{20}$"}, "lifecycle_state": {"const": "complete"},
+    "candidate_artifact_id": {"type": "string", "minLength": 1}, "candidate_sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"}, "contract_artifact_id": {"type": "string", "minLength": 1}, "contract_sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"}, "assessment_artifact_id": {"type": "string", "minLength": 1}, "assessment_sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+    "score_100": {"type": "number", "minimum": 0, "maximum": 100},
+    "dimension_scores": {"type": "array", "minItems": 1, "items": {"type": "object", "additionalProperties": false, "required": ["dimension_id", "possible_points", "awarded_points", "requirements"], "properties": {"dimension_id": {"type": "string"}, "possible_points": {"type": "number"}, "awarded_points": {"type": "number"}, "requirements": {"type": "array", "items": {"type": "object"}}}}},
+    "hard_gate_results": {"type": "array", "minItems": 1, "items": {"type": "object", "additionalProperties": false, "required": ["gate_id", "outcome", "rationale"], "properties": {"gate_id": {"type": "string"}, "outcome": {"enum": ["pass", "fail", "not_assessable"]}, "rationale": {"type": "string"}}}},
+    "machine_recommendation": {"enum": ["passed", "needs_revision", "failed", "incomplete", "blocked"]}, "authority": {"const": "advisory_only"},
+    "created_by": {"type": "object", "additionalProperties": false, "required": ["tool", "version", "scoring_policy"], "properties": {"tool": {"const": "radicat.evaluate_scene"}, "version": {"type": "string"}, "scoring_policy": {"const": "pass=1.0;partial=0.5;fail=0;not_assessable=0"}}}
+  }
+}

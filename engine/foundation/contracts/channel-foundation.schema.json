@@ -1,0 +1,45 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://channel-maker.local/engine/foundation/channel-foundation.schema.json",
+  "title": "Channel Foundation v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version", "artifact_type", "channel_id", "audience", "promise", "niche",
+    "personality", "education_entertainment_balance", "differentiation", "emotional_goal",
+    "content_boundaries", "primary_format", "deliberately_avoids", "decision_refs", "created_by"
+  ],
+  "properties": {
+    "schema_version": {"const": "1.0.0"},
+    "artifact_type": {"const": "channel_foundation"},
+    "channel_id": {"$ref": "common.schema.json#/$defs/channelId"},
+    "audience": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["description"],
+      "properties": {
+        "description": {"type": "string", "minLength": 1},
+        "demographics": {"type": ["string", "null"]}
+      }
+    },
+    "promise": {"type": "string", "minLength": 1},
+    "niche": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["primary", "sub_niches"],
+      "properties": {
+        "primary": {"type": "string", "minLength": 1},
+        "sub_niches": {"type": "array", "uniqueItems": true, "items": {"type": "string", "minLength": 1}}
+      }
+    },
+    "personality": {"type": "array", "minItems": 1, "items": {"type": "string", "minLength": 1}},
+    "education_entertainment_balance": {"enum": ["MOSTLY_EDUCATIONAL", "BALANCED", "MOSTLY_ENTERTAINMENT"]},
+    "differentiation": {"type": "string", "minLength": 1},
+    "emotional_goal": {"type": "string", "minLength": 1},
+    "content_boundaries": {"type": "array", "minItems": 1, "items": {"type": "string", "minLength": 1}},
+    "primary_format": {"enum": ["SHORTS", "LONG_FORM"]},
+    "deliberately_avoids": {"type": "array", "minItems": 1, "items": {"type": "string", "minLength": 1}},
+    "decision_refs": {"type": "array", "uniqueItems": true, "items": {"$ref": "common.schema.json#/$defs/relativePath"}},
+    "created_by": {"$ref": "common.schema.json#/$defs/creationProvenance"}
+  }
+}

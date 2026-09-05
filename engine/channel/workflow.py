@@ -1,0 +1,56 @@
+"""Canonical V1 channel-creation workflow vocabulary and transition rules."""
+
+from __future__ import annotations
+
+import hashlib
+import json
+from typing import Any
+
+
+WORKFLOW_STATES = (
+    "CHANNEL_INIT",
+    "NICHE_INTELLIGENCE",
+    "OPPORTUNITY_MAP",
+    "STRATEGY_SELECTION",
+    "CHANNEL_FOUNDATION",
+    "SCRIPT_DNA_DISCOVERY",
+    "VISUAL_DNA_DISCOVERY",
+    "MOTION_DNA_DISCOVERY",
+    "STARTER_VISUAL_LIBRARY",
+    "PILOT_PLAN",
+    "PILOT_PRODUCTION",
+    "PILOT_REVIEW",
+    "CHANNEL_FREEZE",
+    "CHANNEL_READY",
+)
+
+FORWARD_TRANSITIONS = dict(zip(WORKFLOW_STATES, WORKFLOW_STATES[1:]))
+
+HUMAN_GATE_TRANSITIONS = {
+    ("OPPORTUNITY_MAP", "STRATEGY_SELECTION"),
+    ("PILOT_REVIEW", "CHANNEL_FREEZE"),
+}
+
+REVISION_TARGETS = frozenset({
+    "STRATEGY_SELECTION",
+    "CHANNEL_FOUNDATION",
+    "SCRIPT_DNA_DISCOVERY",
+    "VISUAL_DNA_DISCOVERY",
+    "MOTION_DNA_DISCOVERY",
+    "STARTER_VISUAL_LIBRARY",
+    "PILOT_PLAN",
+    "PILOT_PRODUCTION",
+})
+
+
+def canonical_json_bytes(value: Any) -> bytes:
+    return (json.dumps(value, sort_keys=True, separators=(",", ":"), ensure_ascii=False) + "\n").encode("utf-8")
+
+
+def event_id_for(event_without_id: dict[str, Any]) -> str:
+    digest = hashlib.sha256(canonical_json_bytes(event_without_id)).hexdigest()
+    return f"channel-event-{digest[:16]}"
+
+
+def completed_prefix_for(state: str) -> list[str]:
+    return list(WORKFLOW_STATES[: WORKFLOW_STATES.index(state)])

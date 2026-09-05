@@ -1,0 +1,19 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://channel-maker.local/engine/library/asset-component-review.schema.json",
+  "title": "Asset Component Human Review v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "artifact_type", "review_id", "component_id", "target_sha256", "decision", "reviewer", "reason", "created_at"],
+  "properties": {
+    "schema_version": {"const": "1.0.0"},
+    "artifact_type": {"const": "asset_component_review"},
+    "review_id": {"type": "string", "pattern": "^component-review:[a-f0-9]{16}$"},
+    "component_id": {"type": "string", "pattern": "^component:(engine|[a-z][a-z0-9-]*):[a-z0-9][a-z0-9._-]*$"},
+    "target_sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+    "decision": {"enum": ["approved", "rejected", "deprecated"]},
+    "reviewer": {"type": "string", "minLength": 1},
+    "reason": {"type": "string", "minLength": 1},
+    "created_at": {"type": "string", "format": "date-time"}
+  }
+}

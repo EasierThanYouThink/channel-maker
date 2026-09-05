@@ -1,0 +1,37 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://channel-maker.local/engine/niche-intelligence/relative-performance.schema.json",
+  "title": "Same-channel Relative Views Metric v1",
+  "type": "object", "additionalProperties": false,
+  "required": ["schema_version", "artifact_type", "artifact_id", "study_id", "channel_id", "authority", "metric_version", "target_video_evidence_id", "inputs", "comparison", "missing_data_behavior", "status", "result", "created_by"],
+  "properties": {
+    "schema_version": {"const": "1.0.0"}, "artifact_type": {"const": "relative_performance"},
+    "artifact_id": {"$ref": "common.schema.json#/$defs/artifactId"}, "study_id": {"type": "string", "pattern": "^[a-z][a-z0-9-]*$"},
+    "channel_id": {"$ref": "common.schema.json#/$defs/channelId"}, "authority": {"const": "DERIVED_MEASUREMENT"},
+    "metric_version": {"const": "relative_views_same_channel.v1"}, "target_video_evidence_id": {"$ref": "common.schema.json#/$defs/artifactId"},
+    "inputs": {
+      "type": "object", "additionalProperties": false, "required": ["target_views", "baseline_views"],
+      "properties": {"target_views": {"type": ["integer", "null"], "minimum": 0}, "baseline_views": {"type": "array", "items": {"type": ["integer", "null"], "minimum": 0}}}
+    },
+    "comparison": {
+      "type": "object", "additionalProperties": false, "required": ["population_video_evidence_ids", "window", "baseline_statistic", "baseline_quality"],
+      "properties": {
+        "population_video_evidence_ids": {"type": "array", "uniqueItems": true, "items": {"$ref": "common.schema.json#/$defs/artifactId"}},
+        "window": {"type": "object", "additionalProperties": false, "required": ["from", "to"], "properties": {"from": {"type": "string", "format": "date-time"}, "to": {"type": "string", "format": "date-time"}}},
+        "baseline_statistic": {"const": "MEDIAN"}, "baseline_quality": {"enum": ["HIGH", "MEDIUM", "LOW", "INSUFFICIENT"]}
+      }
+    },
+    "missing_data_behavior": {"const": "EXCLUDE_NULL_BASELINE_VALUES; RETURN_NOT_COMPUTABLE_IF_TARGET_MISSING_OR_NO_POSITIVE_BASELINE"},
+    "status": {"enum": ["COMPUTED", "NOT_COMPUTABLE"]},
+    "result": {
+      "type": "object", "additionalProperties": false,
+      "required": ["baseline_median_views", "relative_views_ratio", "percentile_within_comparison", "breakout_magnitude", "reason"],
+      "properties": {
+        "baseline_median_views": {"type": ["number", "null"], "minimum": 0}, "relative_views_ratio": {"type": ["number", "null"], "minimum": 0},
+        "percentile_within_comparison": {"type": ["number", "null"], "minimum": 0, "maximum": 1}, "breakout_magnitude": {"type": ["number", "null"]},
+        "reason": {"type": ["string", "null"], "minLength": 1}
+      }
+    },
+    "created_by": {"$ref": "common.schema.json#/$defs/creationProvenance"}
+  }
+}

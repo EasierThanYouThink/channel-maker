@@ -1,0 +1,23 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://channel-maker.local/engine/design/motion-dna-seed.schema.json",
+  "title": "Channel Motion DNA Seed v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "artifact_type", "channel_id", "status", "domains", "created_by"],
+  "properties": {
+    "schema_version": {"const": "1.0.0"},
+    "artifact_type": {"const": "motion_dna_seed"},
+    "channel_id": {"$ref": "common.schema.json#/$defs/channelId"},
+    "status": {"enum": ["AWAITING_FIRST_HUMAN_INPUT", "ACTIVE_DISCOVERY", "PARTIALLY_FROZEN", "FROZEN"]},
+    "domains": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["motion_identity"],
+      "properties": {
+        "motion_identity": {"$ref": "common.schema.json#/$defs/domainGate"}
+      }
+    },
+    "created_by": {"$ref": "common.schema.json#/$defs/creationProvenance"}
+  }
+}

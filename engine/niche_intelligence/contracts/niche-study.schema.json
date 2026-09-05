@@ -1,0 +1,61 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://channel-maker.local/engine/niche-intelligence/niche-study.schema.json",
+  "title": "Niche Intelligence Study Definition v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "artifact_type", "artifact_id", "study_id", "study_version", "channel_id", "scope", "study_window", "freshness", "methodology_version", "sampling_policy", "created_by"],
+  "properties": {
+    "schema_version": {"const": "1.0.0"},
+    "artifact_type": {"const": "niche_study"},
+    "artifact_id": {"$ref": "common.schema.json#/$defs/artifactId"},
+    "study_id": {"type": "string", "pattern": "^[a-z][a-z0-9-]*$"},
+    "study_version": {"type": "string", "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$"},
+    "channel_id": {"$ref": "common.schema.json#/$defs/channelId"},
+    "scope": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["niche", "platform", "format", "language", "geography", "production_archetype"],
+      "properties": {
+        "niche": {"type": "string", "minLength": 1},
+        "sub_niches": {"type": "array", "uniqueItems": true, "items": {"type": "string", "minLength": 1}},
+        "platform": {"const": "YOUTUBE"},
+        "format": {"enum": ["SHORTS", "LONG_FORM", "MIXED"]},
+        "language": {"type": "string", "pattern": "^[a-z]{2,3}(?:-[A-Za-z0-9]+)*$"},
+        "geography": {"type": ["string", "null"], "minLength": 1},
+        "production_archetype": {"enum": ["ILLUSTRATED_EXPLAINER", "DATA_STORY", "MAP_STORY"]}
+      }
+    },
+    "study_window": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["from", "to"],
+      "properties": {"from": {"type": "string", "format": "date-time"}, "to": {"type": "string", "format": "date-time"}}
+    },
+    "freshness": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["state", "evaluated_at", "revalidate_after"],
+      "properties": {
+        "state": {"enum": ["CURRENT", "STALE", "REVALIDATION_REQUIRED", "SUPERSEDED"]},
+        "evaluated_at": {"type": "string", "format": "date-time"},
+        "revalidate_after": {"type": ["string", "null"], "format": "date-time"},
+        "superseded_by": {"type": "string", "pattern": "^[a-z][a-z0-9-]*$"}
+      }
+    },
+    "supersedes": {"type": ["string", "null"], "pattern": "^[a-z][a-z0-9-]*$"},
+    "methodology_version": {"const": "niche-intelligence.v1"},
+    "sampling_policy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["version", "channel_roles", "video_roles", "thresholds"],
+      "properties": {
+        "version": {"type": "string", "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$"},
+        "channel_roles": {"type": "array", "uniqueItems": true, "items": {"enum": ["ESTABLISHED_LEADER", "GROWTH_CANDIDATE", "SMALL_BREAKOUT", "BASELINE_COMPARATOR", "OTHER", "UNKNOWN"]}},
+        "video_roles": {"type": "array", "uniqueItems": true, "items": {"enum": ["BREAKOUT", "CHANNEL_BASELINE", "RECENT_NORMAL", "UNDERPERFORMER", "OUTLIER", "OTHER", "UNKNOWN"]}},
+        "thresholds": {"type": "object", "additionalProperties": {"type": ["number", "integer", "string", "boolean", "null"]}}
+      }
+    },
+    "created_by": {"$ref": "common.schema.json#/$defs/creationProvenance"}
+  }
+}

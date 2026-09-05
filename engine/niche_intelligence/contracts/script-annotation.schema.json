@@ -1,0 +1,39 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://channel-maker.local/engine/niche-intelligence/script-annotation.schema.json",
+  "title": "Niche Script Annotation v1",
+  "type": "object", "additionalProperties": false,
+  "required": ["schema_version", "artifact_type", "artifact_id", "study_id", "channel_id", "video_evidence_id", "authority", "evidence_refs", "transcript", "statistics", "annotations", "confidence", "created_by"],
+  "properties": {
+    "schema_version": {"const": "1.0.0"}, "artifact_type": {"const": "script_annotation"},
+    "artifact_id": {"$ref": "common.schema.json#/$defs/artifactId"}, "study_id": {"type": "string", "pattern": "^[a-z][a-z0-9-]*$"},
+    "channel_id": {"$ref": "common.schema.json#/$defs/channelId"}, "video_evidence_id": {"$ref": "common.schema.json#/$defs/artifactId"},
+    "authority": {"const": "ANNOTATION"},
+    "evidence_refs": {"type": "array", "minItems": 1, "uniqueItems": true, "items": {"$ref": "common.schema.json#/$defs/artifactId"}},
+    "transcript": {
+      "type": "object", "additionalProperties": false, "required": ["availability", "timing", "source_ref", "method", "language"],
+      "properties": {
+        "availability": {"enum": ["AVAILABLE", "UNAVAILABLE"]}, "timing": {"enum": ["TIMED", "UNTIMED", "UNKNOWN"]},
+        "source_ref": {"type": ["string", "null"], "minLength": 1}, "method": {"enum": ["PUBLIC_CAPTION", "LAWFUL_TRANSCRIPTION", "MANUAL", "NONE", "UNKNOWN"]},
+        "language": {"type": ["string", "null"], "pattern": "^[a-z]{2,3}(?:-[A-Za-z0-9]+)*$"}
+      }
+    },
+    "statistics": {
+      "type": "object", "additionalProperties": false,
+      "required": ["word_count", "words_per_second", "opening_excerpt", "sentence_length_mean", "question_count", "numeric_reference_count"],
+      "properties": {
+        "word_count": {"type": ["integer", "null"], "minimum": 0}, "words_per_second": {"type": ["number", "null"], "minimum": 0},
+        "opening_excerpt": {"type": ["string", "null"]}, "sentence_length_mean": {"type": ["number", "null"], "minimum": 0},
+        "question_count": {"type": ["integer", "null"], "minimum": 0}, "numeric_reference_count": {"type": ["integer", "null"], "minimum": 0}
+      }
+    },
+    "annotations": {
+      "type": "object", "additionalProperties": false, "required": ["hook", "narrative_structure", "information_density_hypothesis", "ending_behavior"],
+      "properties": {
+        "hook": {"type": ["string", "null"]}, "narrative_structure": {"type": ["string", "null"]},
+        "information_density_hypothesis": {"type": ["string", "null"]}, "ending_behavior": {"type": ["string", "null"]}
+      }
+    },
+    "confidence": {"$ref": "common.schema.json#/$defs/confidence"}, "created_by": {"$ref": "common.schema.json#/$defs/creationProvenance"}
+  }
+}

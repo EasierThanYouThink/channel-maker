@@ -1,0 +1,139 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://channel-maker.local/engine/memory/wiki-page.schema.json",
+  "title": "Channel Maker Wiki Page Metadata v0.3",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "knowledge_id", "title", "kind", "status", "authority", "tags", "provenance"],
+  "properties": {
+    "schema_version": {"enum": ["0.1.0", "0.2.0", "0.3.0"]},
+    "knowledge_id": {"type": "string", "pattern": "^wiki:[a-z0-9][a-z0-9._/-]*$"},
+    "title": {"type": "string", "minLength": 1},
+    "kind": {"enum": ["index", "observation", "hypothesis", "opportunity_proposal", "experiment", "result", "lesson", "rule_proposal", "approved_rule", "decision", "failure", "procedure", "concept", "experiment_summary", "visual", "motion", "storytelling", "scene_pattern", "performance", "rule"]},
+    "status": {"enum": ["active", "deprecated", "superseded", "draft"]},
+    "authority": {"enum": ["canonical", "descriptive", "ai_proposed", "human_approved", "human_reviewed", "provisional", "historical"]},
+    "scope": {"enum": ["ENGINE", "CHANNEL", "VIDEO"]},
+    "channel_id": {
+      "oneOf": [
+        {"type": "null"},
+        {"type": "string", "pattern": "^[a-z][a-z0-9-]*$"}
+      ]
+    },
+    "video_id": {
+      "oneOf": [
+        {"type": "null"},
+        {"type": "string", "pattern": "^[a-z0-9][a-z0-9-]*$"}
+      ]
+    },
+    "tags": {"type": "array", "items": {"type": "string", "pattern": "^[a-z0-9][a-z0-9_-]*$"}, "uniqueItems": true},
+    "confidence": {"type": ["number", "null"], "minimum": 0, "maximum": 1},
+    "created_at": {"type": "string", "format": "date-time"},
+    "updated_at": {"type": "string", "format": "date-time"},
+    "related": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {"type": "string", "pattern": "^(?:wiki|rule|experiment|decision|evidence|exemplar):.+$"}
+    },
+    "approval_ref": {"type": "string", "minLength": 1},
+    "provenance": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["kind", "ref"],
+        "properties": {
+          "kind": {"enum": ["repository", "human_decision", "experiment", "analysis", "original_asset"]},
+          "ref": {"type": "string", "minLength": 1},
+          "sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"}
+        }
+      }
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {"schema_version": {"const": "0.1.0"}},
+        "required": ["schema_version"]
+      },
+      "then": {
+        "properties": {
+          "kind": {"enum": ["index", "decision", "procedure", "concept", "experiment_summary", "failure", "visual", "motion", "storytelling", "scene_pattern", "performance", "rule"]},
+          "authority": {"enum": ["canonical", "human_approved", "human_reviewed", "provisional", "historical"]}
+        },
+        "not": {
+          "anyOf": [
+            {"required": ["scope"]},
+            {"required": ["channel_id"]},
+            {"required": ["video_id"]},
+            {"required": ["confidence"]},
+            {"required": ["created_at"]},
+            {"required": ["updated_at"]},
+            {"required": ["related"]},
+            {"required": ["approval_ref"]}
+          ]
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {"schema_version": {"const": "0.2.0"}},
+        "required": ["schema_version"]
+      },
+      "then": {
+        "required": ["scope", "channel_id", "video_id", "confidence", "created_at", "updated_at", "related"],
+        "properties": {
+          "kind": {"enum": ["index", "observation", "hypothesis", "experiment", "result", "lesson", "rule_proposal", "approved_rule", "decision", "failure", "procedure", "concept", "experiment_summary", "visual", "motion", "storytelling", "scene_pattern", "performance", "rule"]}
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {"schema_version": {"const": "0.3.0"}},
+        "required": ["schema_version"]
+      },
+      "then": {
+        "required": ["scope", "channel_id", "video_id", "confidence", "created_at", "updated_at", "related"]
+      }
+    },
+    {
+      "if": {"properties": {"scope": {"const": "ENGINE"}}, "required": ["scope"]},
+      "then": {"properties": {"channel_id": {"type": "null"}, "video_id": {"type": "null"}}}
+    },
+    {
+      "if": {"properties": {"scope": {"const": "CHANNEL"}}, "required": ["scope"]},
+      "then": {
+        "properties": {
+          "channel_id": {"type": "string", "pattern": "^[a-z][a-z0-9-]*$"},
+          "video_id": {"type": "null"}
+        }
+      }
+    },
+    {
+      "if": {"properties": {"scope": {"const": "VIDEO"}}, "required": ["scope"]},
+      "then": {
+        "properties": {
+          "channel_id": {"type": "string", "pattern": "^[a-z][a-z0-9-]*$"},
+          "video_id": {"type": "string", "pattern": "^[a-z0-9][a-z0-9-]*$"}
+        }
+      }
+    },
+    {
+      "if": {"properties": {"kind": {"const": "approved_rule"}}, "required": ["kind"]},
+      "then": {
+        "properties": {
+          "authority": {"const": "human_approved"},
+          "provenance": {
+            "contains": {
+              "type": "object",
+              "properties": {"kind": {"const": "human_decision"}},
+              "required": ["kind"]
+            }
+          }
+        },
+        "required": ["approval_ref"]
+      },
+      "else": {"not": {"required": ["approval_ref"]}}
+    }
+  ]
+}

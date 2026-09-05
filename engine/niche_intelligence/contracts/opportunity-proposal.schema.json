@@ -1,0 +1,18 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://channel-maker.local/engine/niche-intelligence/opportunity-proposal.schema.json",
+  "title": "Niche Opportunity Proposal v1",
+  "type": "object", "additionalProperties": false,
+  "required": ["schema_version", "artifact_type", "artifact_id", "study_id", "channel_id", "authority", "observed_market", "underrepresented", "proposal", "hypothesis_refs", "evidence_refs", "risks", "confidence", "human_strategy_decision_required", "status", "created_by"],
+  "properties": {
+    "schema_version": {"const": "1.0.0"}, "artifact_type": {"const": "opportunity_proposal"},
+    "artifact_id": {"$ref": "common.schema.json#/$defs/artifactId"}, "study_id": {"type": "string", "pattern": "^[a-z][a-z0-9-]*$"},
+    "channel_id": {"$ref": "common.schema.json#/$defs/channelId"}, "authority": {"const": "PROPOSED_OPPORTUNITY"},
+    "observed_market": {"type": "string", "minLength": 1}, "underrepresented": {"type": "string", "minLength": 1}, "proposal": {"type": "string", "minLength": 1},
+    "hypothesis_refs": {"type": "array", "minItems": 1, "uniqueItems": true, "items": {"$ref": "common.schema.json#/$defs/artifactId"}},
+    "evidence_refs": {"type": "array", "minItems": 1, "uniqueItems": true, "items": {"$ref": "common.schema.json#/$defs/artifactId"}},
+    "risks": {"type": "array", "minItems": 1, "items": {"type": "string", "minLength": 1}}, "confidence": {"$ref": "common.schema.json#/$defs/confidence"},
+    "human_strategy_decision_required": {"const": true}, "status": {"enum": ["PROPOSED", "SUPERSEDED", "REJECTED"]},
+    "created_by": {"$ref": "common.schema.json#/$defs/creationProvenance"}
+  }
+}

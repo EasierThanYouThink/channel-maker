@@ -1,0 +1,19 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://channel-maker.local/engine/niche-intelligence/audience-signal.schema.json",
+  "title": "Public Audience Signal v1",
+  "type": "object", "additionalProperties": false,
+  "required": ["schema_version", "artifact_type", "artifact_id", "study_id", "channel_id", "video_evidence_id", "authority", "signal_mode", "category", "summary", "source_refs", "sampling_method", "frequency", "limitations", "confidence", "created_by"],
+  "properties": {
+    "schema_version": {"const": "1.0.0"}, "artifact_type": {"const": "audience_signal"},
+    "artifact_id": {"$ref": "common.schema.json#/$defs/artifactId"}, "study_id": {"type": "string", "pattern": "^[a-z][a-z0-9-]*$"},
+    "channel_id": {"$ref": "common.schema.json#/$defs/channelId"}, "video_evidence_id": {"$ref": "common.schema.json#/$defs/artifactId"},
+    "authority": {"const": "ANNOTATION"},
+    "signal_mode": {"enum": ["INDIVIDUAL_COMMENT", "PATTERN_ACROSS_COMMENTS", "MODEL_INFERENCE"]},
+    "category": {"enum": ["REPEATED_QUESTION", "CONFUSION", "FACTUAL_CHALLENGE", "TOPIC_REQUEST", "SURPRISE", "DISAGREEMENT", "TERMINOLOGY_PROBLEM", "EXPLANATION_PRAISE", "OTHER"]},
+    "summary": {"type": "string", "minLength": 1}, "source_refs": {"type": "array", "minItems": 1, "uniqueItems": true, "items": {"type": "string", "minLength": 1}},
+    "sampling_method": {"type": "string", "minLength": 1}, "frequency": {"type": ["integer", "null"], "minimum": 1},
+    "limitations": {"type": "array", "minItems": 1, "items": {"type": "string", "minLength": 1}},
+    "confidence": {"$ref": "common.schema.json#/$defs/confidence"}, "created_by": {"$ref": "common.schema.json#/$defs/creationProvenance"}
+  }
+}

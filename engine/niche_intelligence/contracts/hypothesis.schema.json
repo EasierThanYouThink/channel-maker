@@ -1,0 +1,17 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://channel-maker.local/engine/niche-intelligence/hypothesis.schema.json",
+  "title": "Unapproved Niche Hypothesis v1",
+  "type": "object", "additionalProperties": false,
+  "required": ["schema_version", "artifact_type", "artifact_id", "study_id", "channel_id", "authority", "statement", "predicted_effect", "applicable_context", "observation_refs", "competing_explanations", "confidence", "test_idea", "status", "created_by"],
+  "properties": {
+    "schema_version": {"const": "1.0.0"}, "artifact_type": {"const": "niche_hypothesis"},
+    "artifact_id": {"$ref": "common.schema.json#/$defs/artifactId"}, "study_id": {"type": "string", "pattern": "^[a-z][a-z0-9-]*$"},
+    "channel_id": {"$ref": "common.schema.json#/$defs/channelId"}, "authority": {"const": "UNAPPROVED_HYPOTHESIS"},
+    "statement": {"type": "string", "minLength": 1}, "predicted_effect": {"type": "string", "minLength": 1}, "applicable_context": {"type": "string", "minLength": 1},
+    "observation_refs": {"type": "array", "minItems": 1, "uniqueItems": true, "items": {"$ref": "common.schema.json#/$defs/artifactId"}},
+    "competing_explanations": {"type": "array", "minItems": 1, "items": {"type": "string", "minLength": 1}},
+    "confidence": {"$ref": "common.schema.json#/$defs/confidence"}, "test_idea": {"type": ["string", "null"], "minLength": 1},
+    "status": {"enum": ["ACTIVE", "SUPERSEDED", "REJECTED"]}, "created_by": {"$ref": "common.schema.json#/$defs/creationProvenance"}
+  }
+}

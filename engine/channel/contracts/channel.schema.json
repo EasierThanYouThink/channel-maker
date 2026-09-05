@@ -1,0 +1,110 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://channel-maker.local/engine/channel/channel.schema.json",
+  "title": "YouTube Channel Maker Channel Identity v0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "id",
+    "name",
+    "version",
+    "status",
+    "language",
+    "niche",
+    "platform",
+    "production",
+    "creation",
+    "canonical_sources"
+  ],
+  "properties": {
+    "schema_version": {"enum": ["0.1.0", "0.2.0"]},
+    "id": {"type": "string", "pattern": "^[a-z][a-z0-9-]*$"},
+    "name": {"type": "string", "minLength": 1},
+    "version": {
+      "type": "string",
+      "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+(?:-[a-z0-9.-]+)?$"
+    },
+    "status": {
+      "enum": ["DRAFT", "ACTIVE_DISCOVERY", "BASELINE_FROZEN", "CHANNEL_READY", "PAUSED", "ARCHIVED"]
+    },
+    "language": {
+      "type": "string",
+      "pattern": "^[a-z]{2,3}(?:-[A-Za-z0-9]+)*$"
+    },
+    "niche": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["primary"],
+      "properties": {
+        "primary": {"type": "string", "minLength": 1},
+        "topic_family": {"type": "string", "minLength": 1}
+      }
+    },
+    "platform": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["primary", "formats"],
+      "properties": {
+        "primary": {"const": "YOUTUBE"},
+        "formats": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {"enum": ["SHORTS", "LONG_FORM"]}
+        }
+      }
+    },
+    "production": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["archetype", "renderer"],
+      "properties": {
+        "archetype": {
+          "enum": ["ILLUSTRATED_EXPLAINER", "DATA_STORY", "MAP_STORY"]
+        },
+        "renderer": {"type": "string", "pattern": "^[a-z][a-z0-9_-]*$"}
+      }
+    },
+    "creation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["mode"],
+      "properties": {
+        "mode": {"enum": ["ORIGINAL", "REFERENCE_GUIDED", "EXISTING_CHANNEL"]}
+      }
+    },
+    "canonical_sources": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["channel_state"],
+      "properties": {
+        "channel_state": {"$ref": "#/$defs/repositoryPath"},
+        "knowledge_root": {"$ref": "#/$defs/repositoryPath"},
+        "memory_wiki": {"$ref": "#/$defs/repositoryPath"},
+        "design_state": {"$ref": "#/$defs/repositoryPath"},
+        "exemplars_root": {"$ref": "#/$defs/repositoryPath"},
+        "renderer_root": {"$ref": "#/$defs/repositoryPath"},
+        "asset_roots": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {"$ref": "#/$defs/repositoryPath"}
+        },
+        "foundation_state": {"$ref": "#/$defs/repositoryPath"},
+        "script_dna_state": {"$ref": "#/$defs/repositoryPath"},
+        "visual_dna_state": {"$ref": "#/$defs/repositoryPath"},
+        "motion_dna_state": {"$ref": "#/$defs/repositoryPath"},
+        "asset_registry_root": {"$ref": "#/$defs/repositoryPath"},
+        "pilots_root": {"$ref": "#/$defs/repositoryPath"}
+      }
+    }
+  },
+  "$defs": {
+    "repositoryPath": {
+      "type": "string",
+      "minLength": 1,
+      "pattern": "^(?!/)(?!.*(?:^|/)\\.\\.(?:/|$)).+$"
+    }
+  }
+}

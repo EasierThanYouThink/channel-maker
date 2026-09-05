@@ -1,0 +1,42 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://channel-maker.local/engine/niche-intelligence/channel-evidence.schema.json",
+  "title": "Public Channel Evidence v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "artifact_type", "artifact_id", "study_id", "channel_id", "source", "channel_name", "sample", "classifications", "public_fields", "unknown_fields"],
+  "properties": {
+    "schema_version": {"const": "1.0.0"},
+    "artifact_type": {"const": "channel_evidence"},
+    "artifact_id": {"$ref": "common.schema.json#/$defs/artifactId"},
+    "study_id": {"type": "string", "pattern": "^[a-z][a-z0-9-]*$"},
+    "channel_id": {"$ref": "common.schema.json#/$defs/channelId"},
+    "source": {"$ref": "common.schema.json#/$defs/publicSource"},
+    "channel_name": {"type": "string", "minLength": 1},
+    "sample": {
+      "allOf": [
+        {"$ref": "common.schema.json#/$defs/sampleAssignment"},
+        {"properties": {"role": {"enum": ["ESTABLISHED_LEADER", "GROWTH_CANDIDATE", "SMALL_BREAKOUT", "BASELINE_COMPARATOR", "OTHER", "UNKNOWN"]}}}
+      ]
+    },
+    "classifications": {
+      "type": "object", "additionalProperties": false, "required": ["niches"],
+      "properties": {"niches": {"type": "array", "minItems": 1, "uniqueItems": true, "items": {"type": "string", "minLength": 1}}}
+    },
+    "public_fields": {
+      "type": "object", "additionalProperties": false,
+      "required": ["subscriber_count", "public_video_count", "created_at", "observed_uploads_per_30d", "shorts_fraction"],
+      "properties": {
+        "subscriber_count": {"type": ["integer", "null"], "minimum": 0},
+        "public_video_count": {"type": ["integer", "null"], "minimum": 0},
+        "created_at": {"type": ["string", "null"], "format": "date-time"},
+        "observed_uploads_per_30d": {"type": ["number", "null"], "minimum": 0},
+        "shorts_fraction": {"type": ["number", "null"], "minimum": 0, "maximum": 1}
+      }
+    },
+    "unknown_fields": {
+      "type": "array", "uniqueItems": true,
+      "items": {"enum": ["subscriber_count", "public_video_count", "created_at", "observed_uploads_per_30d", "shorts_fraction"]}
+    }
+  }
+}

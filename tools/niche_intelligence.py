@@ -1,0 +1,153 @@
+"""Validate and query offline CM3 Niche Intelligence artifacts."""
+
+from __future__ import annotations
+
+import argparse
+import json
+import sys
+from pathlib import Path
+
+
+ROOT = Path(__file__).resolve().parents[1]
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
+
+from engine.niche_intelligence import (
+    MetricError,
+    NicheIntelligenceRepository,
+    NicheValidationError,
+    add_hypothesis,
+    add_observation,
+    add_opportunity,
+    import_evidence,
+    relative_views_same_channel_v1,
+    validate_contracts,
+    validate_study,
+)
+
+
+def parse_args() -> argparse.Namespace:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--root", type=Path, default=ROOT, help="Repository root used to resolve canonical study paths.")
+    subparsers = parser.add_subparsers(dest="command", required=True)
+    subparsers.add_parser("validate-contracts")
+    validate = subparsers.add_parser("validate")
+    validate.add_argument("study_root", type=Path)
+    metric = subparsers.add_parser("relative-views")
+    metric.add_argument("request_json", type=Path, help="JSON object matching metric function arguments")
+    context = subparsers.add_parser("context")
+    context.add_argument("package_root", type=Path)
+    context.add_argument("study_root", type=Path)
+    context.add_argument("query")
+    context.add_argument("--include-engine", action="store_true")
+    publish = subparsers.add_parser("publish-summaries")
+    publish.add_argument("package_root", type=Path)
+    publish.add_argument("study_root", type=Path)
+
+    import_ev = subparsers.add_parser("import-evidence", help="Import a reviewed Hermes collection response into CM3 evidence")
+    import_ev.add_argument("study_root", type=Path)
+    import_ev.add_argument("response_json", type=Path)
+    import_ev.add_argument("--reviewed-by", required=True)
+    import_ev.add_argument("--reviewed-at")
+
+    add_obs = subparsers.add_parser("add-observation")
+    add_obs.add_argument("study_root", type=Path)
+    add_obs.add_argument("--key", required=True)
+    add_obs.add_argument("--statement", required=True)
+    add_obs.add_argument("--observation-type", required=True, choices=[
+        "PERFORMANCE_PATTERN", "CONTENT_PATTERN", "SCRIPT_PATTERN", "VISUAL_MARKET_PATTERN",
+        "AUDIENCE_SIGNAL_PATTERN", "MARKET_GAP", "OTHER",
+    ])
+    add_obs.add_argument("--scope", required=True)
+    add_obs.add_argument("--basis", required=True, choices=["PUBLIC_FACT", "DERIVED_MEASUREMENT", "ANNOTATION", "MIXED"])
+    add_obs.add_argument("--evidence-ref", action="append", required=True, dest="evidence_refs")
+    add_obs.add_argument("--confidence", type=float, default=None)
+    add_obs.add_argument("--limitation", action="append", required=True, dest="limitations")
+
+    add_hyp = subparsers.add_parser("add-hypothesis")
+    add_hyp.add_argument("study_root", type=Path)
+    add_hyp.add_argument("--key", required=True)
+    add_hyp.add_argument("--statement", required=True)
+    add_hyp.add_argument("--predicted-effect", required=True)
+    add_hyp.add_argument("--applicable-context", required=True)
+    add_hyp.add_argument("--observation-ref", action="append", required=True, dest="observation_refs")
+    add_hyp.add_argument("--competing-explanation", action="append", required=True, dest="competing_explanations")
+    add_hyp.add_argument("--confidence", type=float, default=None)
+    add_hyp.add_argument("--test-idea", default=None)
+
+    add_opp = subparsers.add_parser("add-opportunity")
+    add_opp.add_argument("study_root", type=Path)
+    add_opp.add_argument("--key", required=True)
+    add_opp.add_argument("--observed-market", required=True)
+    add_opp.add_argument("--underrepresented", required=True)
+    add_opp.add_argument("--proposal", required=True)
+    add_opp.add_argument("--hypothesis-ref", action="append", required=True, dest="hypothesis_refs")
+    add_opp.add_argument("--evidence-ref", action="append", required=True, dest="evidence_refs")
+    add_opp.add_argument("--risk", action="append", required=True, dest="risks")
+    add_opp.add_argument("--confidence", type=float, default=None)
+    return parser.parse_args()
+
+
+def main() -> int:
+    args = parse_args()
+    try:
+        if args.command == "validate-contracts":
+            print(f"NICHE INTELLIGENCE CONTRACTS VALID ({validate_contracts()})")
+        elif args.command == "validate":
+            study = validate_study(args.study_root)
+            print(json.dumps({
+                "channel_id": study.study["channel_id"], "study_id": study.study["study_id"],
+                "study_version": study.study["study_version"], "artifact_count": len(study.artifacts),
+            }, indent=2, sort_keys=True))
+        elif args.command == "relative-views":
+            request = json.loads(args.request_json.read_text(encoding="utf-8"))
+            if not isinstance(request, dict):
+                raise NicheValidationError("metric request must be a JSON object")
+            print(json.dumps(relative_views_same_channel_v1(**request), indent=2, sort_keys=True))
+        elif args.command == "context":
+            repository = NicheIntelligenceRepository(ROOT)
+            print(json.dumps(repository.build_context_bundle(
+                args.package_root, args.study_root, args.query, include_engine=args.include_engine,
+            ), indent=2, sort_keys=True))
+        elif args.command == "publish-summaries":
+            repository = NicheIntelligenceRepository(ROOT)
+            created = repository.publish_semantic_summaries(args.package_root, args.study_root)
+            print(json.dumps([path.relative_to(ROOT).as_posix() for path in created], indent=2))
+        elif args.command == "import-evidence":
+            created = import_evidence(
+                args.study_root, args.response_json, reviewed_by=args.reviewed_by,
+                repository_root=args.root, reviewed_at=args.reviewed_at,
+            )
+            print(json.dumps([path.relative_to(args.root.resolve()).as_posix() for path in created], indent=2))
+        elif args.command == "add-observation":
+            path = add_observation(
+                args.study_root, key=args.key, statement=args.statement,
+                observation_type=args.observation_type, scope=args.scope, basis=args.basis,
+                evidence_refs=args.evidence_refs, confidence=args.confidence,
+                limitations=args.limitations, repository_root=args.root,
+            )
+            print(path.relative_to(args.root.resolve()).as_posix())
+        elif args.command == "add-hypothesis":
+            path = add_hypothesis(
+                args.study_root, key=args.key, statement=args.statement,
+                predicted_effect=args.predicted_effect, applicable_context=args.applicable_context,
+                observation_refs=args.observation_refs, competing_explanations=args.competing_explanations,
+                confidence=args.confidence, test_idea=args.test_idea, repository_root=args.root,
+            )
+            print(path.relative_to(args.root.resolve()).as_posix())
+        else:
+            path = add_opportunity(
+                args.study_root, key=args.key, observed_market=args.observed_market,
+                underrepresented=args.underrepresented, proposal=args.proposal,
+                hypothesis_refs=args.hypothesis_refs, evidence_refs=args.evidence_refs,
+                risks=args.risks, confidence=args.confidence, repository_root=args.root,
+            )
+            print(path.relative_to(args.root.resolve()).as_posix())
+    except (OSError, json.JSONDecodeError, MetricError, NicheValidationError) as exc:
+        print(f"NICHE INTELLIGENCE ERROR\n{exc}")
+        return 2
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

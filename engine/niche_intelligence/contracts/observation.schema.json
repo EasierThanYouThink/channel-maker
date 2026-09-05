@@ -1,0 +1,17 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://channel-maker.local/engine/niche-intelligence/observation.schema.json",
+  "title": "Descriptive Niche Observation v1",
+  "type": "object", "additionalProperties": false,
+  "required": ["schema_version", "artifact_type", "artifact_id", "study_id", "channel_id", "authority", "statement", "observation_type", "scope", "basis", "evidence_refs", "confidence", "limitations", "created_by"],
+  "properties": {
+    "schema_version": {"const": "1.0.0"}, "artifact_type": {"const": "niche_observation"},
+    "artifact_id": {"$ref": "common.schema.json#/$defs/artifactId"}, "study_id": {"type": "string", "pattern": "^[a-z][a-z0-9-]*$"},
+    "channel_id": {"$ref": "common.schema.json#/$defs/channelId"}, "authority": {"const": "DESCRIPTIVE_OBSERVATION"},
+    "statement": {"type": "string", "minLength": 1}, "observation_type": {"enum": ["PERFORMANCE_PATTERN", "CONTENT_PATTERN", "SCRIPT_PATTERN", "VISUAL_MARKET_PATTERN", "AUDIENCE_SIGNAL_PATTERN", "MARKET_GAP", "OTHER"]},
+    "scope": {"type": "string", "minLength": 1}, "basis": {"enum": ["PUBLIC_FACT", "DERIVED_MEASUREMENT", "ANNOTATION", "MIXED"]},
+    "evidence_refs": {"type": "array", "minItems": 1, "uniqueItems": true, "items": {"$ref": "common.schema.json#/$defs/artifactId"}},
+    "confidence": {"$ref": "common.schema.json#/$defs/confidence"}, "limitations": {"type": "array", "minItems": 1, "items": {"type": "string", "minLength": 1}},
+    "created_by": {"$ref": "common.schema.json#/$defs/creationProvenance"}
+  }
+}

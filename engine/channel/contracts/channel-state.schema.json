@@ -1,0 +1,190 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://channel-maker.local/engine/channel/channel-state.schema.json",
+  "title": "YouTube Channel Maker Workflow State v0.2",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "channel_id",
+    "revision",
+    "state",
+    "status",
+    "completed",
+    "active_experiment",
+    "waiting_for",
+    "blocker",
+    "next_action",
+    "resume_state",
+    "source_refs",
+    "known_gaps",
+    "updated_at"
+  ],
+  "properties": {
+    "schema_version": {"enum": ["0.1.0", "0.2.0"]},
+    "channel_id": {"type": "string", "pattern": "^[a-z][a-z0-9-]*$"},
+    "revision": {"type": "integer", "minimum": 0},
+    "state": {"$ref": "#/$defs/workflowState"},
+    "status": {"$ref": "#/$defs/workflowStatus"},
+    "completed": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {"$ref": "#/$defs/workflowState"}
+    },
+    "active_experiment": {"type": ["string", "null"], "minLength": 1},
+    "waiting_for": {"type": ["string", "null"], "minLength": 1},
+    "blocker": {
+      "oneOf": [
+        {"type": "null"},
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["kind", "summary", "required_action"],
+          "properties": {
+            "kind": {"const": "HUMAN_DECISION"},
+            "reason_code": {"type": "string", "pattern": "^[a-z][a-z0-9_]*$"},
+            "summary": {"type": "string", "minLength": 1},
+            "question": {"type": "string", "minLength": 1},
+            "required_action": {"type": "string", "minLength": 1},
+            "resume_status": {"enum": ["ACTIVE", "REVISING"]}
+          }
+        }
+      ]
+    },
+    "next_action": {"type": "string", "minLength": 1},
+    "resume_state": {
+      "oneOf": [
+        {"type": "null"},
+        {"$ref": "#/$defs/workflowState"}
+      ]
+    },
+    "source_refs": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {"$ref": "#/$defs/repositoryPath"}
+    },
+    "known_gaps": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {"type": "string", "minLength": 1}
+    },
+    "legacy_mapping": {"type": "boolean"},
+    "events": {
+      "type": "array",
+      "items": {"$ref": "#/$defs/stateEvent"}
+    },
+    "updated_at": {"type": "string", "format": "date-time"}
+  },
+  "$defs": {
+    "workflowStatus": {
+      "enum": ["ACTIVE", "BLOCKED_ON_HUMAN", "REVISING", "PAUSED", "ABANDONED", "COMPLETE"]
+    },
+    "workflowState": {
+      "enum": [
+        "CHANNEL_INIT",
+        "NICHE_INTELLIGENCE",
+        "OPPORTUNITY_MAP",
+        "STRATEGY_SELECTION",
+        "CHANNEL_FOUNDATION",
+        "SCRIPT_DNA_DISCOVERY",
+        "VISUAL_DNA_DISCOVERY",
+        "MOTION_DNA_DISCOVERY",
+        "STARTER_VISUAL_LIBRARY",
+        "PILOT_PLAN",
+        "PILOT_PRODUCTION",
+        "PILOT_REVIEW",
+        "CHANNEL_FREEZE",
+        "CHANNEL_READY"
+      ]
+    },
+    "repositoryPath": {
+      "type": "string",
+      "minLength": 1,
+      "pattern": "^(?!/)(?!.*(?:^|/)\\.\\.(?:/|$)).+$"
+    },
+    "stateEvent": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "event_id", "sequence", "channel_id", "operation", "from_state", "to_state",
+        "from_status", "to_status", "occurred_at", "actor", "reason", "prerequisite_refs",
+        "human_decision_ref", "invalidated_states", "state_revision", "previous_event_id"
+      ],
+      "properties": {
+        "event_id": {"type": "string", "pattern": "^channel-event-[a-f0-9]{16}$"},
+        "sequence": {"type": "integer", "minimum": 1},
+        "channel_id": {"type": "string", "pattern": "^[a-z][a-z0-9-]*$"},
+        "operation": {"enum": ["ADVANCE", "BLOCK", "RESUME", "REVISE", "ABANDON"]},
+        "from_state": {"$ref": "#/$defs/workflowState"},
+        "to_state": {"$ref": "#/$defs/workflowState"},
+        "from_status": {"$ref": "#/$defs/workflowStatus"},
+        "to_status": {"$ref": "#/$defs/workflowStatus"},
+        "occurred_at": {"type": "string", "format": "date-time"},
+        "actor": {"type": "string", "minLength": 1},
+        "reason": {"type": "string", "minLength": 1},
+        "prerequisite_refs": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {"$ref": "#/$defs/repositoryPath"}
+        },
+        "human_decision_ref": {"type": ["string", "null"], "minLength": 1},
+        "invalidated_states": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {"$ref": "#/$defs/workflowState"}
+        },
+        "state_revision": {"type": "integer", "minimum": 1},
+        "previous_event_id": {
+          "oneOf": [
+            {"type": "null"},
+            {"type": "string", "pattern": "^channel-event-[a-f0-9]{16}$"}
+          ]
+        }
+      }
+    }
+  },
+  "allOf": [
+    {
+      "if": {"properties": {"schema_version": {"const": "0.1.0"}}},
+      "then": {"not": {"required": ["events"]}}
+    },
+    {
+      "if": {"properties": {"schema_version": {"const": "0.2.0"}}},
+      "then": {"required": ["legacy_mapping", "events"]}
+    },
+    {
+      "if": {"properties": {"status": {"const": "BLOCKED_ON_HUMAN"}}},
+      "then": {
+        "properties": {
+          "blocker": {"type": "object"},
+          "waiting_for": {"type": "string"},
+          "resume_state": {"$ref": "#/$defs/workflowState"}
+        }
+      },
+      "else": {"properties": {"blocker": {"type": "null"}}}
+    },
+    {
+      "if": {
+        "properties": {
+          "schema_version": {"const": "0.2.0"},
+          "status": {"const": "BLOCKED_ON_HUMAN"}
+        },
+        "required": ["schema_version", "status"]
+      },
+      "then": {
+        "properties": {
+          "blocker": {"required": ["reason_code", "question", "resume_status"]}
+        }
+      }
+    },
+    {
+      "if": {"properties": {"state": {"const": "CHANNEL_READY"}}},
+      "then": {"properties": {"status": {"const": "COMPLETE"}}}
+    },
+    {
+      "if": {"properties": {"status": {"const": "COMPLETE"}}},
+      "then": {"properties": {"state": {"const": "CHANNEL_READY"}}}
+    }
+  ]
+}

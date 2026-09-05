@@ -1,0 +1,27 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://channel-maker.local/engine/niche-intelligence/visual-market-annotation.schema.json",
+  "title": "Visual Market Annotation v1",
+  "type": "object", "additionalProperties": false,
+  "required": ["schema_version", "artifact_type", "artifact_id", "study_id", "channel_id", "video_evidence_id", "authority", "reference_role", "design_authority", "renderer_eligible", "evidence_refs", "annotation", "confidence", "created_by"],
+  "properties": {
+    "schema_version": {"const": "1.0.0"}, "artifact_type": {"const": "visual_market_annotation"},
+    "artifact_id": {"$ref": "common.schema.json#/$defs/artifactId"}, "study_id": {"type": "string", "pattern": "^[a-z][a-z0-9-]*$"},
+    "channel_id": {"$ref": "common.schema.json#/$defs/channelId"}, "video_evidence_id": {"$ref": "common.schema.json#/$defs/artifactId"},
+    "authority": {"const": "ANNOTATION"}, "reference_role": {"const": "MARKET_EVIDENCE"},
+    "design_authority": {"const": "PROHIBITED"}, "renderer_eligible": {"const": false},
+    "evidence_refs": {"type": "array", "minItems": 1, "uniqueItems": true, "items": {"$ref": "common.schema.json#/$defs/artifactId"}},
+    "annotation": {
+      "type": "object", "additionalProperties": false,
+      "required": ["production_approaches", "scene_change_frequency_proxy", "text_density_proxy", "visual_metaphor_usage", "continuity"],
+      "properties": {
+        "production_approaches": {"type": "array", "minItems": 1, "uniqueItems": true, "items": {"enum": ["TALKING_HEAD", "FULL_ANIMATION", "MIXED_MEDIA", "STOCK_FOOTAGE", "CHARTS_DATA_GRAPHICS", "MAPS", "SUBTITLES_TEXT_FIRST", "ILLUSTRATED_SCENES", "SCREENSHOTS_UI", "OTHER", "UNKNOWN"]}},
+        "scene_change_frequency_proxy": {"type": ["number", "null"], "minimum": 0},
+        "text_density_proxy": {"enum": ["LOW", "MEDIUM", "HIGH", "UNKNOWN"]},
+        "visual_metaphor_usage": {"enum": ["NONE", "OCCASIONAL", "FREQUENT", "UNKNOWN"]},
+        "continuity": {"enum": ["CONTINUOUS_SCENES", "DISCONNECTED_SLIDES", "MIXED", "UNKNOWN"]}
+      }
+    },
+    "confidence": {"$ref": "common.schema.json#/$defs/confidence"}, "created_by": {"$ref": "common.schema.json#/$defs/creationProvenance"}
+  }
+}

@@ -1,0 +1,46 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://channel-maker.local/engine/niche-intelligence/video-evidence.schema.json",
+  "title": "Public Video Evidence v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "artifact_type", "artifact_id", "study_id", "channel_id", "source", "channel_source_id", "title", "format", "sample", "public_fields", "unknown_fields", "unavailable_private_metrics"],
+  "properties": {
+    "schema_version": {"const": "1.0.0"},
+    "artifact_type": {"const": "video_evidence"},
+    "artifact_id": {"$ref": "common.schema.json#/$defs/artifactId"},
+    "study_id": {"type": "string", "pattern": "^[a-z][a-z0-9-]*$"},
+    "channel_id": {"$ref": "common.schema.json#/$defs/channelId"},
+    "source": {"$ref": "common.schema.json#/$defs/publicSource"},
+    "channel_source_id": {"$ref": "common.schema.json#/$defs/sourceId"},
+    "title": {"type": "string", "minLength": 1},
+    "format": {"enum": ["SHORTS", "LONG_FORM", "UNKNOWN"]},
+    "sample": {
+      "allOf": [
+        {"$ref": "common.schema.json#/$defs/sampleAssignment"},
+        {"properties": {"role": {"enum": ["BREAKOUT", "CHANNEL_BASELINE", "RECENT_NORMAL", "UNDERPERFORMER", "OUTLIER", "OTHER", "UNKNOWN"]}}}
+      ]
+    },
+    "public_fields": {
+      "type": "object", "additionalProperties": false,
+      "required": ["published_at", "duration_seconds", "views", "likes", "comment_count", "description", "age_at_observation_days"],
+      "properties": {
+        "published_at": {"type": ["string", "null"], "format": "date-time"},
+        "duration_seconds": {"type": ["number", "null"], "exclusiveMinimum": 0},
+        "views": {"type": ["integer", "null"], "minimum": 0},
+        "likes": {"type": ["integer", "null"], "minimum": 0},
+        "comment_count": {"type": ["integer", "null"], "minimum": 0},
+        "description": {"type": ["string", "null"]},
+        "age_at_observation_days": {"type": ["number", "null"], "minimum": 0}
+      }
+    },
+    "unknown_fields": {
+      "type": "array", "uniqueItems": true,
+      "items": {"enum": ["published_at", "duration_seconds", "views", "likes", "comment_count", "description", "age_at_observation_days"]}
+    },
+    "unavailable_private_metrics": {
+      "type": "array", "uniqueItems": true,
+      "items": {"enum": ["CTR", "RETENTION_CURVE", "SWIPE_AWAY_RATE", "AVERAGE_PERCENTAGE_VIEWED", "TRAFFIC_SOURCES", "SUBSCRIBER_CONVERSION"]}
+    }
+  }
+}

@@ -1,0 +1,54 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://channel-maker.local/engine/design/exemplar.schema.json",
+  "title": "Channel Design Exemplar v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "artifact_type", "exemplar_id", "channel_id", "title", "asset", "classification", "review_authority", "reasons", "tags", "provenance", "review_ids"],
+  "properties": {
+    "schema_version": {"const": "1.0.0"},
+    "artifact_type": {"const": "design_exemplar"},
+    "exemplar_id": {"$ref": "common.schema.json#/$defs/exemplarId"},
+    "channel_id": {"$ref": "common.schema.json#/$defs/channelId"},
+    "domain": {"enum": ["visual_identity", "typography", "color_language", "composition_grammar", "scene_aesthetics", "motion_identity", null]},
+    "title": {"type": "string", "minLength": 1},
+    "asset": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["path", "sha256", "media_type"],
+      "properties": {
+        "path": {"type": "string", "pattern": "^channels/[a-z][a-z0-9-]*/design/exemplars/assets/"},
+        "sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+        "media_type": {"enum": ["image/png", "image/jpeg", "image/webp"]}
+      }
+    },
+    "classification": {"enum": ["experimental", "approved", "rejected", "borderline"]},
+    "review_authority": {"enum": ["unreviewed", "human"]},
+    "reasons": {"type": "array", "items": {"type": "string", "minLength": 1}},
+    "tags": {"type": "array", "items": {"type": "string", "pattern": "^[a-z0-9][a-z0-9_-]*$"}, "uniqueItems": true},
+    "provenance": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind", "created_by", "source_ref"],
+      "properties": {
+        "kind": {"enum": ["human_supplied_original", "ai_generated_original", "project_original_render"]},
+        "created_by": {"type": "string", "minLength": 1},
+        "source_ref": {"type": "string", "minLength": 1},
+        "model": {"type": "string", "minLength": 1},
+        "model_version": {"type": "string", "minLength": 1},
+        "prompt_ref": {"type": "string", "minLength": 1}
+      }
+    },
+    "review_ids": {"type": "array", "items": {"type": "string", "pattern": "^exemplar-review:[a-f0-9]{16}$"}, "uniqueItems": true}
+  },
+  "allOf": [
+    {
+      "if": {"properties": {"classification": {"enum": ["approved", "rejected", "borderline"]}}},
+      "then": {"properties": {"review_authority": {"const": "human"}, "review_ids": {"minItems": 1}, "reasons": {"minItems": 1}}}
+    },
+    {
+      "if": {"properties": {"classification": {"const": "experimental"}}},
+      "then": {"properties": {"review_authority": {"const": "unreviewed"}}}
+    }
+  ]
+}

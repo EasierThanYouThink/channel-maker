@@ -1,0 +1,20 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema", "$id": "https://radicat.local/schemas/evaluation_contract.schema.json", "title": "Human-owned Scene Evaluation Contract",
+  "type": "object", "additionalProperties": false,
+  "required": ["schema_version", "artifact_type", "artifact_id", "lifecycle_state", "contract_id", "scope", "dimensions", "hard_gates", "thresholds", "authority"],
+  "properties": {
+    "schema_version": {"const": "1.0.0"}, "artifact_type": {"const": "evaluation_contract"}, "artifact_id": {"type": "string", "pattern": "^evaluation-contract:[a-z0-9][a-z0-9._-]*:[a-f0-9]{12}$"}, "lifecycle_state": {"const": "complete"},
+    "contract_id": {"type": "string", "pattern": "^[a-z0-9][a-z0-9._-]*$"}, "scope": {"enum": ["general", "scene_specific"]}, "scene_id": {"type": "string", "pattern": "^[a-z0-9][a-z0-9._-]*$"},
+    "dimensions": {"type": "array", "minItems": 1, "items": {"type": "object", "additionalProperties": false, "required": ["dimension_id", "label", "points", "requirements"], "properties": {
+      "dimension_id": {"type": "string", "pattern": "^[a-z0-9][a-z0-9._-]*$"}, "label": {"type": "string", "minLength": 1}, "points": {"type": "integer", "minimum": 1, "maximum": 100},
+      "requirements": {"type": "array", "minItems": 1, "items": {"type": "object", "additionalProperties": false, "required": ["requirement_id", "description", "points", "assessment_method", "required_evidence_kinds", "anchors"], "properties": {
+        "requirement_id": {"type": "string", "pattern": "^[a-z0-9][a-z0-9._-]*$"}, "description": {"type": "string", "minLength": 1}, "points": {"type": "integer", "minimum": 1, "maximum": 100}, "assessment_method": {"enum": ["deterministic", "critic", "human"]},
+        "required_evidence_kinds": {"type": "array", "minItems": 1, "uniqueItems": true, "items": {"enum": ["scene_json", "still", "contact_sheet", "video", "narration_timing", "audio", "validator_output", "source_packet"]}},
+        "anchors": {"type": "object", "additionalProperties": false, "required": ["pass", "partial", "fail"], "properties": {"pass": {"type": "string", "minLength": 1}, "partial": {"type": "string", "minLength": 1}, "fail": {"type": "string", "minLength": 1}}}
+      }}}
+    }}},
+    "hard_gates": {"type": "array", "minItems": 1, "items": {"type": "object", "additionalProperties": false, "required": ["gate_id", "description", "allowed_assessors", "required_evidence_kinds"], "properties": {"gate_id": {"type": "string", "pattern": "^[a-z0-9][a-z0-9._-]*$"}, "description": {"type": "string", "minLength": 1}, "allowed_assessors": {"type": "array", "minItems": 1, "uniqueItems": true, "items": {"enum": ["deterministic_validator", "ai_critic", "human_reviewer"]}}, "required_evidence_kinds": {"type": "array", "minItems": 1, "uniqueItems": true, "items": {"enum": ["scene_json", "still", "contact_sheet", "video", "narration_timing", "audio", "validator_output", "source_packet"]}}}}},
+    "thresholds": {"type": "object", "additionalProperties": false, "required": ["pass", "needs_revision"], "properties": {"pass": {"type": "number", "minimum": 0, "maximum": 100}, "needs_revision": {"type": "number", "minimum": 0, "maximum": 100}}},
+    "authority": {"const": "human_owned_weights_and_requirements"}
+  }
+}

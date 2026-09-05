@@ -1,0 +1,42 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://channel-maker.local/engine/niche-intelligence/content-annotation.schema.json",
+  "title": "Niche Content Annotation v1",
+  "type": "object", "additionalProperties": false,
+  "required": ["schema_version", "artifact_type", "artifact_id", "study_id", "channel_id", "video_evidence_id", "authority", "evidence_refs", "annotation", "confidence", "created_by"],
+  "properties": {
+    "schema_version": {"const": "1.0.0"}, "artifact_type": {"const": "content_annotation"},
+    "artifact_id": {"$ref": "common.schema.json#/$defs/artifactId"},
+    "study_id": {"type": "string", "pattern": "^[a-z][a-z0-9-]*$"}, "channel_id": {"$ref": "common.schema.json#/$defs/channelId"},
+    "video_evidence_id": {"$ref": "common.schema.json#/$defs/artifactId"},
+    "authority": {"const": "ANNOTATION"},
+    "evidence_refs": {"type": "array", "minItems": 1, "uniqueItems": true, "items": {"$ref": "common.schema.json#/$defs/artifactId"}},
+    "annotation": {
+      "type": "object", "additionalProperties": false,
+      "required": ["primary_topic", "subtopics", "entities", "trend_dependence", "hook_family", "hook_text", "viewer_promise", "structure", "characteristics", "ending"],
+      "properties": {
+        "primary_topic": {"type": "string", "minLength": 1},
+        "subtopics": {"type": "array", "uniqueItems": true, "items": {"type": "string", "minLength": 1}},
+        "entities": {"type": "array", "uniqueItems": true, "items": {"type": "string", "minLength": 1}},
+        "trend_dependence": {"enum": ["EVERGREEN", "EVENT_DEPENDENT", "TREND_DEPENDENT", "MIXED", "UNKNOWN"]},
+        "hook_family": {"enum": ["QUESTION", "CONTRADICTION", "SPECIFIC_NUMBER", "SURPRISING_FACT", "CONSEQUENCE", "STORY_OPENING", "CURIOSITY_GAP", "OTHER", "UNKNOWN"]},
+        "hook_text": {"type": ["string", "null"]},
+        "viewer_promise": {"type": ["string", "null"]},
+        "structure": {"enum": ["PROBLEM_MECHANISM_CONSEQUENCE", "QUESTION_EXPLANATION_REVEAL", "STORY_REVERSAL_IMPLICATION", "COMPARISON", "LIST", "TIMELINE", "OTHER", "UNKNOWN"]},
+        "characteristics": {
+          "type": "object", "additionalProperties": false,
+          "required": ["information_density", "technical_depth", "numeric_specificity", "emotional_framing", "novelty", "recognizable_entities", "examples_or_metaphors"],
+          "properties": {
+            "information_density": {"enum": ["LOW", "MEDIUM", "HIGH", "UNKNOWN"]},
+            "technical_depth": {"enum": ["LOW", "MEDIUM", "HIGH", "UNKNOWN"]},
+            "numeric_specificity": {"enum": ["NONE", "LOW", "MEDIUM", "HIGH", "UNKNOWN"]},
+            "emotional_framing": {"type": ["string", "null"]}, "novelty": {"enum": ["LOW", "MEDIUM", "HIGH", "UNKNOWN"]},
+            "recognizable_entities": {"type": "boolean"}, "examples_or_metaphors": {"type": "boolean"}
+          }
+        },
+        "ending": {"enum": ["RESOLUTION", "IMPLICATION", "CTA", "LOOP_OR_OPEN", "OTHER", "UNKNOWN"]}
+      }
+    },
+    "confidence": {"$ref": "common.schema.json#/$defs/confidence"}, "created_by": {"$ref": "common.schema.json#/$defs/creationProvenance"}
+  }
+}

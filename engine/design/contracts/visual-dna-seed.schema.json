@@ -1,0 +1,27 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://channel-maker.local/engine/design/visual-dna-seed.schema.json",
+  "title": "Channel Visual DNA Seed v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "artifact_type", "channel_id", "status", "domains", "created_by"],
+  "properties": {
+    "schema_version": {"const": "1.0.0"},
+    "artifact_type": {"const": "visual_dna_seed"},
+    "channel_id": {"$ref": "common.schema.json#/$defs/channelId"},
+    "status": {"enum": ["AWAITING_FIRST_HUMAN_INPUT", "ACTIVE_DISCOVERY", "PARTIALLY_FROZEN", "FROZEN"]},
+    "domains": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["visual_identity", "typography", "color_language", "composition_grammar", "scene_aesthetics"],
+      "properties": {
+        "visual_identity": {"$ref": "common.schema.json#/$defs/domainGate"},
+        "typography": {"$ref": "common.schema.json#/$defs/domainGate"},
+        "color_language": {"$ref": "common.schema.json#/$defs/domainGate"},
+        "composition_grammar": {"$ref": "common.schema.json#/$defs/domainGate"},
+        "scene_aesthetics": {"$ref": "common.schema.json#/$defs/domainGate"}
+      }
+    },
+    "created_by": {"$ref": "common.schema.json#/$defs/creationProvenance"}
+  }
+}
