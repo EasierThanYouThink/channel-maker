@@ -1,16 +1,47 @@
 # Channel Maker
 
-A Claude Code skill and its supporting engine for taking a YouTube channel from
-a bare idea through a fully-specified, evidence-backed pilot — then keeps
-producing the channel's actual videos. V1 is CREATE-only and niche-driven:
-niche/market research, video teardowns, a channel foundation
-(audience/promise/personality/boundaries), Script/Visual/Motion DNA discovery,
-channel identity (logo + description), a starter asset library, and a pilot
-lifecycle (plan → production → human review → freeze), ending at
-`CHANNEL_READY` — followed by a repeatable Episode Production loop that never
-bumps the channel version. Every irreversible step — a domain freeze, an
-exemplar/candidate/component review, a pilot or episode GO/REVISE/ABANDON call
-— requires a real, non-fabricated human decision reference, enforced in code.
+A complete YouTube channel-making methodology for your coding agent, built on
+one composable skill and an evidence-first engine that enforces it. V1 is
+CREATE-only and niche-driven: niche research, video teardowns, channel
+foundation, Script/Visual/Motion DNA, identity, asset library, pilot, then
+ongoing episodes — every irreversible step gated on a real human decision,
+enforced in code.
+
+Table of Contents
+
+- [How it works](#how-it-works)
+- [Demo](#demo)
+- [Getting Started](#getting-started)
+  - [Claude Code](#claude-code)
+  - [Other coding agents](#other-coding-agents)
+- [The Channel-Making Workflow](#the-channel-making-workflow)
+- [Control panel](#control-panel-interactive)
+- [Voice](#voice)
+- [Rendering](#rendering)
+- [What's Inside](#whats-inside)
+- [Philosophy](#philosophy)
+- [Contributing](#contributing)
+- [Updating](#updating)
+- [Verify](#verify)
+- [License](#license)
+
+## How it works
+
+It starts the moment you tell your coding agent you want a YouTube channel. It
+doesn't jump to generating a logo or a script. Instead, it interrogates your
+channel thesis like a skeptical CEO — why this channel, for whom, what every
+single video promises — and only scaffolds when the thesis survives.
+
+Then it walks the full lifecycle with you in sections short enough to actually
+read and decide on: Hermes-driven niche research and video teardowns, an
+opportunity map, a human strategy gate, foundation, Script/Visual/Motion DNA
+discovery, identity, a starter asset library, and a pilot built voice-first
+with measured timing evidence. Each stage ends at a gate only you can open.
+
+After `CHANNEL_READY`, the same skill keeps producing the channel's actual
+videos through an episode loop that never touches the frozen channel version.
+And because channel state lives in files, not in the conversation, any fresh
+session resumes exactly where you stopped.
 
 ## Demo
 
@@ -19,29 +50,11 @@ typography hook — one of the approved headline directions):
 
 <video src="https://github.com/user-attachments/assets/e0c09a15-ec66-4430-91aa-c5fdb87bacb5" controls width="640"></video>
 
-## Install (Windows / macOS / Linux)
+## Getting Started
 
-```
-python tools/setup.py
-```
+### Claude Code
 
-Creates `.venv`, installs `requirements.txt`, and reports the external-services
-status. Details per OS: [`docs/SETUP.md`](docs/SETUP.md). Verify with
-`python tools/check.py` (venv activated).
-
-You'll also need [Hermes Agent](https://hermes-agent.nousresearch.com) and a
-local model for niche/market research (see Stage 0 of the skill below) —
-Hermes does the public web research; nothing here has its own scraper.
-
-## Using it — works with Claude Code today
-
-> **Compatibility:** this skill currently targets **Claude Code only**. The
-> workflow itself (versioned contracts, CLI tools, file-based state) is
-> model-agnostic by design, and support for more coding agents (Codex-class,
-> Gemini-class, strong local models) is on the roadmap — but only Claude Code
-> has walked the full path end to end so far.
-
-**Start here — open this repo in Claude Code and paste:**
+Clone, open in Claude Code, and paste:
 
 ```
 Read .claude/skills/channel-maker/SKILL.md and README.md, then walk me through
@@ -49,38 +62,77 @@ creating a YouTube channel in <your niche here> per the skill, starting at
 Stage 0.
 ```
 
-What happens next is a live, conversational walkthrough (see
-`.claude/skills/channel-maker/SKILL.md`, which walks Stage 0 through Stage 10
-plus the Ongoing episode loop, with a Stage 0.5 resume procedure for picking up
-mid-channel). Claude runs the CLIs below and asks you for every real decision:
-
-- **Stages 0–1** — environment bootstrap (Hermes + local model), channel
-  intent, and a hard CEO-style interrogation of your channel thesis before
-  anything is scaffolded.
-- **Stages 2–3** — Hermes-driven niche research, video teardowns, and an
-  opportunity map, ending at a human strategy gate.
-- **Stages 4–7** — channel foundation, Script/Visual/Motion DNA discovery, and
-  channel identity, each frozen only on your explicit sign-off.
-- **Stages 8–10** — starter asset library, pilot production with real
-  voiceover, human GO/REVISE/ABANDON review, and the `CHANNEL_READY`
-  checklist.
-- **Ongoing** — the episode loop that produces the channel's actual videos
-  without ever touching the frozen channel version.
-
-Resuming later is normal: reopen the repo, tell Claude your channel id, and it
-reconstructs state from `channels/<id>/CHANNEL_STATE.json` and continues where
-you stopped.
-
-You can also run any tool directly, e.g.:
+Setup and verification:
 
 ```
-.venv/bin/python tools/init_channel.py my-channel --name "My Channel" \
-  --niche-primary "..." --archetype ILLUSTRATED_EXPLAINER \
-  --renderer remotion
-.venv/bin/python tools/validate_channel.py channels/my-channel
+python tools/setup.py
+python tools/check.py
 ```
 
-### Voice
+Setup creates `.venv`, installs `requirements.txt`, and reports external-services
+status. Details per OS: [`docs/SETUP.md`](docs/SETUP.md). You'll also need
+[Hermes Agent](https://hermes-agent.nousresearch.com) and a local model for
+niche/market research (see Stage 0 of the skill) — Hermes does the public web
+research; nothing here has its own scraper.
+
+### Other coding agents
+
+The workflow itself is harness-agnostic by design — versioned contracts, CLI
+tools, file-based state, no vendor lock-in. But only Claude Code has walked the
+full path end to end so far. Codex-class, Gemini-class, and strong local models
+are on the roadmap; until then, expect rough edges anywhere outside Claude
+Code and report them.
+
+## The Channel-Making Workflow
+
+The skill checks the machine's own `next` output before every step, so the
+agent always knows what's legal now. The stages:
+
+- **resume** — Activates at every session start. Reconstructs state from
+  `CHANNEL_STATE.json`, dry-runs the next edge, never re-runs scaffolds.
+- **intent** — Activates with a niche. CEO-interrogates the channel thesis,
+  writes it down, scaffolds the Channel Package.
+- **niche-intelligence** — Activates with intent. Hermes-driven public
+  research through a reviewed import queue, plus video teardowns and a
+  relative-views metric. No private analytics, ever.
+- **opportunity-map** — Activates with evidence. Converts findings into
+  strategic options and crosses the first human gate at strategy selection.
+- **foundation** — Activates with strategy. Audience, promise, personality,
+  boundaries, and what the channel deliberately avoids.
+- **script-dna** — Activates with foundation. Hook philosophy, narrator voice,
+  density, structure — frozen only on your sign-off.
+- **visual/motion-dna** — Activates with script DNA. Candidate exemplars,
+  narrowing loops, per-domain freezes across five visual domains plus motion.
+- **identity** — Activates with frozen DNA. Logo and About-page bio in the
+  channel's own voice.
+- **starter-library** — Activates with identity. Code-first components, only
+  what the pilot actually needs — never a speculative catalog.
+- **pilot** — Activates with the library. Voice-first production (script →
+  offline TTS → measured timings → visual beats → render → evaluation
+  evidence), human GO/REVISE/ABANDON review, version-bumping freeze.
+- **readiness** — Activates with a GO'd pilot. The 11-item `CHANNEL_READY`
+  checklist; nothing writes until everything passes.
+- **episodes** — Activates after `CHANNEL_READY`, forever. Same production
+  rigor as the pilot, no version bump, no state-machine involvement.
+
+## Control panel (interactive)
+
+`.venv/bin/python tools/dashboard/server.py --port 8420` starts a local-only
+(127.0.0.1) panel that stays open beside your agent session. One glance answers
+*where are we, what's next, what needs my eyes, is the machine healthy*:
+
+- **Channel list + per-channel detail** — live workflow state, next action,
+  and the full event log.
+- **Unified review queue** — everything waiting on a human across niche
+  opportunities, script examples, design exemplars, identity candidates, asset
+  components, pilots, and episodes, each linking back to its evidence.
+- **Wiki browsing** — channel memory as it accumulates.
+- **One-click gated actions** — freezes, reviews, and GO/REVISE calls run as
+  buttons, each shelling out to the exact same CLI with an explicit browser
+  confirm first. The panel never re-implements tool logic and never fabricates
+  an approval.
+
+## Voice
 
 Pilots and episodes are voice-first: `tools/voiceover.py synthesize` renders
 narration fully offline (Piper TTS, voice model auto-downloaded on first use)
@@ -88,34 +140,56 @@ plus measured timing evidence, and `tools/voiceover.py validate` gates the
 result against the target duration before any scene is built. One voice per
 channel, picked once and reused.
 
-### Control panel (interactive)
-
-`.venv/bin/python tools/dashboard/server.py --port 8420` starts a local-only
-(127.0.0.1) control panel that stays open beside your Claude session while you
-work. It is the creator dashboard — one glance answers *where are we, what's
-next, what needs my eyes, is the machine healthy*:
-
-- **Channel list + per-channel detail** — live workflow state, next action,
-  and the full event log (every advance, freeze, review, and revision).
-- **Unified review queue** — everything waiting on a human across niche
-  opportunities, script examples, design exemplars, identity candidates, asset
-  components, pilots, and episodes, each linking back to its evidence.
-- **Wiki browsing** — channel memory pages (strategy, hypotheses, lessons)
-  as they accumulate.
-- **One-click gated actions** — freezes, reviews, and GO/REVISE calls run as
-  buttons, but every one shells out to the exact same CLI with an explicit
-  browser confirm step first. The panel never re-implements tool logic and
-  never fabricates an approval.
-
-Keep it open for the whole lifecycle: the skill's Stage 1.5 tells Claude to
-start it right after scaffolding, and the per-channel contents fill in live as
-stages complete.
-
-### Rendering
+## Rendering
 
 Stage 9 (pilot production) doesn't assume a specific rendering pipeline — see
 [`docs/RENDER_CONTRACT.md`](docs/RENDER_CONTRACT.md) for the evidence contract
 any renderer must satisfy.
+
+## What's Inside
+
+**Skill** — `.claude/skills/channel-maker/SKILL.md` plus setup and response-
+contract references: the whole methodology above as an executable walkthrough.
+
+**Engine** — `engine/` packages per lifecycle domain: channel state machine,
+niche intelligence, foundation, script/design/identity DNA, asset library,
+pilot, episodes, readiness checklist, scoped memory, and local voiceover.
+
+**Tools** — `tools/` one CLI per domain plus `setup.py`, `check.py`, and the
+`dashboard/` control panel that shells out to the same CLIs.
+
+**Contracts & tests** — 40+ JSON schemas guarding every artifact, and a pytest
+suite that executes the skill's documented path literally (including a resume
+and a REVISE loop), so doc drift fails loudly.
+
+## Philosophy
+
+- **Evidence over claims** — verify with tool output before declaring success.
+- **No AI approval** — scores, critics, and metrics advise; only a recorded
+  human decision opens a gate.
+- **Smallest reviewable step** — one stage, one freeze, one commit at a time.
+- **Simplicity as primary goal** — CREATE-only v1, no speculative catalogs,
+  no giant upfront systems.
+- **Deterministic where practical** — content-hashed evidence, atomic writes,
+  chained state history.
+
+## Contributing
+
+See [CONTRIBUTING.md](CONTRIBUTING.md). The headline rule: the skill-walkthrough
+test executes the documented path, so skill changes come with test updates —
+write the failing walkthrough first.
+
+## Updating
+
+```
+git pull
+python tools/setup.py
+python tools/check.py
+```
+
+The voice model cache (`data/local/piper-voices/`) survives updates. Found a
+security issue? See [SECURITY.md](SECURITY.md) — report privately, not via a
+public issue.
 
 ## Verify
 
