@@ -1,0 +1,34 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://channel-maker.local/engine/identity/common.schema.json",
+  "title": "Channel Identity Common Definitions v1",
+  "$defs": {
+    "channelId": {"type": "string", "pattern": "^[a-z][a-z0-9-]*$"},
+    "relativePath": {"type": "string", "minLength": 1, "pattern": "^(?!/)(?!.*(?:^|/)\\.\\.(?:/|$)).+$"},
+    "candidateId": {"type": "string", "pattern": "^identity-candidate:[a-z0-9][a-z0-9._-]*$"},
+    "creationProvenance": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["created_at", "creator", "tool", "version"],
+      "properties": {
+        "created_at": {"type": "string", "format": "date-time"},
+        "creator": {"enum": ["HUMAN", "TOOL", "MODEL_ASSISTED"]},
+        "tool": {"type": "string", "minLength": 1},
+        "version": {"type": "string", "minLength": 1}
+      }
+    },
+    "domainGate": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["discovery_status", "authority_status", "gate", "inputs_required", "reference_ids", "decision_refs"],
+      "properties": {
+        "discovery_status": {"enum": ["UNPOPULATED", "ACTIVE", "POPULATED"]},
+        "authority_status": {"enum": ["UNFROZEN", "FROZEN"]},
+        "gate": {"enum": ["ACTIVE_DISCOVERY", "WAITING_FOR_HUMAN", "HUMAN_FROZEN"]},
+        "inputs_required": {"type": "array", "minItems": 1, "uniqueItems": true, "items": {"type": "string", "minLength": 1}},
+        "reference_ids": {"type": "array", "uniqueItems": true, "items": {"$ref": "#/$defs/candidateId"}},
+        "decision_refs": {"type": "array", "uniqueItems": true, "items": {"$ref": "#/$defs/relativePath"}}
+      }
+    }
+  }
+}

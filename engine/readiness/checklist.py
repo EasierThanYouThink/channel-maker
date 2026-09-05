@@ -15,6 +15,8 @@ from jsonschema import Draft202012Validator, FormatChecker
 from engine.channel import ChannelValidationError, validate_channel_package
 from engine.design import all_domains_frozen, seed_path
 from engine.foundation.validation import FoundationValidationError, validate_foundation
+from engine.identity import all_domains_frozen as identity_all_domains_frozen
+from engine.identity import identity_path
 from engine.library import list_components
 from engine.pilot import PilotValidationError, pilot_path, validate_pilot
 from engine.script.validation import ScriptValidationError, validate_script_dna
@@ -144,6 +146,21 @@ def check_readiness(package_root: Path, repository_root: Path) -> dict[str, Any]
             [str(path.relative_to(repository_root))] if ok else [],
             f"{kind.title()} DNA seed is missing or has at least one unfrozen domain." if not ok else "Recorded.",
         ))
+
+    # 5b. Channel Identity: logo and description both frozen.
+    identity_seed_path = identity_path(root)
+    identity_ok = False
+    if identity_seed_path.is_file():
+        try:
+            document = yaml.safe_load(identity_seed_path.read_text(encoding="utf-8"))
+            identity_ok = identity_all_domains_frozen(document)
+        except yaml.YAMLError:
+            identity_ok = False
+    items.append(_item(
+        "identity_frozen", "Channel Identity (logo, description): every domain frozen", identity_ok,
+        [str(identity_seed_path.relative_to(repository_root))] if identity_ok else [],
+        "Channel Identity seed is missing or has at least one unfrozen domain." if not identity_ok else "Recorded.",
+    ))
 
     # 6. At least one approved design exemplar.
     exemplars_dir = root / "design" / "exemplars" / "records"

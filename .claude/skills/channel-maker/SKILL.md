@@ -1,6 +1,6 @@
 ---
 name: channel-maker
-description: Create a new YouTube channel or study/clone an existing channel's niche and market, using Hermes Agent for public research, and walk it through this repo's full CM1 workflow from CHANNEL_INIT to CHANNEL_READY — niche intelligence, channel foundation, Script/Visual/Motion DNA discovery, the starter asset library, and pilot production/review/freeze — plus a local dashboard. Use when the user wants to start a new YouTube channel, research a niche or competitor channel, or set up Hermes Agent for channel market research.
+description: Create a new YouTube channel or study/clone an existing channel's niche and market, using Hermes Agent for public research, and walk it through this repo's full CM1 workflow from CHANNEL_INIT to CHANNEL_READY — niche intelligence, channel foundation, Script/Visual/Motion DNA discovery, channel identity, the starter asset library, and pilot production/review/freeze — plus a local dashboard. Use when the user wants to start a new YouTube channel, research a niche or competitor channel, or set up Hermes Agent for channel market research.
 ---
 
 # Channel Maker (v1 — Claude Code only)
@@ -8,12 +8,13 @@ description: Create a new YouTube channel or study/clone an existing channel's n
 This skill walks a Channel Package through its entire CM1 lifecycle: interactive
 environment bootstrap, channel intent, Hermes-driven niche/market research,
 channel foundation, Script/Visual/Motion DNA discovery (see
-`docs/CHANNEL_DESIGN_DNA.md`), the starter asset library, and pilot
-planning/production/review/freeze, ending at `CHANNEL_READY`. See `README.md`
-first if you have not already reconstructed current repository state this
-session.
+`docs/CHANNEL_DESIGN_DNA.md`), channel identity — logo + description (see
+`docs/CHANNEL_IDENTITY.md`), the starter asset library, and pilot
+planning/production/review/freeze, ending at `CHANNEL_READY`.
+See `README.md` first if you have not already reconstructed current
+repository state this session.
 
-Creative scene construction itself (Stage 8) is a bounded, human/agent-driven
+Creative scene construction itself (Stage 9) is a bounded, human/agent-driven
 workflow using whatever rendering pipeline the channel declares (see
 `docs/RENDER_CONTRACT.md`) — this skill does not invent a Scene DSL or an
 automatic "visual director." What's new is the lifecycle/contract layer around
@@ -133,9 +134,21 @@ Visual DNA has five domains (`visual_identity`, `typography`, `color_language`, 
 2. Discovery loop per domain: create/gather candidate reference images, register them (`tools/design_exemplars.py --channel <channel_id> add <image> --title "..." --domain <domain> --provenance-kind <...> --created-by "<you>" --source-ref "..."`), show the user, get their approve/reject/borderline call (`tools/design_exemplars.py --channel <channel_id> review <exemplar_id> --decision ... --reviewer "<user>" --reason "..."`), then `tools/design_dna.py <visual|motion> add-reference channels/<channel_id> --domain <domain> --exemplar-id <exemplar_id>` for approved ones. Narrow and repeat until the user is satisfied — do not invent a fixed number of rounds.
 3. Freeze each domain only when the user explicitly says so: `tools/design_dna.py <visual|motion> freeze-domain channels/<channel_id> --domain <domain> --decision-ref <a-real-path>` (interactive confirm, or `--yes`).
 4. `tools/design_dna.py <visual|motion> check-ready channels/<channel_id>` must report all domains frozen before advancing.
-5. `.venv/bin/python tools/channel_state.py advance channels/<channel_id> MOTION_DNA_DISCOVERY --prerequisite-ref channels/<channel_id>/design/visual-dna-seed.yaml ...` after visual is fully frozen, then `... advance channels/<channel_id> STARTER_VISUAL_LIBRARY --prerequisite-ref channels/<channel_id>/motion/motion-dna-seed.yaml ...` after motion is fully frozen.
+5. `.venv/bin/python tools/channel_state.py advance channels/<channel_id> MOTION_DNA_DISCOVERY --prerequisite-ref channels/<channel_id>/design/visual-dna-seed.yaml ...` after visual is fully frozen, then `... advance channels/<channel_id> CHANNEL_IDENTITY --prerequisite-ref channels/<channel_id>/motion/motion-dna-seed.yaml ...` after motion is fully frozen.
 
-## Stage 7 — Starter Visual Library
+## Stage 7 — Channel Identity
+
+Only starts once Foundation, Script DNA, and Visual DNA are frozen — see
+`docs/CHANNEL_IDENTITY.md`. Two domains: `logo` (an image) and `description` (a
+short About-page bio, in the frozen Script DNA voice).
+
+1. `.venv/bin/python tools/channel_identity.py init channels/<channel_id>`.
+2. Discovery loop per domain: produce/gather candidates (a logo image, or a draft description string), register them (`tools/channel_identity.py add --channel <channel_id> --domain <logo|description> --title "..." [--image <path> | --text "..."] --provenance-kind <...> --created-by "<you>" --source-ref "..."`), show the user, get their approve/reject/borderline call (`tools/channel_identity.py review --channel <channel_id> <candidate_id> --decision ... --reviewer "<user>" --reason "..."`), then `tools/channel_identity.py add-reference channels/<channel_id> --domain <domain> --candidate-id <candidate_id>` for approved ones. Narrow and repeat until the user is satisfied — do not invent a fixed number of rounds.
+3. Freeze each domain only when the user explicitly says so: `tools/channel_identity.py freeze-domain channels/<channel_id> --domain <domain> --decision-ref <a-real-path>` (interactive confirm, or `--yes`).
+4. `tools/channel_identity.py check-ready channels/<channel_id>` must report both domains frozen before advancing.
+5. `.venv/bin/python tools/channel_state.py advance channels/<channel_id> STARTER_VISUAL_LIBRARY --prerequisite-ref channels/<channel_id>/identity/channel-identity.yaml ...`.
+
+## Stage 8 — Starter Visual Library
 
 Only create a component when a real, immediate need exists (never a speculative catalog):
 
@@ -143,7 +156,7 @@ Only create a component when a real, immediate need exists (never a speculative 
 2. Get the user's review: `tools/asset_registry.py review <component_path> --decision <approved|rejected|deprecated> --reviewer "<user>" --reason "..."`.
 3. `.venv/bin/python tools/channel_state.py advance channels/<channel_id> PILOT_PLAN --prerequisite-ref <approved-component-path> ...` once at least one component is approved.
 
-## Stage 8 — Pilot Plan, Production, Review
+## Stage 9 — Pilot Plan, Production, Review
 
 1. `.venv/bin/python tools/pilot.py plan channels/<channel_id> <pilot-id> --topic "..." --target-duration-seconds <20-30> --integration-goal "Prove Script DNA" --integration-goal "Prove Visual DNA" ...`, then `channel_state.py advance ... PILOT_PLAN` (already done in step 3 above if this is the first pilot) `-> PILOT_PRODUCTION`.
 2. Build the pilot with the channel's declared renderer — script, voiceover, timed visual beats, scene-local components, a deterministic render — per the contract in `docs/RENDER_CONTRACT.md`, using the evaluation contract tooling (`tools/build_scene_candidate.py`, `tools/evaluate_scene.py`) for evidence. Attach evidence as it's produced: `.venv/bin/python tools/pilot.py record-production channels/<channel_id> <pilot-id> --script-ref ... --scene-candidate-manifest <path> --evaluation-result <path> --render-ref ...`.
@@ -155,7 +168,7 @@ Only create a component when a real, immediate need exists (never a speculative 
    REVISE requires `--revise-target <STATE>` (one of the states this pilot passed through) and routes via `tools/channel_state.py revise channels/<channel_id> <STATE> --decision-ref <same-ref> --next-action "..." --reason "..."`. ABANDON_DIRECTION routes via `tools/channel_state.py abandon channels/<channel_id> --decision-ref <same-ref> --reason "..."`.
 5. On GO: `.venv/bin/python tools/channel_state.py advance channels/<channel_id> CHANNEL_FREEZE --prerequisite-ref channels/<channel_id>/pilots/<pilot-id>/pilot.json --human-decision-ref <the-same-real-reference>` (this is the one state-machine human gate in this whole range), then `.venv/bin/python tools/pilot.py freeze channels/<channel_id> <pilot-id> --new-channel-version <next-version> --frozen-by "<user>"`.
 
-## Stage 9 — Readiness and Channel Ready
+## Stage 10 — Readiness and Channel Ready
 
 1. `.venv/bin/python tools/channel_readiness.py channels/<channel_id> --write`. If any item fails, it tells you exactly which and why — address that before retrying. This never writes `readiness-report.json` unless every item genuinely passes.
 2. `.venv/bin/python tools/channel_state.py advance channels/<channel_id> CHANNEL_READY --next-action "Channel is ready." --actor "<user>" --reason "..." --prerequisite-ref channels/<channel_id>/readiness-report.json`.
@@ -163,4 +176,4 @@ Only create a component when a real, immediate need exists (never a speculative 
 
 ## Starting the dashboard
 
-`.venv/bin/python tools/dashboard/server.py --port 8420` — a local-only (127.0.0.1), read-mostly control panel: channel list, per-channel state/next-action/event-log, wiki browsing, and a unified review queue across niche intelligence, design/script exemplars, asset components, and pilots. Action buttons for gated decisions (freeze/review/GO-REVISE/etc.) require an explicit confirm step in the browser before they run — they shell out to the exact same CLI commands above via `tools/dashboard/actions.py`'s fixed whitelist, never re-implementing their logic. It is not started automatically; tell the user the command and let them open it themselves.
+`.venv/bin/python tools/dashboard/server.py --port 8420` — a local-only (127.0.0.1), read-mostly control panel: channel list, per-channel state/next-action/event-log, wiki browsing, and a unified review queue across niche intelligence, design/script exemplars, identity candidates, asset components, and pilots. Action buttons for gated decisions (freeze/review/GO-REVISE/etc.) require an explicit confirm step in the browser before they run — they shell out to the exact same CLI commands above via `tools/dashboard/actions.py`'s fixed whitelist, never re-implementing their logic. It is not started automatically; tell the user the command and let them open it themselves.

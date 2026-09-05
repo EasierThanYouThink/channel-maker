@@ -1,0 +1,62 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://channel-maker.local/engine/identity/identity-candidate.schema.json",
+  "title": "Channel Identity Candidate v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "artifact_type", "candidate_id", "channel_id", "domain", "title", "classification", "review_authority", "reasons", "provenance", "review_ids"],
+  "properties": {
+    "schema_version": {"const": "1.0.0"},
+    "artifact_type": {"const": "identity_candidate"},
+    "candidate_id": {"$ref": "common.schema.json#/$defs/candidateId"},
+    "channel_id": {"$ref": "common.schema.json#/$defs/channelId"},
+    "domain": {"enum": ["logo", "description"]},
+    "title": {"type": "string", "minLength": 1},
+    "asset": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["path", "sha256", "media_type"],
+      "properties": {
+        "path": {"type": "string", "pattern": "^channels/[a-z][a-z0-9-]*/identity/candidates/assets/"},
+        "sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+        "media_type": {"enum": ["image/png", "image/jpeg", "image/webp"]}
+      }
+    },
+    "text": {"type": "string", "minLength": 1, "maxLength": 1000},
+    "classification": {"enum": ["experimental", "approved", "rejected", "borderline"]},
+    "review_authority": {"enum": ["unreviewed", "human"]},
+    "reasons": {"type": "array", "items": {"type": "string", "minLength": 1}},
+    "provenance": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind", "created_by", "source_ref"],
+      "properties": {
+        "kind": {"enum": ["human_supplied_original", "ai_generated_original", "project_original_render"]},
+        "created_by": {"type": "string", "minLength": 1},
+        "source_ref": {"type": "string", "minLength": 1},
+        "model": {"type": "string", "minLength": 1},
+        "model_version": {"type": "string", "minLength": 1},
+        "prompt_ref": {"type": "string", "minLength": 1}
+      }
+    },
+    "review_ids": {"type": "array", "items": {"type": "string", "pattern": "^identity-candidate-review:[a-f0-9]{16}$"}, "uniqueItems": true}
+  },
+  "allOf": [
+    {
+      "if": {"properties": {"classification": {"enum": ["approved", "rejected", "borderline"]}}},
+      "then": {"properties": {"review_authority": {"const": "human"}, "review_ids": {"minItems": 1}, "reasons": {"minItems": 1}}}
+    },
+    {
+      "if": {"properties": {"classification": {"const": "experimental"}}},
+      "then": {"properties": {"review_authority": {"const": "unreviewed"}}}
+    },
+    {
+      "if": {"properties": {"domain": {"const": "logo"}}},
+      "then": {"required": ["asset"], "not": {"required": ["text"]}}
+    },
+    {
+      "if": {"properties": {"domain": {"const": "description"}}},
+      "then": {"required": ["text"], "not": {"required": ["asset"]}}
+    }
+  ]
+}

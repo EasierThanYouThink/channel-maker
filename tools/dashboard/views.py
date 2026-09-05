@@ -64,7 +64,8 @@ def _json_records(directory: Path) -> list[dict[str, Any]]:
 def review_queue(root: Path) -> dict[str, list[dict[str, Any]]]:
     channels_root = root / "channels"
     queue: dict[str, list[dict[str, Any]]] = {
-        "script_examples": [], "design_exemplars": [], "asset_components": [], "pilots": [], "niche_opportunities": [],
+        "script_examples": [], "design_exemplars": [], "identity_candidates": [], "asset_components": [],
+        "pilots": [], "niche_opportunities": [],
     }
     if not channels_root.is_dir():
         return queue
@@ -76,6 +77,9 @@ def review_queue(root: Path) -> dict[str, list[dict[str, Any]]]:
         for record in _json_records(package_root / "design" / "exemplars" / "records"):
             if record.get("classification") == "experimental":
                 queue["design_exemplars"].append({"channel_id": channel_id, **record})
+        for record in _json_records(package_root / "identity" / "candidates" / "records"):
+            if record.get("classification") == "experimental":
+                queue["identity_candidates"].append({"channel_id": channel_id, **record})
         for record in _json_records(package_root / "assets" / "registry"):
             if record.get("status") == "experimental":
                 queue["asset_components"].append({"channel_id": channel_id, **record})

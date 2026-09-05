@@ -10,6 +10,10 @@ from engine.channel import ChannelStateError, ChannelStateMachine, validate_chan
 from engine.design import add_reference, freeze_domain, init_seed
 from engine.design.exemplars import ChannelExemplarStore
 from engine.foundation import attach_foundation_decision, write_foundation
+from engine.identity import ChannelIdentityStore
+from engine.identity import add_reference as add_identity_reference
+from engine.identity import freeze_domain as freeze_identity_domain
+from engine.identity import init_identity
 from engine.library import register_component, review_component
 from engine.pilot import freeze_pilot, plan_pilot, record_review
 from engine.readiness import ReadinessError, check_readiness, write_readiness_report
@@ -132,6 +136,26 @@ def test_full_incremental_build_flips_every_item_and_persists_at_the_end(tmp_pat
     machine.advance("MOTION_DNA_DISCOVERY", next_action="n", actor="a", reason="r", prerequisite_refs=[any_ref])
     report = check_readiness(package, tmp_path)
     assert item_status(report, "motion_dna_frozen")
+    assert not item_status(report, "identity_frozen")
+
+    init_identity(package, tmp_path)
+    identity_store = ChannelIdentityStore(tmp_path, CHANNEL_ID)
+    logo_image = make_png(tmp_path / "src" / "mark.png")
+    logo = identity_store.add(
+        domain="logo", title="Mark", image=logo_image, provenance_kind="human_supplied_original",
+        created_by="Seb", source_ref="manual upload",
+    )
+    description = identity_store.add(
+        domain="description", title="Bio", text="Short, clear science explainers.",
+        provenance_kind="human_supplied_original", created_by="Seb", source_ref="draft",
+    )
+    add_identity_reference(package, tmp_path, domain="logo", candidate_id=logo["candidate_id"])
+    add_identity_reference(package, tmp_path, domain="description", candidate_id=description["candidate_id"])
+    freeze_identity_domain(package, tmp_path, domain="logo", human_confirmed=True, decision_ref=any_ref)
+    freeze_identity_domain(package, tmp_path, domain="description", human_confirmed=True, decision_ref=any_ref)
+    machine.advance("CHANNEL_IDENTITY", next_action="n", actor="a", reason="r", prerequisite_refs=[any_ref])
+    report = check_readiness(package, tmp_path)
+    assert item_status(report, "identity_frozen")
     assert not item_status(report, "approved_component")
 
     make_png(tmp_path / "remotion" / "src" / "channels" / CHANNEL_ID / "Arrow.tsx")

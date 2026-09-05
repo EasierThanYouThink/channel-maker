@@ -87,6 +87,16 @@ ACTIONS: dict[str, ActionSpec] = {
         flags={"decision": "--decision", "reviewer": "--reviewer", "reason": "--reason"},
         gated=True, confirmed_by_field="reviewer",
     ),
+    "freeze_identity_domain": ActionSpec(
+        argv=["tools/channel_identity.py", "freeze-domain", "{package_root}"],
+        flags={"domain": "--domain", "decision_ref": "--decision-ref"},
+        gated=True,
+    ),
+    "review_identity_candidate": ActionSpec(
+        argv=["tools/channel_identity.py", "review", "--channel", "{channel_id}", "{candidate_id}"],
+        flags={"decision": "--decision", "reviewer": "--reviewer", "reason": "--reason"},
+        gated=True, confirmed_by_field="reviewer",
+    ),
     "review_asset_component": ActionSpec(
         argv=["tools/asset_registry.py", "review", "{component_path}"],
         flags={"decision": "--decision", "reviewer": "--reviewer", "reason": "--reason"},

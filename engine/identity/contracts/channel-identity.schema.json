@@ -1,0 +1,24 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://channel-maker.local/engine/identity/channel-identity.schema.json",
+  "title": "Channel Identity Seed v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "artifact_type", "channel_id", "status", "domains", "created_by"],
+  "properties": {
+    "schema_version": {"const": "1.0.0"},
+    "artifact_type": {"const": "channel_identity"},
+    "channel_id": {"$ref": "common.schema.json#/$defs/channelId"},
+    "status": {"enum": ["ACTIVE_DISCOVERY", "PARTIALLY_FROZEN", "FROZEN"]},
+    "domains": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["logo", "description"],
+      "properties": {
+        "logo": {"$ref": "common.schema.json#/$defs/domainGate"},
+        "description": {"$ref": "common.schema.json#/$defs/domainGate"}
+      }
+    },
+    "created_by": {"$ref": "common.schema.json#/$defs/creationProvenance"}
+  }
+}
