@@ -1,6 +1,6 @@
 ---
 name: channel-maker
-description: Create a new YouTube channel or study/clone an existing channel's niche and market, using Hermes Agent for public research, and walk it through this repo's full CM1 workflow from CHANNEL_INIT to CHANNEL_READY — niche intelligence, channel foundation, Script/Visual/Motion DNA discovery, channel identity, the starter asset library, and pilot production/review/freeze — plus a local dashboard. Use when the user wants to start a new YouTube channel, research a niche or competitor channel, or set up Hermes Agent for channel market research.
+description: Create a new YouTube channel or study/clone an existing channel's niche and market, using Hermes Agent for public research, and walk it through this repo's full CM1 workflow from CHANNEL_INIT to CHANNEL_READY — niche intelligence, channel foundation, Script/Visual/Motion DNA discovery, channel identity, the starter asset library, and pilot production/review/freeze — then keep producing ongoing episodes, plus a local dashboard. Use when the user wants to start a new YouTube channel, research a niche or competitor channel, set up Hermes Agent for channel market research, or produce another episode for an already-ready channel.
 ---
 
 # Channel Maker (v1 — Claude Code only)
@@ -10,7 +10,8 @@ environment bootstrap, channel intent, Hermes-driven niche/market research,
 channel foundation, Script/Visual/Motion DNA discovery (see
 `docs/CHANNEL_DESIGN_DNA.md`), channel identity — logo + description (see
 `docs/CHANNEL_IDENTITY.md`), the starter asset library, and pilot
-planning/production/review/freeze, ending at `CHANNEL_READY`.
+planning/production/review/freeze, ending at `CHANNEL_READY` — followed by an
+ongoing, repeatable Episode Production loop for the channel's actual videos.
 See `README.md` first if you have not already reconstructed current
 repository state this session.
 
@@ -174,6 +175,33 @@ Only create a component when a real, immediate need exists (never a speculative 
 2. `.venv/bin/python tools/channel_state.py advance channels/<channel_id> CHANNEL_READY --next-action "Channel is ready." --actor "<user>" --reason "..." --prerequisite-ref channels/<channel_id>/readiness-report.json`.
 3. `.venv/bin/python tools/validate_channel.py channels/<channel_id>` — final check: `state` should be `CHANNEL_READY`, `status` should be `COMPLETE`.
 
+## Ongoing — Episode Production
+
+This is a loop, not a one-time stage — it's how the channel's actual videos get made, and it
+runs indefinitely after `CHANNEL_READY`. It deliberately never touches `channel.yaml`'s
+`version` or the CM1 workflow state — those were already settled in Stage 10. Producing a video
+is not the same event as changing the channel's identity/DNA, so **never** call
+`tools/pilot.py freeze` for an ongoing episode; that tool is reserved for the one-time DNA proof
+in Stage 9, and a genuine identity/DNA change later gets its own separate, deliberate re-freeze.
+
+1. Pick the next topic — ideally citing a real, still-unrealized `opportunity_proposal` from
+   niche intelligence (`channels/<channel_id>/intelligence/studies/<study-id>/opportunities/`) via
+   `--opportunity-ref <opportunity-artifact-id>`; a topic with no such grounding is fine too, just
+   pass `--opportunity-ref` as nothing.
+2. `.venv/bin/python tools/episode.py plan channels/<channel_id> <episode-id> --topic "..." --target-duration-seconds <20-30> [--opportunity-ref <id>]`.
+3. Build it for real — script, voiceover, timed visual beats, scene-local components, a
+   deterministic render — per `docs/RENDER_CONTRACT.md`, using the same evaluation contract
+   tooling as Stage 9 (`tools/build_scene_candidate.py`, `tools/evaluate_scene.py`) for evidence.
+   Attach it as it's produced: `.venv/bin/python tools/episode.py record-production channels/<channel_id> <episode-id> --script-ref ... --scene-candidate-manifest <path> --evaluation-result <path> --render-ref ...`.
+4. Get the user's real GO/REVISE/ABANDON call — never fabricate it:
+   ```
+   .venv/bin/python tools/episode.py record-review channels/<channel_id> <episode-id> --decision GO --decided-by "<user>" --decision-ref <a-real-path> --rationale "..."
+   ```
+   REVISE means rework this episode's production and record review again once it's ready;
+   ABANDON means this episode doesn't get made — neither routes through `channel_state.py`.
+5. Repeat from step 1 for the next episode. Publishing the finished render to YouTube is outside
+   this skill's scope — the human does that.
+
 ## Starting the dashboard
 
-`.venv/bin/python tools/dashboard/server.py --port 8420` — a local-only (127.0.0.1), read-mostly control panel: channel list, per-channel state/next-action/event-log, wiki browsing, and a unified review queue across niche intelligence, design/script exemplars, identity candidates, asset components, and pilots. Action buttons for gated decisions (freeze/review/GO-REVISE/etc.) require an explicit confirm step in the browser before they run — they shell out to the exact same CLI commands above via `tools/dashboard/actions.py`'s fixed whitelist, never re-implementing their logic. It is not started automatically; tell the user the command and let them open it themselves.
+`.venv/bin/python tools/dashboard/server.py --port 8420` — a local-only (127.0.0.1), read-mostly control panel: channel list, per-channel state/next-action/event-log, wiki browsing, and a unified review queue across niche intelligence, design/script exemplars, identity candidates, asset components, pilots, and episodes. Action buttons for gated decisions (freeze/review/GO-REVISE/etc.) require an explicit confirm step in the browser before they run — they shell out to the exact same CLI commands above via `tools/dashboard/actions.py`'s fixed whitelist, never re-implementing their logic. It is not started automatically; tell the user the command and let them open it themselves.

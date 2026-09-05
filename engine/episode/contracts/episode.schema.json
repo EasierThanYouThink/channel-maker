@@ -1,0 +1,52 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://channel-maker.local/engine/episode/episode.schema.json",
+  "title": "Episode Production Artifact v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "artifact_type", "artifact_id", "channel_id", "episode_id", "plan", "production", "review", "created_by"],
+  "properties": {
+    "schema_version": {"const": "1.0.0"},
+    "artifact_type": {"const": "episode"},
+    "artifact_id": {"type": "string", "pattern": "^episode:[a-z][a-z0-9-]*:[a-z0-9][a-z0-9._-]*$"},
+    "channel_id": {"$ref": "common.schema.json#/$defs/channelId"},
+    "episode_id": {"type": "string", "pattern": "^[a-z0-9][a-z0-9._-]*$"},
+    "plan": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["topic", "format", "target_duration_seconds", "opportunity_ref"],
+      "properties": {
+        "topic": {"type": "string", "minLength": 1},
+        "format": {"const": "SHORTS"},
+        "target_duration_seconds": {"type": "number", "exclusiveMinimum": 0},
+        "opportunity_ref": {"oneOf": [{"type": "null"}, {"type": "string", "minLength": 1}]}
+      }
+    },
+    "production": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["script_ref", "voiceover_ref", "scene_candidate_manifest_refs", "evaluation_result_refs", "render_ref", "production_log_ref"],
+      "properties": {
+        "script_ref": {"oneOf": [{"type": "null"}, {"$ref": "common.schema.json#/$defs/relativePath"}]},
+        "voiceover_ref": {"oneOf": [{"type": "null"}, {"$ref": "common.schema.json#/$defs/relativePath"}]},
+        "scene_candidate_manifest_refs": {"type": "array", "items": {"$ref": "common.schema.json#/$defs/evidenceRef"}},
+        "evaluation_result_refs": {"type": "array", "items": {"$ref": "common.schema.json#/$defs/evidenceRef"}},
+        "render_ref": {"oneOf": [{"type": "null"}, {"$ref": "common.schema.json#/$defs/relativePath"}]},
+        "production_log_ref": {"oneOf": [{"type": "null"}, {"$ref": "common.schema.json#/$defs/relativePath"}]}
+      }
+    },
+    "review": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["decision", "decided_by", "decided_at", "rationale", "decision_ref"],
+      "properties": {
+        "decision": {"oneOf": [{"type": "null"}, {"enum": ["GO", "REVISE", "ABANDON"]}]},
+        "decided_by": {"type": ["string", "null"], "minLength": 1},
+        "decided_at": {"type": ["string", "null"], "format": "date-time"},
+        "rationale": {"type": ["string", "null"], "minLength": 1},
+        "decision_ref": {"oneOf": [{"type": "null"}, {"$ref": "common.schema.json#/$defs/relativePath"}]}
+      }
+    },
+    "created_by": {"$ref": "common.schema.json#/$defs/creationProvenance"}
+  }
+}

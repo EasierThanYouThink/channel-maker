@@ -112,6 +112,11 @@ ACTIONS: dict[str, ActionSpec] = {
         flags={"new_channel_version": "--new-channel-version", "frozen_by": "--frozen-by"},
         gated=True, confirmed_by_field="frozen_by",
     ),
+    "record_episode_review": ActionSpec(
+        argv=["tools/episode.py", "record-review", "{package_root}", "{episode_id}"],
+        flags={"decision": "--decision", "decided_by": "--decided-by", "rationale": "--rationale", "decision_ref": "--decision-ref"},
+        gated=True, confirmed_by_field="decided_by",
+    ),
 }
 
 

@@ -65,7 +65,7 @@ def review_queue(root: Path) -> dict[str, list[dict[str, Any]]]:
     channels_root = root / "channels"
     queue: dict[str, list[dict[str, Any]]] = {
         "script_examples": [], "design_exemplars": [], "identity_candidates": [], "asset_components": [],
-        "pilots": [], "niche_opportunities": [],
+        "pilots": [], "episodes": [], "niche_opportunities": [],
     }
     if not channels_root.is_dir():
         return queue
@@ -91,6 +91,14 @@ def review_queue(root: Path) -> dict[str, list[dict[str, Any]]]:
                     document = json.loads(candidate.read_text(encoding="utf-8"))
                     if document["review"]["decision"] is None:
                         queue["pilots"].append({"channel_id": channel_id, **document})
+        episodes_root = package_root / "episodes"
+        if episodes_root.is_dir():
+            for episode_dir in sorted(episodes_root.iterdir()):
+                candidate = episode_dir / "episode.json"
+                if candidate.is_file():
+                    document = json.loads(candidate.read_text(encoding="utf-8"))
+                    if document["review"]["decision"] is None:
+                        queue["episodes"].append({"channel_id": channel_id, **document})
         studies_root = package_root / "intelligence" / "studies"
         if studies_root.is_dir():
             for study_dir in sorted(studies_root.iterdir()):
