@@ -87,6 +87,76 @@ def test_build_candidate_manifest_validates(tmp_path: Path) -> None:
     }
 
 
+def _evaluation_contract(
+    artifact_id: str = "evaluation-contract:walkthrough:0123456789ab",
+) -> dict:
+    return {
+        "schema_version": "1.0.0", "artifact_type": "evaluation_contract",
+        "artifact_id": artifact_id, "lifecycle_state": "complete",
+        "contract_id": "walkthrough-contract", "scope": "general",
+        "dimensions": [{
+            "dimension_id": "craft", "label": "Craft", "points": 100,
+            "requirements": [{
+                "requirement_id": "holds_attention", "description": "The scene holds attention.",
+                "points": 100, "assessment_method": "human",
+                "required_evidence_kinds": ["video"],
+                "anchors": {"pass": "holds", "partial": "partly", "fail": "loses"},
+            }],
+        }],
+        "hard_gates": [{
+            "gate_id": "no_broken_media", "description": "Media plays.",
+            "allowed_assessors": ["human_reviewer"],
+            "required_evidence_kinds": ["video"],
+        }],
+        "thresholds": {"pass": 80, "needs_revision": 50},
+        "authority": "human_owned_weights_and_requirements",
+    }
+
+
+def test_evaluate_scene_scores_supplied_assessment(tmp_path: Path) -> None:
+    import sys
+
+    tools_dir = Path(__file__).resolve().parents[1] / "tools"
+    if str(tools_dir) not in sys.path:
+        sys.path.insert(0, str(tools_dir))
+    from build_scene_candidate import build_candidate
+    from evaluate_scene import evaluate
+
+    video = tmp_path / "evidence" / "render.mp4"
+    video.parent.mkdir(parents=True, exist_ok=True)
+    video.write_bytes(b"fake-video-bytes")
+    manifest = build_candidate(
+        "scene-1", "walkthrough", "synthetic", "v1",
+        [("video", video)], repository_root=tmp_path,
+    )
+    manifest_path = tmp_path / "evidence" / "candidate.json"
+    manifest_path.write_text(json.dumps(manifest), encoding="utf-8")
+    contract = _evaluation_contract()
+    contract_path = tmp_path / "evidence" / "contract.json"
+    contract_path.write_text(json.dumps(contract), encoding="utf-8")
+    assessment = {
+        "schema_version": "1.0.0", "artifact_type": "critic_assessment",
+        "artifact_id": "critic-assessment:walkthrough-1", "lifecycle_state": "complete",
+        "candidate_artifact_id": manifest["artifact_id"],
+        "contract_artifact_id": contract["artifact_id"],
+        "assessor": {"kind": "human_reviewer"},
+        "requirement_findings": [{
+            "requirement_id": "holds_attention", "outcome": "pass",
+            "rationale": "Holds.", "evidence": [{"candidate_evidence_id": "evidence-001"}],
+        }],
+        "gate_findings": [{
+            "gate_id": "no_broken_media", "outcome": "pass",
+            "rationale": "Plays.", "evidence": [{"candidate_evidence_id": "evidence-001"}],
+        }],
+        "created_by": {"tool": "test", "version": "1.0.0"},
+    }
+    assessment_path = tmp_path / "evidence" / "assessment.json"
+    assessment_path.write_text(json.dumps(assessment), encoding="utf-8")
+    result = evaluate(manifest_path, contract_path, assessment_path, repository_root=tmp_path)
+    assert result["machine_recommendation"] == "passed"
+    assert result["authority"] == "advisory_only"
+
+
 def test_design_add_reference_rejects_unapproved(tmp_path: Path) -> None:
     package = write_package(tmp_path)
     init_seed("visual", package, tmp_path)

@@ -20,7 +20,13 @@ def _by_id(items: list[dict[str, Any]], field: str, label: str) -> dict[str, dic
     return result
 
 
-def evaluate(candidate_path: Path, contract_path: Path, assessment_path: Path) -> dict:
+def evaluate(
+    candidate_path: Path,
+    contract_path: Path,
+    assessment_path: Path,
+    *,
+    repository_root: Path | None = None,
+) -> dict:
     candidate, contract, assessment = map(load_json, (candidate_path, contract_path, assessment_path))
     for record, label, artifact_type in (
         (candidate, "scene candidate", "scene_candidate_manifest"),
@@ -38,7 +44,8 @@ def evaluate(candidate_path: Path, contract_path: Path, assessment_path: Path) -
         raise ChannelMakerError("scene-specific contract does not match candidate scene_id")
 
     candidate_resolved = candidate_path.resolve()
-    repository_root = ROOT if candidate_resolved.is_relative_to(ROOT) else candidate_resolved.parent
+    if repository_root is None:
+        repository_root = ROOT if candidate_resolved.is_relative_to(ROOT) else candidate_resolved.parent
     resolver = ArtifactPathResolver(repository_root)
     for evidence in candidate["artifacts"]:
         location = evidence.get("location", evidence.get("path"))
@@ -150,13 +157,14 @@ def evaluate(candidate_path: Path, contract_path: Path, assessment_path: Path) -
 
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--root", type=Path, default=ROOT, help="Repository root used to resolve candidate evidence locations.")
     parser.add_argument("candidate", type=Path)
     parser.add_argument("contract", type=Path)
     parser.add_argument("assessment", type=Path)
     parser.add_argument("output", type=Path)
     args = parser.parse_args()
     try:
-        write_json_atomic(args.output, evaluate(args.candidate, args.contract, args.assessment))
+        write_json_atomic(args.output, evaluate(args.candidate, args.contract, args.assessment, repository_root=args.root))
     except ChannelMakerError as exc:
         print(f"ERROR: {exc}")
         return 2
