@@ -13,10 +13,10 @@ import argparse
 import html
 import json
 import sys
+from contextlib import suppress
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from urllib.parse import urlparse
-
 
 ROOT = Path(__file__).resolve().parents[2]
 if str(ROOT) not in sys.path:
@@ -24,8 +24,13 @@ if str(ROOT) not in sys.path:
 
 from tools.dashboard.actions import ActionError, run_action  # noqa: E402
 from tools.dashboard.markdown import render as render_markdown  # noqa: E402
-from tools.dashboard.views import channel_detail, channel_overview, list_channels, review_queue, wiki_pages  # noqa: E402
-
+from tools.dashboard.views import (  # noqa: E402
+    channel_detail,
+    channel_overview,
+    list_channels,
+    review_queue,
+    wiki_pages,
+)
 
 PAGE_SHELL = """<!doctype html>
 <html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>{title}</title>
@@ -256,7 +261,7 @@ class Handler(BaseHTTPRequestHandler):
         self.end_headers()
         self.wfile.write(payload)
 
-    def do_GET(self) -> None:  # noqa: N802
+    def do_GET(self) -> None:
         parsed = urlparse(self.path)
         parts = [p for p in parsed.path.split("/") if p]
         try:
@@ -275,7 +280,7 @@ class Handler(BaseHTTPRequestHandler):
         except Exception as exc:  # noqa: BLE001 - surfaced to the local user, not a remote caller
             self._send(500, _page("Error", f"<pre>{html.escape(str(exc))}</pre>"))
 
-    def do_POST(self) -> None:  # noqa: N802
+    def do_POST(self) -> None:
         parsed = urlparse(self.path)
         if parsed.path != "/action":
             self._send(404, b"{}", "application/json")
@@ -307,10 +312,8 @@ def main() -> int:
     args = parse_args()
     server = ThreadingHTTPServer(("127.0.0.1", args.port), Handler)
     print(f"Channel Maker dashboard: http://127.0.0.1:{args.port}/  (local only, Ctrl+C to stop)")
-    try:
+    with suppress(KeyboardInterrupt):
         server.serve_forever()
-    except KeyboardInterrupt:
-        pass
     return 0
 
 

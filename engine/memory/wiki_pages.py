@@ -39,7 +39,7 @@ def validate_metadata(value: dict[str, Any], schema_path: Path, label: str) -> N
         raise KnowledgeError(f"invalid {label}:\n" + "\n".join(f"- {item}" for item in errors))
 
 
-def parse_wiki_page(path: Path, schema_path: Path) -> "WikiPage":
+def parse_wiki_page(path: Path, schema_path: Path) -> WikiPage:
     try:
         text = path.read_text(encoding="utf-8")
     except OSError as exc:

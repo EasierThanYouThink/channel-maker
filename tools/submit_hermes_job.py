@@ -6,8 +6,14 @@ import argparse
 from datetime import UTC, datetime
 from pathlib import Path
 
-from _core import ROOT, ChannelMakerError, content_hash, load_json, sha256_file, write_json_atomic
-
+from _core import (
+    ROOT,
+    ChannelMakerError,
+    content_hash,
+    load_json,
+    sha256_file,
+    write_json_atomic,
+)
 
 REQUIRED_REQUEST_FIELDS = ("mode", "channel_id", "study_id", "target")
 

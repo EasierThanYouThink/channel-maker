@@ -8,7 +8,6 @@ from typing import Any
 
 from _core import TOOL_VERSION, ChannelMakerError, content_hash, write_json_atomic
 
-
 CHANNEL_PUBLIC_FIELDS = ["subscriber_count", "public_video_count", "created_at", "observed_uploads_per_30d", "shorts_fraction"]
 VIDEO_PUBLIC_FIELDS = ["published_at", "duration_seconds", "views", "likes", "comment_count", "description", "age_at_observation_days"]
 BOUNDARY_INSTRUCTIONS = [
@@ -29,7 +28,7 @@ def _check_reference_channel(value: str) -> str:
     text = value.strip()
     if not text:
         raise ChannelMakerError("reference channel must not be empty")
-    if not (text.startswith("https://") or text.startswith("@")):
+    if not text.startswith(("https://", "@")):
         raise ChannelMakerError(
             f"reference channel must be a public https:// URL or an @handle: {value!r}"
         )

@@ -19,7 +19,6 @@ from typing import Any
 
 from .errors import VoiceoverValidationError
 
-
 TOOL_VERSION = "1.0.0"
 TIMING_SCHEMA_VERSION = "1.0.0"
 DEFAULT_VOICE = "lessac-medium"
@@ -163,7 +162,7 @@ def align_words(
         records = [
             {"text": word, "start_s": round(sentence_offset_s + start, 3),
              "end_s": round(sentence_offset_s + end, 3), "method": "measured_alignment"}
-            for word, (start, end) in zip(words, measured)
+            for word, (start, end) in zip(words, measured, strict=True)
         ]
         return records, "measured_alignment"
     total_weights = [max(len(word), 1) for word in words]
@@ -191,7 +190,7 @@ def _measured_word_spans(
     content_phonemes = [phoneme for phoneme in phonemes if phoneme not in _BOUNDARY_MARKERS]
     content_stream = [
         (token, samples)
-        for token, samples in zip(alignment_tokens, alignment_samples)
+        for token, samples in zip(alignment_tokens, alignment_samples, strict=True)
         if token not in _BOUNDARY_MARKERS
     ]
     if [token for token, _ in content_stream] != content_phonemes:
@@ -200,7 +199,7 @@ def _measured_word_spans(
     cursor = 0
     content_end = 0
     word_start: float | None = None
-    for token, samples in zip(alignment_tokens, alignment_samples):
+    for token, samples in zip(alignment_tokens, alignment_samples, strict=True):
         if token in _BOUNDARY_MARKERS:
             cursor += samples
             continue
@@ -229,7 +228,7 @@ def _uniform_words(
     # Caller scales these placeholder spans onto the sentence's measured span.
     return [
         {"text": word, "start_s": 0.0, "end_s": 0.0, "method": "uniform_estimate", "_weight": weight}
-        for word, weight in zip(words, weights)
+        for word, weight in zip(words, weights, strict=True)
     ]
 
 
@@ -243,7 +242,7 @@ def _fit_uniform_words(
     cursor = start_s
     weights = [max(len(record["text"]), 1) for record in records]
     total = sum(weights)
-    for record, weight in zip(records, weights):
+    for record, weight in zip(records, weights, strict=True):
         span = (end_s - start_s) * weight / total
         record["start_s"] = round(cursor, 3)
         cursor += span
@@ -277,7 +276,7 @@ def synthesize_script(
     sentence_records: list[dict[str, Any]] = []
     word_records: list[dict[str, Any]] = []
     cursor_s = 0.0
-    for index, (sentence, track) in enumerate(zip(sentences, rendered)):
+    for index, (sentence, track) in enumerate(zip(sentences, rendered, strict=True)):
         if index:
             audio += silence
             cursor_s += sentence_silence_s

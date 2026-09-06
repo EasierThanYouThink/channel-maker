@@ -9,7 +9,6 @@ from typing import Any
 from jsonschema import Draft202012Validator, FormatChecker
 from referencing import Registry, Resource
 
-
 CONTRACT_ROOT = Path(__file__).resolve().parent / "contracts"
 
 SEED_SCHEMA = {"visual": "visual-dna-seed.schema.json", "motion": "motion-dna-seed.schema.json"}

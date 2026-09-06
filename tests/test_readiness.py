@@ -6,19 +6,21 @@ from pathlib import Path
 import pytest
 import yaml
 
-from engine.channel import ChannelStateError, ChannelStateMachine, validate_channel_package
+from engine.channel import (
+    ChannelStateError,
+    ChannelStateMachine,
+    validate_channel_package,
+)
 from engine.design import add_reference, freeze_domain, init_seed
 from engine.design.exemplars import ChannelExemplarStore
 from engine.foundation import attach_foundation_decision, write_foundation
-from engine.identity import ChannelIdentityStore
+from engine.identity import ChannelIdentityStore, init_identity
 from engine.identity import add_reference as add_identity_reference
 from engine.identity import freeze_domain as freeze_identity_domain
-from engine.identity import init_identity
 from engine.library import register_component, review_component
 from engine.pilot import freeze_pilot, plan_pilot, record_production, record_review
 from engine.readiness import ReadinessError, check_readiness, write_readiness_report
 from engine.script import ScriptExampleStore, freeze_script_dna, write_script_dna
-
 
 AT = "2026-09-05T12:00:00+00:00"
 CHANNEL_ID = "ready-channel"

@@ -2,7 +2,13 @@
 visual domains and one motion domain. See docs/CHANNEL_DESIGN_DNA.md.
 """
 
-from .dna_seed import add_reference, all_domains_frozen, freeze_domain, init_seed, seed_path
+from .dna_seed import (
+    add_reference,
+    all_domains_frozen,
+    freeze_domain,
+    init_seed,
+    seed_path,
+)
 from .exemplars import ChannelExemplarStore
 from .system_proof import (
     approved_composition,

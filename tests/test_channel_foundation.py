@@ -6,8 +6,11 @@ from pathlib import Path
 import pytest
 import yaml
 
-from engine.foundation import FoundationValidationError, attach_foundation_decision, write_foundation
-
+from engine.foundation import (
+    FoundationValidationError,
+    attach_foundation_decision,
+    write_foundation,
+)
 
 AT = "2026-09-05T12:00:00+00:00"
 
@@ -64,7 +67,7 @@ def test_write_foundation_rejects_format_not_in_channel_platform(tmp_path: Path)
     package = write_package(tmp_path)
     kwargs = write_kwargs()
     kwargs["primary_format"] = "LONG_FORM"
-    with pytest.raises(FoundationValidationError, match="platform.formats"):
+    with pytest.raises(FoundationValidationError, match=r"platform\.formats"):
         write_foundation(package, tmp_path, **kwargs)
 
 
@@ -76,7 +79,7 @@ def test_attach_foundation_decision_requires_real_resolvable_ref(tmp_path: Path)
     with pytest.raises(FoundationValidationError, match="does not resolve"):
         attach_foundation_decision(package, tmp_path, decision_ref="channels/found-channel/does-not-exist.md")
 
-    path = attach_foundation_decision(package, tmp_path, decision_ref=f"channels/found-channel/channel.yaml")
+    path = attach_foundation_decision(package, tmp_path, decision_ref="channels/found-channel/channel.yaml")
     document = yaml.safe_load(path.read_text(encoding="utf-8"))
     assert document["decision_refs"] == ["channels/found-channel/channel.yaml"]
 

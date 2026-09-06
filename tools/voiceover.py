@@ -4,11 +4,11 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import sys
 import tempfile
 import wave
 from pathlib import Path
-
 
 ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
@@ -27,6 +27,7 @@ from engine.voiceover import (  # noqa: E402
 def _write_wav_atomic(path: Path, audio_int16: bytes, sample_rate_hz: int) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     descriptor, temporary_name = tempfile.mkstemp(prefix=f".{path.name}.", suffix=".tmp", dir=path.parent)
+    os.close(descriptor)  # wave reopens by path below; never leak the mkstemp fd
     try:
         with wave.open(temporary_name, "wb") as handle:
             handle.setnchannels(1)

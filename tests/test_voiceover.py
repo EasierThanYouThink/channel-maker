@@ -17,7 +17,6 @@ from engine.voiceover import (
     synthesize_script,
     validate_timing,
     validate_timing_document,
-    wav_duration_s,
 )
 
 
@@ -100,7 +99,7 @@ def test_validate_timing_rejects_duration_mismatch(tmp_path: Path) -> None:
     _write_wav(audio, frames=22050)
     timing = tmp_path / "timing.json"
     timing.write_text(json.dumps(_timing_doc(audio, 5.0)), encoding="utf-8")
-    with pytest.raises(VoiceoverValidationError, match="measures .* but timing claims"):
+    with pytest.raises(VoiceoverValidationError, match=r"measures .* but timing claims"):
         validate_timing(timing)
 
 

@@ -10,7 +10,6 @@ from typing import Any
 from jsonschema import Draft202012Validator, FormatChecker
 from referencing import Registry, Resource
 
-
 CONTRACT_ROOT = Path(__file__).resolve().parent / "contracts"
 EVIDENCE_ARTIFACT_TYPES = {"scene_candidate_manifest", "evaluation_result"}
 

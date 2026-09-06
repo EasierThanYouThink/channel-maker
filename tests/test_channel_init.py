@@ -4,10 +4,9 @@ import shutil
 from pathlib import Path
 
 import pytest
-
-from engine.channel import validate_channel_package
 from init_channel import InitChannelError, init_channel
 
+from engine.channel import validate_channel_package
 
 ROOT = Path(__file__).resolve().parents[1]
 

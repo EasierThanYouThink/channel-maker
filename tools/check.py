@@ -9,7 +9,6 @@ import sys
 from dataclasses import dataclass
 from pathlib import Path
 
-
 ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
@@ -65,6 +64,20 @@ def main() -> int:
             failures.append(str(exc))
         if path.name != "check.py" and "TODO:" in path.read_text(encoding="utf-8"):
             failures.append(f"executable placeholder remains in {path.relative_to(ROOT)}")
+
+    from importlib.util import find_spec
+
+    ruff_bin = shutil.which("ruff")
+    if ruff_bin is not None:
+        ruff_argv: list[str] | None = [ruff_bin, "check"]
+    elif find_spec("ruff") is not None:
+        ruff_argv = [sys.executable, "-m", "ruff", "check"]
+    else:
+        ruff_argv = None
+    if ruff_argv is None:
+        print("\n[ruff lint] ruff is not installed — lint skipped (CI installs it)")
+    elif not run("ruff lint", [*ruff_argv, "engine/", "tools/", "tests/"], ROOT):
+        failures.append("ruff lint")
 
     for command in commands(ROOT, test_python):
         if command.args[0] == "npm" and not shutil.which("npm"):

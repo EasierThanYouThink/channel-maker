@@ -7,12 +7,14 @@ import argparse
 import sys
 from pathlib import Path
 
-
 ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-from engine.channel import ChannelValidationError, validate_channel_package  # noqa: E402
+from engine.channel import (  # noqa: E402
+    ChannelValidationError,
+    validate_channel_package,
+)
 
 
 def parse_args() -> argparse.Namespace:

@@ -19,7 +19,6 @@ from .workflow import (
     event_id_for,
 )
 
-
 CONTRACT_ROOT = Path(__file__).resolve().parent / "contracts"
 
 

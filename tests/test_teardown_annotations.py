@@ -22,7 +22,6 @@ from engine.niche_intelligence import (
 )
 from engine.niche_intelligence.repository import NicheIntelligenceRepository
 
-
 ROOT = Path(__file__).resolve().parents[1]
 AT = "2026-06-30T12:00:00+00:00"
 
@@ -153,12 +152,12 @@ def test_teardown_write_path_and_observation_chain(tmp_path: Path) -> None:
     )
     assert content.parent.name == "annotations"
     result = validate_study(study_root, repository_root=tmp_path, expected_channel_id=package.name)
-    visual_doc = result.artifacts[f"niche:visual-annotation:vid-breakout-visual"]
+    visual_doc = result.artifacts["niche:visual-annotation:vid-breakout-visual"]
     assert visual_doc["design_authority"] == "PROHIBITED"
     assert visual_doc["renderer_eligible"] is False
     # Observations may cite teardowns with ANNOTATION basis.
-    content_id = f"niche:content-annotation:vid-breakout"
-    script_id = f"niche:script-annotation:vid-breakout-script"
+    content_id = "niche:content-annotation:vid-breakout"
+    script_id = "niche:script-annotation:vid-breakout-script"
     add_observation(
         study_root, key="hook-pattern", statement="Question hooks open every breakout.",
         observation_type="SCRIPT_PATTERN", scope="competitor", basis="ANNOTATION",

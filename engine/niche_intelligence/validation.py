@@ -13,7 +13,6 @@ from referencing import Registry, Resource
 
 from .metrics import MetricError, relative_views_same_channel_v1
 
-
 CONTRACT_ROOT = Path(__file__).resolve().parent / "contracts"
 REPORT_TYPES = {
     "channel_evidence": "channel_evidence",
@@ -382,4 +381,3 @@ def study_coverage(validated: ValidatedStudy) -> dict[str, Any]:
         ),
         "limitations": validated.report["limitations"],
     }
-    return ValidatedStudy(root, study, report, artifacts, paths)

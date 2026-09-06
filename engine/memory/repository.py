@@ -4,19 +4,17 @@ from __future__ import annotations
 
 import hashlib
 import json
-import os
 import re
-import tempfile
+from collections.abc import Iterable
 from dataclasses import asdict, dataclass
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any, Iterable, Protocol
+from typing import Any, Protocol
 
 import yaml
 
 from engine.channel import ChannelValidationError, validate_channel_package
 from engine.memory.wiki_pages import KnowledgeError, parse_wiki_page, validate_metadata
-
 
 TOKEN = re.compile(r"[a-z0-9]+")
 RFC3339 = re.compile(
@@ -128,7 +126,7 @@ def _datetime(value: str, label: str = "timestamp") -> datetime:
 
 def _render_page(metadata: dict[str, Any], body: str) -> bytes:
     frontmatter = yaml.safe_dump(metadata, sort_keys=False, allow_unicode=True).strip()
-    return f"---\n{frontmatter}\n---\n\n{body.strip()}\n".encode("utf-8")
+    return f"---\n{frontmatter}\n---\n\n{body.strip()}\n".encode()
 
 
 class ChannelMemoryRepository:

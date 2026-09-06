@@ -11,7 +11,11 @@ from typing import Any
 
 from engine.channel import ChannelValidationError, validate_channel_package
 
-from .validation import LibraryValidationError, validate_component, validate_component_review
+from .validation import (
+    LibraryValidationError,
+    validate_component,
+    validate_component_review,
+)
 
 
 def _canonical_bytes(value: Any) -> bytes:
@@ -23,9 +27,9 @@ def _write_new(path: Path, payload: bytes) -> None:
     try:
         with path.open("xb") as handle:
             handle.write(payload)
-    except FileExistsError:
+    except FileExistsError as exc:
         if path.read_bytes() != payload:
-            raise LibraryValidationError(f"refusing to overwrite existing record {path}")
+            raise LibraryValidationError(f"refusing to overwrite existing record {path}") from exc
 
 
 def _write_atomic(path: Path, payload: bytes) -> None:

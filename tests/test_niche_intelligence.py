@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import copy
 import json
 import shutil
 import subprocess
@@ -19,7 +18,6 @@ from engine.niche_intelligence import (
     validate_contracts,
     validate_study,
 )
-
 
 ROOT = Path(__file__).resolve().parents[1]
 AT = "2026-06-30T12:00:00+00:00"
@@ -269,12 +267,12 @@ def test_explicit_unknowns_relationships_and_private_boundary_are_enforced(tmp_p
 
 
 def test_same_channel_metric_is_deterministic_transparent_and_versioned() -> None:
-    kwargs = dict(
-        artifact_id="niche:metric:test", study_id="test-study", channel_id="finance-demo",
-        target_video_evidence_id="niche:video:target", target_views=1500,
-        comparison_video_evidence_ids=["niche:video:a", "niche:video:b"], baseline_views=[100, 200],
-        window_from="2026-01-01T00:00:00+00:00", window_to=AT, created_by=provenance(),
-    )
+    kwargs = {
+        "artifact_id": "niche:metric:test", "study_id": "test-study", "channel_id": "finance-demo",
+        "target_video_evidence_id": "niche:video:target", "target_views": 1500,
+        "comparison_video_evidence_ids": ["niche:video:a", "niche:video:b"], "baseline_views": [100, 200],
+        "window_from": "2026-01-01T00:00:00+00:00", "window_to": AT, "created_by": provenance(),
+    }
     first = relative_views_same_channel_v1(**kwargs)
     assert first == relative_views_same_channel_v1(**kwargs)
     assert first["result"] == {"baseline_median_views": 150.0, "relative_views_ratio": 10.0, "percentile_within_comparison": 1.0, "breakout_magnitude": 9.0, "reason": None}
@@ -303,7 +301,7 @@ def test_metric_recomputation_and_same_channel_integrity_are_enforced(tmp_path: 
     write_json(study_root / paths["metric"], documents["metric"])
     documents["base2"]["channel_source_id"] = "another-source"
     write_json(study_root / paths["base2"], documents["base2"])
-    with pytest.raises(NicheValidationError, match="has no channel evidence|target's channel"):
+    with pytest.raises(NicheValidationError, match=r"(?:has no channel evidence|target's channel)"):
         validate_study(study_root)
 
 

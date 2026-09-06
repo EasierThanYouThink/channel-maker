@@ -8,7 +8,6 @@ from pathlib import Path
 import pytest
 import yaml
 
-
 AT = "2026-09-05T12:00:00+00:00"
 
 

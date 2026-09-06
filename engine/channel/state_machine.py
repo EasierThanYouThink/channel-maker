@@ -3,19 +3,15 @@
 from __future__ import annotations
 
 import copy
-import json
-import os
-import tempfile
-import time
+from collections.abc import Callable
 from contextlib import contextmanager
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any, Callable
+from typing import Any
 
 from ._portable import file_lock as _portable_lock
 from ._portable import write_json_atomic as _write_json_atomic_portable
-
 from .validation import (
     ChannelPackage,
     ChannelValidationError,
@@ -29,7 +25,6 @@ from .workflow import (
     REVISION_INVALIDATIONS,
     REVISION_TARGETS,
     WORKFLOW_STATES,
-    canonical_json_bytes,
     completed_prefix_for,
     event_id_for,
 )

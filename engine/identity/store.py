@@ -12,7 +12,11 @@ import shutil
 from pathlib import Path
 from typing import Any
 
-from .validation import IdentityValidationError, validate_identity_candidate, validate_identity_candidate_review
+from .validation import (
+    IdentityValidationError,
+    validate_identity_candidate,
+    validate_identity_candidate_review,
+)
 
 
 def _canonical_bytes(value: Any) -> bytes:
@@ -43,9 +47,9 @@ def _write_new(path: Path, payload: bytes) -> None:
     try:
         with path.open("xb") as handle:
             handle.write(payload)
-    except FileExistsError:
+    except FileExistsError as exc:
         if path.read_bytes() != payload:
-            raise IdentityValidationError(f"refusing to overwrite existing record {path}")
+            raise IdentityValidationError(f"refusing to overwrite existing record {path}") from exc
 
 
 def _write_atomic(path: Path, payload: bytes) -> None:

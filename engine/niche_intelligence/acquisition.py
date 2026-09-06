@@ -22,7 +22,6 @@ from engine.channel import ChannelValidationError, validate_channel_package
 
 from .validation import PRIVATE_METRICS, NicheValidationError, validate_study
 
-
 CHANNEL_ROLES = {"ESTABLISHED_LEADER", "GROWTH_CANDIDATE", "SMALL_BREAKOUT", "BASELINE_COMPARATOR", "OTHER", "UNKNOWN"}
 VIDEO_ROLES = {"BREAKOUT", "CHANNEL_BASELINE", "RECENT_NORMAL", "UNDERPERFORMER", "OUTLIER", "OTHER", "UNKNOWN"}
 CHANNEL_PUBLIC_FIELDS = ("subscriber_count", "public_video_count", "created_at", "observed_uploads_per_30d", "shorts_fraction")

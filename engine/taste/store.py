@@ -33,9 +33,9 @@ def _write_new(path: Path, value: dict[str, Any]) -> None:
     try:
         with path.open("xb") as handle:
             handle.write(payload)
-    except FileExistsError:
+    except FileExistsError as exc:
         if path.read_bytes() != payload:
-            raise TasteError(f"refusing to overwrite existing taste record {path}")
+            raise TasteError(f"refusing to overwrite existing taste record {path}") from exc
 
 
 def _load_package(package_root: Path, repository_root: Path):

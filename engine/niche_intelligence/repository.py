@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import re
-from dataclasses import asdict
 from pathlib import Path
 from typing import Any
 
@@ -12,7 +11,6 @@ from engine.memory import ChannelMemoryRepository
 from engine.memory.wiki_pages import KnowledgeError
 
 from .validation import NicheValidationError, ValidatedStudy, validate_study
-
 
 SUMMARY_TYPES = {
     "niche_observation": ("observation", "descriptive", "market/observations", "statement"),

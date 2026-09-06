@@ -4,8 +4,8 @@ from __future__ import annotations
 
 import hashlib
 import json
+from itertools import pairwise
 from typing import Any
-
 
 # V2 vocabulary (10 states): OPPORTUNITY_MAP folded into the
 # NICHE_INTELLIGENCE -> STRATEGY_SELECTION gated edge, VISUAL + MOTION DNA
@@ -28,7 +28,7 @@ WORKFLOW_STATES = (
     "CHANNEL_READY",
 )
 
-FORWARD_TRANSITIONS = dict(zip(WORKFLOW_STATES, WORKFLOW_STATES[1:]))
+FORWARD_TRANSITIONS = dict(pairwise(WORKFLOW_STATES))
 
 HUMAN_GATE_TRANSITIONS = {
     ("NICHE_INTELLIGENCE", "STRATEGY_SELECTION"),

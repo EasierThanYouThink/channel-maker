@@ -18,7 +18,6 @@ from pathlib import Path
 
 from _core import ROOT, ChannelMakerError, load_json, write_json_atomic
 
-
 RESPONSE_REQUIRED_FIELDS = ("worker", "model", "prompt_version", "collected_at")
 METADATA_REQUIRED_FIELDS = ("status", "worker", "runtime", "model", "request_sha256", "ended_at", "review_required")
 

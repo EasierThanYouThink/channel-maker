@@ -20,7 +20,6 @@ from engine.identity import IdentityValidationError, init_identity
 from engine.identity import add_reference as add_identity_reference
 from engine.identity.store import ChannelIdentityStore
 
-
 AT = "2026-09-05T12:00:00+00:00"
 
 

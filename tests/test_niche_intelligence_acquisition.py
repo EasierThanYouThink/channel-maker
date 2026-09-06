@@ -20,7 +20,6 @@ from engine.niche_intelligence import (
 from engine.niche_intelligence.repository import NicheIntelligenceRepository
 from engine.niche_intelligence.validation import PRIVATE_METRICS
 
-
 ROOT = Path(__file__).resolve().parents[1]
 AT = "2026-06-30T12:00:00+00:00"
 

@@ -8,7 +8,6 @@ from pathlib import Path
 
 import yaml
 
-
 ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
@@ -16,7 +15,6 @@ if str(ROOT) not in sys.path:
 from engine.design import (  # noqa: E402
     DesignValidationError,
     add_reference,
-    all_domains_frozen,
     check_ready_problems,
     freeze_domain,
     init_seed,
@@ -103,7 +101,7 @@ def _resolve_package(package_root: Path, root: Path) -> Path:
 def composition_path_record(package_root: Path, root: Path, args: argparse.Namespace) -> Path:
     from engine.design import composition_path
 
-    record = record_composition(
+    record_composition(
         _resolve_package(package_root, root), root,
         image=args.image, exemplar_ids=args.exemplar_ids,
         created_by=args.created_by, source_ref=args.source_ref,

@@ -14,8 +14,11 @@ import yaml
 from engine.channel import ChannelValidationError, validate_channel_package
 
 from .store import ChannelIdentityStore
-from .validation import IDENTITY_DOMAINS, IdentityValidationError, validate_channel_identity
-
+from .validation import (
+    IDENTITY_DOMAINS,
+    IdentityValidationError,
+    validate_channel_identity,
+)
 
 STARTER_INPUTS: dict[str, list[str]] = {
     "logo": [

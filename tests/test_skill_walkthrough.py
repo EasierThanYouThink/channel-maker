@@ -25,7 +25,6 @@ from pathlib import Path
 import pytest
 import yaml
 
-
 ROOT = Path(__file__).resolve().parents[1]
 CHANNEL_ID = "walk-channel"
 REVIEWER = "Walkthrough Tester"
@@ -159,7 +158,8 @@ def _build_evidence(
     # build_scene_candidate resolves --input/--output against the subprocess
     # cwd, not --root: pass absolute paths. Recorded manifest locations stay
     # portable (repo-relative) via the resolver.
-    absolute = lambda relative: str((root / relative).resolve())
+    def absolute(relative: str) -> str:
+        return str((root / relative).resolve())
     cli(root, "build_scene_candidate.py", "--scene-id", f"{scene_id}-{suffix}",
         "--generator-agent", "walkthrough", "--model", "synthetic",
         "--prompt-version", "walkthrough-v1",
@@ -439,11 +439,10 @@ def _walkthrough_init_to_ready(root: Path, tmp_path: Path) -> None:
     # script, synthesized narration, validated timing, scene manifest,
     # evaluation, and render — instead of standing strings in for a video.
     try:
-        from engine.voiceover import VoiceoverValidationError as _VVE
-        from engine.voiceover import ensure_voice_model as _ensure_voice
+        from engine.voiceover import VoiceoverValidationError, ensure_voice_model
 
-        _ensure_voice("lessac-medium", _shared_model_cache())
-    except _VVE as exc:
+        ensure_voice_model("lessac-medium", _shared_model_cache())
+    except VoiceoverValidationError as exc:
         pytest.skip(f"voice model unavailable (offline?): {exc}")
     script_path = package / "pilots" / "pilot-1" / "script.md"
     script_path.write_text(VOICE_SCRIPT, encoding="utf-8")

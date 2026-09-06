@@ -6,8 +6,12 @@ from pathlib import Path
 import pytest
 import yaml
 
-from engine.script import ScriptExampleStore, ScriptValidationError, freeze_script_dna, write_script_dna
-
+from engine.script import (
+    ScriptExampleStore,
+    ScriptValidationError,
+    freeze_script_dna,
+    write_script_dna,
+)
 
 AT = "2026-09-05T12:00:00+00:00"
 

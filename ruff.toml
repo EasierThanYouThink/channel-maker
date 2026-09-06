@@ -1,0 +1,8 @@
+# Lint gate for channel-maker (see tools/check.py). Mirrors the noqa vocabulary
+# already used across the tree (E402 import position, BLE001 local surfaces,
+# A002/N802 dashboard handler names).
+[lint]
+select = ["E", "F", "I", "N", "A", "BLE", "SIM", "UP", "B", "C4", "PIE", "RUF"]
+# E501 is out: the tree predates line limits (long CLI/flag strings in tools
+# and tests). Formatting is a separate future decision, not this gate.
+ignore = ["E501"]

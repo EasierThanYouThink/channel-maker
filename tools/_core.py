@@ -6,12 +6,12 @@ import hashlib
 import json
 import re
 import subprocess
+from collections.abc import Iterable
 from pathlib import Path
-from typing import Any, Iterable
+from typing import Any
 
 import yaml
 from jsonschema import Draft202012Validator, FormatChecker
-
 
 ROOT = Path(__file__).resolve().parents[1]
 SCHEMA_DIR = ROOT / "schemas"
@@ -126,7 +126,7 @@ def schema_errors(record: dict[str, Any]) -> list[str]:
         return ["artifact_type is required and must be a string"]
     try:
         validator = Draft202012Validator(schema_for(artifact_type), format_checker=FormatChecker())
-    except Exception as exc:  # schema faults are fatal and should be visible
+    except Exception as exc:  # noqa: BLE001 - schema faults are fatal and should be visible
         return [f"cannot load schema for {artifact_type}: {exc}"]
     errors: list[str] = []
     for error in sorted(validator.iter_errors(record), key=lambda item: list(item.absolute_path)):

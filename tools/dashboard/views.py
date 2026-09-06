@@ -7,7 +7,12 @@ from dataclasses import asdict
 from pathlib import Path
 from typing import Any
 
-from engine.channel import ChannelStateError, ChannelStateMachine, ChannelValidationError, validate_channel_package
+from engine.channel import (
+    ChannelStateError,
+    ChannelStateMachine,
+    ChannelValidationError,
+    validate_channel_package,
+)
 from engine.memory import ChannelMemoryRepository
 
 

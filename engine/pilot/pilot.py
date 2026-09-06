@@ -312,12 +312,14 @@ def freeze_pilot(
         renderer=package.identity.get("production", {}).get("renderer", "unknown"),
         approved_components=approved, frozen_by=frozen_by.strip(), frozen_at=frozen_at,
     )
-    if document["freeze"]["frozen"] and not force:
-        if new_channel_version != document["freeze"]["new_channel_version"]:
-            raise PilotValidationError(
-                f"pilot {pilot_id} is already frozen at version "
-                f"{document['freeze']['new_channel_version']}; pass force=True to re-freeze deliberately"
-            )
+    if (
+        document["freeze"]["frozen"] and not force
+        and new_channel_version != document["freeze"]["new_channel_version"]
+    ):
+        raise PilotValidationError(
+            f"pilot {pilot_id} is already frozen at version "
+            f"{document['freeze']['new_channel_version']}; pass force=True to re-freeze deliberately"
+        )
     # The same version string must always describe the same release.
     # Retrying an interrupted freeze lands here and completes it; evolving
     # content under an existing version needs a new version or force=True.

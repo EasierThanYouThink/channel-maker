@@ -22,7 +22,6 @@ from engine.pilot import PilotValidationError, pilot_path, validate_pilot
 from engine.production import check_production, production_revision
 from engine.script.validation import ScriptValidationError, validate_script_dna
 
-
 CONTRACT_ROOT = Path(__file__).resolve().parent / "contracts"
 
 
@@ -132,7 +131,12 @@ def check_readiness(package_root: Path, repository_root: Path) -> dict[str, Any]
 
     # 4/5. Visual and Motion DNA: every domain frozen, plus the approved
     # system proof (composed frame for visual, narrated sample for motion).
-    from engine.design import approved_composition, approved_motion_sample, composition_path, motion_sample_path
+    from engine.design import (
+        approved_composition,
+        approved_motion_sample,
+        composition_path,
+        motion_sample_path,
+    )
 
     dna_results: dict[str, bool] = {}
     for kind in ("visual", "motion"):
@@ -186,9 +190,9 @@ def check_readiness(package_root: Path, repository_root: Path) -> dict[str, Any]
 
     # 7. At least one approved asset component — or an honest declaration
     # that the pilot needs none (scene-local construction, not a token part).
-    approved_components = [
-        component for component in list_components(repository_root, scope="CHANNEL", channel_id=channel_id, status="approved")
-    ]
+    approved_components = list(
+        list_components(repository_root, scope="CHANNEL", channel_id=channel_id, status="approved")
+    )
     waived = any(
         pilot.get("plan", {}).get("no_reusable_components") is True
         for _, pilot in _iter_pilots(root)

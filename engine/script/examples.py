@@ -8,7 +8,11 @@ import re
 from pathlib import Path
 from typing import Any
 
-from .validation import ScriptValidationError, validate_script_example, validate_script_example_review
+from .validation import (
+    ScriptValidationError,
+    validate_script_example,
+    validate_script_example_review,
+)
 
 
 def _canonical_bytes(value: Any) -> bytes:
@@ -20,9 +24,9 @@ def _write_new(path: Path, payload: bytes) -> None:
     try:
         with path.open("xb") as handle:
             handle.write(payload)
-    except FileExistsError:
+    except FileExistsError as exc:
         if path.read_bytes() != payload:
-            raise ScriptValidationError(f"refusing to overwrite existing record {path}")
+            raise ScriptValidationError(f"refusing to overwrite existing record {path}") from exc
 
 
 def _write_atomic(path: Path, payload: bytes) -> None:

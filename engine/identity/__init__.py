@@ -2,7 +2,13 @@
 already-frozen Foundation, Script DNA, and Visual DNA. See docs/CHANNEL_IDENTITY.md.
 """
 
-from .seed import add_reference, all_domains_frozen, freeze_domain, identity_path, init_identity
+from .seed import (
+    add_reference,
+    all_domains_frozen,
+    freeze_domain,
+    identity_path,
+    init_identity,
+)
 from .store import ChannelIdentityStore
 from .validation import (
     IdentityValidationError,

@@ -12,24 +12,26 @@ import yaml
 
 from engine.design import (
     DesignValidationError,
-    add_reference as add_design_reference,
-    freeze_domain as freeze_design_domain,
     init_seed,
+)
+from engine.design import (
+    add_reference as add_design_reference,
+)
+from engine.design import (
+    freeze_domain as freeze_design_domain,
 )
 from engine.design.exemplars import ChannelExemplarStore
 from engine.foundation import FoundationValidationError, write_foundation
 from engine.identity import (
     ChannelIdentityStore,
     IdentityValidationError,
+    init_identity,
 )
 from engine.identity import (
     add_reference as add_identity_reference,
 )
 from engine.identity import (
     freeze_domain as freeze_identity_domain,
-)
-from engine.identity import (
-    init_identity,
 )
 from engine.pilot import (
     PilotValidationError,
@@ -38,8 +40,12 @@ from engine.pilot import (
     record_production,
     record_review,
 )
-from engine.script import ScriptExampleStore, ScriptValidationError, freeze_script_dna, write_script_dna
-
+from engine.script import (
+    ScriptExampleStore,
+    ScriptValidationError,
+    freeze_script_dna,
+    write_script_dna,
+)
 
 AT = "2026-09-05T12:00:00+00:00"
 ROOT = Path(__file__).resolve().parents[1]

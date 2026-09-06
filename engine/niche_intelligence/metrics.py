@@ -2,10 +2,10 @@
 
 from __future__ import annotations
 
-from decimal import Decimal, ROUND_HALF_UP
+from collections.abc import Sequence
+from decimal import ROUND_HALF_UP, Decimal
 from statistics import median
-from typing import Any, Sequence
-
+from typing import Any
 
 METRIC_VERSION = "relative_views_same_channel.v1"
 MISSING_BEHAVIOR = (

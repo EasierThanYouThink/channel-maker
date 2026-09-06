@@ -6,9 +6,17 @@ import argparse
 from pathlib import Path
 from typing import Any
 
+from _core import (
+    ROOT,
+    TOOL_VERSION,
+    ChannelMakerError,
+    content_hash,
+    load_json,
+    require_valid,
+    sha256_file,
+    write_json_atomic,
+)
 from artifact_paths import ArtifactPathError, ArtifactPathResolver
-from _core import ROOT, TOOL_VERSION, ChannelMakerError, content_hash, load_json, require_valid, sha256_file, write_json_atomic
-
 
 FACTORS = {"pass": 1.0, "partial": 0.5, "fail": 0.0, "not_assessable": 0.0}
 

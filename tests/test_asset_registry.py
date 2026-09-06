@@ -6,8 +6,12 @@ from pathlib import Path
 import pytest
 import yaml
 
-from engine.library import LibraryValidationError, list_components, register_component, review_component
-
+from engine.library import (
+    LibraryValidationError,
+    list_components,
+    register_component,
+    review_component,
+)
 
 AT = "2026-09-05T12:00:00+00:00"
 

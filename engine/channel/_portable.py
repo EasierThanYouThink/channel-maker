@@ -14,9 +14,10 @@ import json
 import os
 import tempfile
 import time
-from contextlib import contextmanager
+from collections.abc import Iterator
+from contextlib import contextmanager, suppress
 from pathlib import Path
-from typing import Any, Iterator
+from typing import Any
 
 
 def _fsync_dir(directory: Path) -> None:
@@ -54,10 +55,8 @@ def write_json_atomic(path: Path, value: dict[str, Any], *, indent: int | None =
         with os.fdopen(descriptor, "wb") as handle:
             handle.write(payload)
             handle.flush()
-            try:
+            with suppress(OSError):
                 os.fsync(handle.fileno())
-            except OSError:
-                pass
         os.replace(temporary, path)
         _fsync_dir(path.parent)
     finally:
@@ -76,10 +75,8 @@ def write_bytes_atomic(path: Path, content: bytes) -> None:
         with os.fdopen(descriptor, "wb") as handle:
             handle.write(content)
             handle.flush()
-            try:
+            with suppress(OSError):
                 os.fsync(handle.fileno())
-            except OSError:
-                pass
         os.replace(temporary, path)
         _fsync_dir(path.parent)
     finally:
@@ -101,11 +98,11 @@ def file_lock(lock_path: Path, timeout_s: float = 10.0) -> Iterator[None]:
                     handle.seek(0)
                     msvcrt.locking(handle.fileno(), msvcrt.LK_NBLCK, 1)
                     break
-                except OSError:
+                except OSError as exc:
                     if time.monotonic() >= deadline:
                         raise RuntimeError(
                             f"timed out waiting for channel state lock {lock_path}"
-                        )
+                        ) from exc
                     time.sleep(0.05)
             try:
                 yield
@@ -124,11 +121,11 @@ def file_lock(lock_path: Path, timeout_s: float = 10.0) -> Iterator[None]:
                 try:
                     fcntl.flock(handle.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
                     break
-                except BlockingIOError:
+                except BlockingIOError as exc:
                     if time.monotonic() >= deadline:
                         raise RuntimeError(
                             f"timed out waiting for channel state lock {lock_path}"
-                        )
+                        ) from exc
                     time.sleep(0.05)
             try:
                 yield

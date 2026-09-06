@@ -10,8 +10,12 @@ import yaml
 
 from engine.channel import ChannelStateError, ChannelStateMachine
 from engine.decisions import DecisionError, validate_record_file, write_record
-from engine.pilot import PilotValidationError, plan_pilot, record_production, record_review
-
+from engine.pilot import (
+    PilotValidationError,
+    plan_pilot,
+    record_production,
+    record_review,
+)
 
 AT = "2026-08-23T12:00:00+00:00"
 
@@ -149,8 +153,8 @@ def test_pilot_review_binds_marked_note_to_decision_and_rev(tmp_path: Path) -> N
         script_ref="evidence/script.md", voiceover_ref="evidence/voiceover.wav",
         render_ref="evidence/render.mp4",
     )
-    from engine.production import production_revision
     from engine.pilot import pilot_path
+    from engine.production import production_revision
 
     document = json.loads(pilot_path(package, "pilot-1").read_text(encoding="utf-8"))
     rev = production_revision(document["production"], repository_root=tmp_path)

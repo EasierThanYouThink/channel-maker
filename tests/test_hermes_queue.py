@@ -4,7 +4,6 @@ import json
 from pathlib import Path
 
 import pytest
-
 from _core import ChannelMakerError
 from run_hermes_job_queue import claim, complete, fail
 from submit_hermes_job import submit

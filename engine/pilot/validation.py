@@ -12,7 +12,6 @@ from referencing import Registry, Resource
 
 from engine.channel.workflow import REVISION_TARGETS
 
-
 CONTRACT_ROOT = Path(__file__).resolve().parent / "contracts"
 EVIDENCE_ARTIFACT_TYPES = {"scene_candidate_manifest", "evaluation_result"}
 

@@ -86,7 +86,11 @@ def test_style_sync_and_status(tmp_path: Path) -> None:
 
 
 def test_portable_lock_and_write(tmp_path: Path) -> None:
-    from engine.channel._portable import file_lock, write_bytes_atomic, write_json_atomic
+    from engine.channel._portable import (
+        file_lock,
+        write_bytes_atomic,
+        write_json_atomic,
+    )
 
     target = tmp_path / "doc.json"
     write_json_atomic(target, {"b": 1, "a": 2})

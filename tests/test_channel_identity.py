@@ -12,11 +12,9 @@ from engine.identity import (
     add_reference,
     all_domains_frozen,
     freeze_domain,
-    identity_path,
     init_identity,
     resolve_domain_references,
 )
-
 
 AT = "2026-09-05T12:00:00+00:00"
 

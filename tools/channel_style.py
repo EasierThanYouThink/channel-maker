@@ -31,7 +31,10 @@ ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-from engine.channel import ChannelValidationError, validate_channel_package  # noqa: E402
+from engine.channel import (  # noqa: E402
+    ChannelValidationError,
+    validate_channel_package,
+)
 from engine.memory.wiki_pages import KnowledgeError, parse_wiki_page  # noqa: E402
 
 STYLE_PAGES = ("index", "voice", "visual", "motion")
@@ -283,7 +286,7 @@ def sync(package: Path, root: Path, *, force: bool = False) -> dict[str, str]:
         import yaml as _yaml
 
         frontmatter = _yaml.safe_dump(metadata, sort_keys=False, allow_unicode=True).strip()
-        write_bytes_atomic(target, f"---\n{frontmatter}\n---\n\n{body.strip()}\n".encode("utf-8"))
+        write_bytes_atomic(target, f"---\n{frontmatter}\n---\n\n{body.strip()}\n".encode())
         outcomes[name] = "wrote" if not force else "refreshed"
     # Rebuild the disposable index so search sees the new pages immediately.
     from engine.memory import ChannelMemoryRepository

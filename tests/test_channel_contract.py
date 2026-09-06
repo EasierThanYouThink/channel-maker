@@ -9,7 +9,6 @@ import yaml
 
 from engine.channel import ChannelValidationError, validate_channel_package
 
-
 ROOT = Path(__file__).resolve().parents[1]
 
 
@@ -112,7 +111,7 @@ def test_canonical_paths_must_exist_inside_repository(tmp_path: Path) -> None:
 
     identity["canonical_sources"]["knowledge_root"] = "../outside"
     (package / "channel.yaml").write_text(yaml.safe_dump(identity, sort_keys=False), encoding="utf-8")
-    with pytest.raises(ChannelValidationError, match="canonical_sources.knowledge_root"):
+    with pytest.raises(ChannelValidationError, match=r"canonical_sources\.knowledge_root"):
         validate_channel_package(package, tmp_path)
 
 
@@ -121,7 +120,7 @@ def test_optional_memory_wiki_reference_uses_package_path_integrity(tmp_path: Pa
     identity = load_identity(package)
     identity["canonical_sources"]["memory_wiki"] = "channels/synthetic/wiki"
     (package / "channel.yaml").write_text(yaml.safe_dump(identity, sort_keys=False), encoding="utf-8")
-    with pytest.raises(ChannelValidationError, match="canonical_sources.memory_wiki"):
+    with pytest.raises(ChannelValidationError, match=r"canonical_sources\.memory_wiki"):
         validate_channel_package(package, tmp_path)
     (package / "wiki").mkdir()
     assert validate_channel_package(package, tmp_path).identity["id"] == "synthetic"

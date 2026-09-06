@@ -6,9 +6,10 @@ on:
 
 jobs:
   check:
-    runs-on: ubuntu-latest
+    runs-on: ${{ matrix.os }}
     strategy:
       matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
         python-version: ["3.11", "3.12", "3.13", "3.14"]
     steps:
       - uses: actions/checkout@v4
@@ -18,12 +19,22 @@ jobs:
           cache: pip
       - name: Install dependencies
         run: |
-          python -m venv .venv
-          .venv/bin/pip install -r requirements.txt
+          python -m pip install -r requirements.txt
+          python -m pip install ruff
       - name: Cache Piper voice model
         uses: actions/cache@v4
         with:
-          path: /tmp/channel-maker-test-voices
-          key: piper-lessac-medium-v1
+          # tests use tempfile.gettempdir(); point it at the runner temp dir
+          # so this cache actually hits on all three OSes.
+          path: ${{ runner.temp }}/channel-maker-test-voices
+          key: piper-lessac-medium-v1-${{ runner.os }}
+        env:
+          TMPDIR: ${{ runner.temp }}
+          TEMP: ${{ runner.temp }}
+          TMP: ${{ runner.temp }}
       - name: Run repository check
         run: python tools/check.py
+        env:
+          TMPDIR: ${{ runner.temp }}
+          TEMP: ${{ runner.temp }}
+          TMP: ${{ runner.temp }}

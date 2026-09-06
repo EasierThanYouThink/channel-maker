@@ -52,9 +52,9 @@ def _write_new(path: Path, payload: bytes) -> None:
     try:
         with path.open("xb") as handle:
             handle.write(payload)
-    except FileExistsError:
+    except FileExistsError as exc:
         if path.read_bytes() != payload:
-            raise DesignValidationError(f"refusing to overwrite existing record {path}")
+            raise DesignValidationError(f"refusing to overwrite existing record {path}") from exc
 
 
 def _write_atomic(path: Path, payload: bytes) -> None:
@@ -293,10 +293,10 @@ def approved_motion_sample(package_root: Path) -> bool:
 def check_ready_problems(kind: str, package_root: Path, repository_root: Path) -> list[str]:
     """System-level readiness beyond per-domain freezes: visual needs the
     approved composed frame, motion needs the approved narrated sample."""
+    import yaml
+
     from .dna_seed import all_domains_frozen as _frozen
     from .dna_seed import seed_path as _seed_path
-
-    import yaml
 
     package = _load_package(package_root, repository_root)
     problems: list[str] = []

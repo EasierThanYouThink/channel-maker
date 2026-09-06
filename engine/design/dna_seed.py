@@ -14,8 +14,12 @@ import yaml
 from engine.channel import ChannelValidationError, validate_channel_package
 
 from .exemplars import ChannelExemplarStore
-from .validation import SEED_ARTIFACT_TYPE, SEED_DOMAINS, DesignValidationError, validate_dna_seed
-
+from .validation import (
+    SEED_ARTIFACT_TYPE,
+    SEED_DOMAINS,
+    DesignValidationError,
+    validate_dna_seed,
+)
 
 STARTER_INPUTS: dict[str, list[str]] = {
     "visual_identity": [

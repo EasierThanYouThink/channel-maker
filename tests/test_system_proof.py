@@ -26,7 +26,6 @@ from engine.design import (
 from engine.design.exemplars import ChannelExemplarStore
 from engine.production.probing import encode_minimal_mp4, encode_minimal_png
 
-
 AT = "2026-09-05T12:00:00+00:00"
 CHANNEL_ID = "proof-channel"
 

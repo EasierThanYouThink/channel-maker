@@ -7,12 +7,15 @@ import json
 import sys
 from pathlib import Path
 
-
 ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-from engine.readiness import ReadinessError, check_readiness, write_readiness_report  # noqa: E402
+from engine.readiness import (  # noqa: E402
+    ReadinessError,
+    check_readiness,
+    write_readiness_report,
+)
 
 
 def parse_args() -> argparse.Namespace:
