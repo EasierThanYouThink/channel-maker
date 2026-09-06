@@ -36,7 +36,7 @@ def write_package(root: Path) -> Path:
         "canonical_sources": {"channel_state": f"channels/{CHANNEL_ID}/CHANNEL_STATE.json"},
     }
     state = {
-        "schema_version": "0.2.0", "channel_id": CHANNEL_ID, "revision": 0, "state": "CHANNEL_INIT",
+        "schema_version": "0.3.0", "channel_id": CHANNEL_ID, "revision": 0, "state": "CHANNEL_INIT",
         "status": "ACTIVE", "completed": [], "active_experiment": None, "waiting_for": None,
         "blocker": None, "next_action": "test", "resume_state": None,
         "source_refs": [f"channels/{CHANNEL_ID}/channel.yaml"], "known_gaps": [],
@@ -77,8 +77,7 @@ def test_full_incremental_build_flips_every_item_and_persists_at_the_end(tmp_pat
     assert not item_status(report, "strategy_selected")
 
     machine.advance("NICHE_INTELLIGENCE", next_action="n", actor="a", reason="r")
-    machine.advance("OPPORTUNITY_MAP", next_action="n", actor="a", reason="r", prerequisite_refs=[any_ref])
-    # Human gate: STRATEGY_SELECTION requires a human_decision_ref.
+    # Human gate: NICHE_INTELLIGENCE -> STRATEGY_SELECTION requires a human_decision_ref.
     machine.advance(
         "STRATEGY_SELECTION", next_action="n", actor="a", reason="r",
         prerequisite_refs=[any_ref], human_decision_ref=any_ref,
@@ -139,7 +138,6 @@ def test_full_incremental_build_flips_every_item_and_persists_at_the_end(tmp_pat
     report = check_readiness(package, tmp_path)
     assert item_status(report, "visual_dna_frozen")
     assert item_status(report, "approved_exemplar")
-    machine.advance("VISUAL_DNA_DISCOVERY", next_action="n", actor="a", reason="r", prerequisite_refs=[any_ref])
 
     init_seed("motion", package, tmp_path)
     motion_image = make_png(tmp_path / "src" / "motion.png")
@@ -150,7 +148,8 @@ def test_full_incremental_build_flips_every_item_and_persists_at_the_end(tmp_pat
     exemplar_store.review(motion_record["exemplar_id"], decision="approved", reviewer="Seb", reason="Matches.", created_at=AT, human_confirmed=True)
     add_reference("motion", package, tmp_path, domain="motion_identity", exemplar_id=motion_record["exemplar_id"])
     freeze_domain("motion", package, tmp_path, domain="motion_identity", human_confirmed=True, decision_ref=any_ref)
-    machine.advance("MOTION_DNA_DISCOVERY", next_action="n", actor="a", reason="r", prerequisite_refs=[any_ref])
+    # DESIGN_DNA_DISCOVERY exits only once both visual and motion seeds are fully frozen.
+    machine.advance("DESIGN_DNA_DISCOVERY", next_action="n", actor="a", reason="r", prerequisite_refs=[any_ref])
     report = check_readiness(package, tmp_path)
     assert item_status(report, "motion_dna_frozen")
     assert not item_status(report, "identity_frozen")
@@ -190,7 +189,8 @@ def test_full_incremental_build_flips_every_item_and_persists_at_the_end(tmp_pat
         exports=["Arrow"], interface={}, justification="Needed for the pilot.", produced_for_pilot_ref=None,
     )
     review_component(tmp_path, component_path, decision="approved", reviewer="Seb", reason="Clean.", created_at=AT, human_confirmed=True)
-    machine.advance("STARTER_VISUAL_LIBRARY", next_action="n", actor="a", reason="r", prerequisite_refs=[any_ref])
+    # No STARTER_VISUAL_LIBRARY state: component approval arrives as a
+    # prerequisite ref on the CHANNEL_IDENTITY -> PILOT_PRODUCTION advance.
     report = check_readiness(package, tmp_path)
     assert item_status(report, "approved_component")
     assert not item_status(report, "reviewed_pilot")
@@ -213,7 +213,6 @@ def test_full_incremental_build_flips_every_item_and_persists_at_the_end(tmp_pat
         script_ref="evidence/pilot-script.md", voiceover_ref="evidence/pilot-voiceover.wav",
         render_ref="evidence/pilot-render.mp4",
     )
-    machine.advance("PILOT_PLAN", next_action="n", actor="a", reason="r", prerequisite_refs=[any_ref])
     machine.advance("PILOT_PRODUCTION", next_action="n", actor="a", reason="r", prerequisite_refs=[any_ref])
     machine.advance("PILOT_REVIEW", next_action="n", actor="a", reason="r", prerequisite_refs=[any_ref])
     record_review(package, tmp_path, "pilot-1", decision="GO", decided_by="Seb", rationale="Good.", decision_ref=any_ref)
@@ -221,11 +220,9 @@ def test_full_incremental_build_flips_every_item_and_persists_at_the_end(tmp_pat
     assert item_status(report, "reviewed_pilot")
     assert not item_status(report, "explicit_human_go")
 
-    # Human gate: PILOT_REVIEW -> CHANNEL_FREEZE requires a human_decision_ref.
-    machine.advance("CHANNEL_FREEZE", next_action="n", actor="a", reason="r", prerequisite_refs=[any_ref], human_decision_ref=any_ref)
-    report = check_readiness(package, tmp_path)
-    assert not item_status(report, "explicit_human_go"), "still not ready: the pilot has not been frozen yet"
-
+    # Freeze while in review: GO + freeze evidence makes every item pass,
+    # so the report can be written BEFORE the READY advance (it is that
+    # advance's prerequisite — requiring the advance first would be circular).
     freeze_pilot(package, tmp_path, "pilot-1", new_channel_version="0.2.0", frozen_by="Seb")
     report = check_readiness(package, tmp_path)
     for item in report["items"]:
@@ -237,7 +234,8 @@ def test_full_incremental_build_flips_every_item_and_persists_at_the_end(tmp_pat
     persisted = json.loads(path.read_text(encoding="utf-8"))
     assert persisted["overall_passed"] is True
 
-    machine.advance("CHANNEL_READY", next_action="Channel is ready.", actor="a", reason="r", prerequisite_refs=[str(path.relative_to(tmp_path))])
+    # Human gate: PILOT_REVIEW -> CHANNEL_READY requires a human_decision_ref.
+    machine.advance("CHANNEL_READY", next_action="Channel is ready.", actor="a", reason="r", prerequisite_refs=[str(path.relative_to(tmp_path))], human_decision_ref=any_ref)
     final_state = json.loads((package / "CHANNEL_STATE.json").read_text(encoding="utf-8"))
     assert final_state["state"] == "CHANNEL_READY"
     assert final_state["status"] == "COMPLETE"

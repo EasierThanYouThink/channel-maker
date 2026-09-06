@@ -49,7 +49,7 @@ def test_channel_overview_snapshot(tmp_path: Path) -> None:
     overview = channel_overview(tmp_path, package.name)
     assert overview["header"]["channel_id"] == "panel-chan"
     assert overview["progress"]["position"] == 1
-    assert overview["progress"]["total"] == 15
+    assert overview["progress"]["total"] == 10
     assert overview["next_allowed_action"]["forward_state"] == "NICHE_INTELLIGENCE"
     assert overview["review_counts"]["script_examples"] == 0
     assert overview["style_pages"] == {"voice": False, "visual": False, "motion": False, "index": False}

@@ -122,8 +122,8 @@ we, what's next, what needs my eyes, is the machine healthy".
    `python tools/channel_overview.py <channel_id>`.
 3. What's visible (fixed creator-dashboard layout, same order in UI + CLI):
    1. **Header** — name, niche, archetype, renderer, version, state badge,
-      step `N/15`.
-   2. **Workflow progress** — all 15 states with done/current/todo.
+      step `N/10`.
+   2. **Workflow progress** — all 10 states with done/current/todo.
    3. **Next action** — `next_action` text + allowed operations + whether a
       human decision is required. This, not memory, decides the next command.
    4. **Review queue (this channel)** — counts of pending script examples,
@@ -250,22 +250,18 @@ Sample-role assignment (`GROWTH_CANDIDATE`, `BREAKOUT`, etc.) is a judgment call
 
 1. `.venv/bin/python tools/niche_intelligence.py publish-summaries channels/<channel_id> channels/<channel_id>/intelligence/studies/<study-id>`.
 2. Summarize the opportunity map for the user conversationally from those wiki pages / the `opportunity_proposal` artifacts.
-3. Advance through the map state first (prerequisite evidence only — no human gate on this edge):
-   ```
-   .venv/bin/python tools/channel_state.py advance channels/<channel_id> OPPORTUNITY_MAP --next-action "Select a channel strategy." --actor "<user>" --reason "<reason>" --prerequisite-ref <path-to-opportunity-map-evidence>
-   ```
-4. Get the user's real strategy decision — and stress-test it first. Put the
+3. Get the user's real strategy decision — and stress-test it first. Put the
    Stage 1 thesis (`channels/<channel_id>/strategy/channel-thesis.md`) next to
    the competitor statistics and attack it: does the evidence support the
    differentiator, or does some competitor already own it? Ask the killer
    question out loud ("your thesis says X, but competitor Y's numbers show Z —
    defend or revise"). Same push-back rule as Stage 1: weak reasoning gets
    discussed, not waved through. Write the surviving decision down first as a structured record (selected opportunity ids, the rejected alternative, the resource constraint, and the revisit condition) — a
-   `tools/decision_record.py write channels/<channel_id>/strategy/strategy.md --kind strategy --title "<title>" --summary "<why this direction>" --selected <opportunity-id> [--selected ...] --rejected <declined-alternative> [--constraint "<budget>"] --revisit "<when to reconsider>" --author "<user>" (a plain markdown note also works, but records the decision less precisely) — because `human_decision_ref` must resolve to a real repository file, never a fabricated string. Then cross the workflow's first human gate:
+   `tools/decision_record.py write channels/<channel_id>/strategy/strategy.md --kind strategy --title "<title>" --summary "<why this direction>" --selected <opportunity-id> [--selected ...] --rejected <declined-alternative> [--constraint "<budget>"] --revisit "<when to reconsider>" --author "<user>" (a plain markdown note also works, but records the decision less precisely) — because `human_decision_ref` must resolve to a real repository file, never a fabricated string. Then cross the workflow's first human gate straight from niche intelligence (no intermediate map state — the published summaries are the prerequisite evidence):
    ```
    .venv/bin/python tools/channel_state.py advance channels/<channel_id> STRATEGY_SELECTION --next-action "<next action>" --actor "<user>" --reason "<reason>" --prerequisite-ref <path-to-opportunity-map-evidence> --human-decision-ref <the-real-reference>
    ```
-5. `.venv/bin/python tools/validate_channel.py channels/<channel_id>` as a final check.
+4. `.venv/bin/python tools/validate_channel.py channels/<channel_id>` as a final check.
 
 ## Stage 4 — Channel Foundation
 
@@ -294,11 +290,10 @@ Visual DNA has five domains (`visual_identity`, `typography`, `color_language`, 
 1. `.venv/bin/python tools/design_dna.py <visual|motion> init channels/<channel_id>`.
 2. Discovery loop per domain: create/gather candidate reference images, register them (`tools/design_exemplars.py --channel <channel_id> add <image> --title "..." --domain <domain> --provenance-kind <...> --created-by "<you>" --source-ref "..."`), show the user, get their approve/reject/borderline call (`tools/design_exemplars.py --channel <channel_id> review <exemplar_id> --decision ... --reviewer "<user>" --reason "..."`, interactive confirm or `--yes` if already confirmed in chat), then `tools/design_dna.py <visual|motion> add-reference channels/<channel_id> --domain <domain> --exemplar-id <exemplar_id>` for approved ones. Narrow and repeat until the user is satisfied — do not invent a fixed number of rounds. Before freezing, compose one frame showing the domains together and show it to the user: individually attractive references can clash as a system.
 3. Freeze each domain only when the user explicitly says so (a domain with no approved references cannot freeze) — decision note first, then: `tools/design_dna.py <visual|motion> freeze-domain channels/<channel_id> --domain <domain> --decision-ref <a-real-path>` (interactive confirm, or `--yes`). Re-freezing an already-frozen domain is refused unless you pass `--force` — treat that refusal as a signal you are repeating work, not as an error to route around. After each freeze: `python tools/channel_style.py sync channels/<channel_id> --force` (refreshes `wiki/style/visual.md` / `motion.md`).
-4. `tools/design_dna.py <visual|motion> check-ready channels/<channel_id>` must report all domains frozen before advancing (`tools/design_dna.py <visual|motion> validate channels/<channel_id>` is the schema-level check).
-5. Walk the three edges in order, each with `--next-action`, `--actor`, `--reason`, and `--prerequisite-ref`:
-   - `... advance channels/<channel_id> VISUAL_DNA_DISCOVERY ... --prerequisite-ref channels/<channel_id>/script/script-dna.yaml` once Script DNA is frozen;
-   - `... advance channels/<channel_id> MOTION_DNA_DISCOVERY ... --prerequisite-ref channels/<channel_id>/design/visual-dna-seed.yaml` after visual is fully frozen;
-   - `... advance channels/<channel_id> CHANNEL_IDENTITY ... --prerequisite-ref channels/<channel_id>/motion/motion-dna-seed.yaml` after motion is fully frozen.
+4. `tools/design_dna.py <visual|motion> check-ready channels/<channel_id>` must report all domains frozen before advancing (`tools/design_dna.py <visual|motion> validate channels/<channel_id>` is the schema-level check). Both seeds — visual (five domains) and motion (one) — must be fully frozen; per-domain freeze mechanics are unchanged.
+5. Walk the two edges in order, each with `--next-action`, `--actor`, `--reason`, and `--prerequisite-ref`:
+   - `... advance channels/<channel_id> DESIGN_DNA_DISCOVERY ... --prerequisite-ref channels/<channel_id>/script/script-dna.yaml` once Script DNA is frozen;
+   - `... advance channels/<channel_id> CHANNEL_IDENTITY ... --prerequisite-ref channels/<channel_id>/motion/motion-dna-seed.yaml` after visual and motion are both fully frozen.
 
 ## Stage 7 — Channel Identity
 
@@ -309,8 +304,7 @@ short About-page bio, in the frozen Script DNA voice).
 1. `.venv/bin/python tools/channel_identity.py init channels/<channel_id>`.
 2. Discovery loop per domain: produce/gather candidates (a logo image, or a draft description string), register them (`tools/channel_identity.py add --channel <channel_id> --domain <logo|description> --title "..." [--image <path> | --text "..."] --provenance-kind <...> --created-by "<you>" --source-ref "..."`), show the user, get their approve/reject/borderline call (`tools/channel_identity.py review --channel <channel_id> <candidate_id> --decision ... --reviewer "<user>" --reason "..."`, interactive confirm or `--yes` if already confirmed in chat), then `tools/channel_identity.py add-reference channels/<channel_id> --domain <domain> --candidate-id <candidate_id>` for approved ones. Narrow and repeat until the user is satisfied — do not invent a fixed number of rounds. Attach exactly the selected candidate per domain (the deliverable, not the shortlist) and show the logo at actual avatar size.
 3. Freeze each domain only when the user explicitly says so (a domain with no references cannot freeze) — decision note first, then: `tools/channel_identity.py freeze-domain channels/<channel_id> --domain <domain> --decision-ref <a-real-path>` (interactive confirm, or `--yes`). Same `--force` rule as Stage 6 for re-freezes. Then `python tools/channel_style.py sync channels/<channel_id> --force`.
-4. `tools/channel_identity.py check-ready channels/<channel_id>` must report both domains frozen before advancing (`tools/channel_identity.py validate channels/<channel_id>` is the schema-level check).
-5. `.venv/bin/python tools/channel_state.py advance channels/<channel_id> STARTER_VISUAL_LIBRARY --next-action "..." --actor "<user>" --reason "..." --prerequisite-ref channels/<channel_id>/identity/channel-identity.yaml`.
+4. `tools/channel_identity.py check-ready channels/<channel_id>` must report both domains frozen before advancing (`tools/channel_identity.py validate channels/<channel_id>` is the schema-level check). No advance yet — identity freezes, the Stage 8 library, and the pilot plan all happen inside `CHANNEL_IDENTITY`; the single exit edge is Stage 9's advance to `PILOT_PRODUCTION`.
 
 ## Stage 8 — Starter Visual Library
 
@@ -318,15 +312,14 @@ Only create a component when a real, immediate need exists (never a speculative 
 
 1. `.venv/bin/python tools/asset_registry.py register --scope CHANNEL --channel-id <channel_id> --category <primitive|object|character|diagram|mechanism|effect> --name "..." --description "..." --renderer <renderer> --source-kind tsx --source-path <renderer>/src/channels/<channel_id>/<Name>.tsx --export <ExportName> --justification "..."` after actually writing the component.
 2. Get the user's review against a rendered scene using the component — never approve source code the user hasn't seen working: `tools/asset_registry.py review <component_path> --decision <approved|rejected|deprecated> --reviewer "<user>" --reason "..."` (interactive confirm, or `--yes` if already confirmed in chat). The review binds the verdict to the source bytes. A rejection is terminal: the component leaves the queue for good.
-3. `.venv/bin/python tools/channel_state.py advance channels/<channel_id> PILOT_PLAN --next-action "..." --actor "<user>" --reason "..." --prerequisite-ref <approved-component-path>` once at least one component is approved. If the pilot honestly needs no reusable component (scene-local construction), skip the library instead of registering a token part: pass `--no-reusable-components` to `tools/pilot.py plan`.
+3. No workflow advance here — there is no library state. Once at least one component is approved (or the pilot honestly needs no reusable component — scene-local construction, `tools/pilot.py plan --no-reusable-components` — instead of registering a token part), carry the approval (or waiver evidence) as a prerequisite ref on the `CHANNEL_IDENTITY` → `PILOT_PRODUCTION` edge in Stage 9.
 
 ## Stage 9 — Pilot Plan, Production, Review
 
-1. `.venv/bin/python tools/pilot.py plan channels/<channel_id> <pilot-id> --topic "..." --target-duration-seconds <20-30> --integration-goal "Prove Script DNA" --integration-goal "Prove Visual DNA" ...`, then advance into production with the pilot plan as prerequisite evidence:
+1. `.venv/bin/python tools/pilot.py plan channels/<channel_id> <pilot-id> --topic "..." --target-duration-seconds <20-30> --integration-goal "Prove Script DNA" --integration-goal "Prove Visual DNA" ...` (no `PILOT_PLAN` state — plan while still in `CHANNEL_IDENTITY`), then advance into production with the pilot plan plus the Stage 8 component approval (or `--no-reusable-components` waiver evidence) as prerequisite refs:
    ```
-   .venv/bin/python tools/channel_state.py advance channels/<channel_id> PILOT_PRODUCTION --next-action "..." --actor "<user>" --reason "..." --prerequisite-ref channels/<channel_id>/pilots/<pilot-id>/pilot.json
+   .venv/bin/python tools/channel_state.py advance channels/<channel_id> PILOT_PRODUCTION --next-action "..." --actor "<user>" --reason "..." --prerequisite-ref <approved-component-path> --prerequisite-ref channels/<channel_id>/pilots/<pilot-id>/pilot.json
    ```
-   (Stage 8's advance already moved the channel to `PILOT_PLAN`; this edge moves it to `PILOT_PRODUCTION`.)
 2. Build the pilot with the channel's declared renderer — script, voiceover, timed visual beats, scene-local components, a deterministic render — per the contract in `docs/RENDER_CONTRACT.md`, using the evaluation contract tooling for evidence. Voice first, because everything visual keys off it:
    1. Write the final script to a file (e.g. `channels/<channel_id>/pilots/<pilot-id>/script.md`) and fact-check it against the Script DNA requirements.
    2. Synthesize the narration — one voice per channel, picked now and reused forever after:
@@ -350,13 +343,13 @@ Only create a component when a real, immediate need exists (never a speculative 
    .venv/bin/python tools/pilot.py record-review channels/<channel_id> <pilot-id> --decision GO --decided-by "<user>" --decision-ref <a-real-path> --rationale "..." --yes
    ```
    (`--yes` is required non-interactively; without it the CLI stops and asks. Re-recording a review archives the previous decision into the review history — check the current one first.)
-   REVISE requires `--revise-target <STATE>` where `<STATE>` is one of the fixed re-entry states (`STRATEGY_SELECTION`, `CHANNEL_FOUNDATION`, `SCRIPT_DNA_DISCOVERY`, `VISUAL_DNA_DISCOVERY`, `MOTION_DNA_DISCOVERY`, `CHANNEL_IDENTITY`, `STARTER_VISUAL_LIBRARY`, `PILOT_PLAN`, `PILOT_PRODUCTION` — niche-intelligence states and `PILOT_REVIEW` itself are not valid targets) and routes via `tools/channel_state.py revise channels/<channel_id> <STATE> --actor "<user>" --decision-ref <same-ref> --next-action "..." --reason "..." --yes`. A revise truncates `completed` at the target and sets status `REVISING`: re-walk forward with fresh `advance` calls (each needing its own prerequisite refs) until `PILOT_REVIEW`, then record the new review. Frozen DNA/identity artifacts are not auto-unfrozen — only the state pointer moves. The revise event records `invalidated_artifact_families` naming what must be re-approved on the way forward — check it with `channel_state.py show` before re-walking.
+   REVISE requires `--revise-target <STATE>` where `<STATE>` is one of the fixed re-entry states (`STRATEGY_SELECTION`, `CHANNEL_FOUNDATION`, `SCRIPT_DNA_DISCOVERY`, `DESIGN_DNA_DISCOVERY`, `CHANNEL_IDENTITY`, `PILOT_PRODUCTION` — niche-intelligence states and `PILOT_REVIEW` itself are not valid targets) and routes via `tools/channel_state.py revise channels/<channel_id> <STATE> --actor "<user>" --decision-ref <same-ref> --next-action "..." --reason "..." --yes`. A revise truncates `completed` at the target and sets status `REVISING`: re-walk forward with fresh `advance` calls (each needing its own prerequisite refs) until `PILOT_REVIEW`, then record the new review. Frozen DNA/identity artifacts are not auto-unfrozen — only the state pointer moves. The revise event records `invalidated_artifact_families` naming what must be re-approved on the way forward — check it with `channel_state.py show` before re-walking.
    ABANDON_DIRECTION routes via `tools/channel_state.py abandon channels/<channel_id> --actor "<user>" --decision-ref <same-ref> --reason "..." --yes`, and is terminal — there is no un-abandon.
-5. On GO, cross the workflow's second human gate, then freeze (each with explicit confirmation):
+5. On GO, freeze first (explicit confirmation), then cross the workflow's second human gate — there is no `CHANNEL_FREEZE` state:
    ```
-   .venv/bin/python tools/channel_state.py advance channels/<channel_id> CHANNEL_FREEZE --next-action "..." --actor "<user>" --reason "..." --prerequisite-ref channels/<channel_id>/pilots/<pilot-id>/pilot.json --human-decision-ref <the-same-real-reference>
    .venv/bin/python tools/pilot.py freeze channels/<channel_id> <pilot-id> --new-channel-version <next-version> --frozen-by "<user>" --yes
    ```
+   (then Stage 10 writes the readiness report and advances straight to `CHANNEL_READY`, gated on the same decision reference.)
     Retrying a freeze at the same version with unchanged content completes
     idempotently (crash-safe); the same version with *changed* content is
     refused — freeze it as a new version, or pass `--force` to replace the
@@ -368,8 +361,8 @@ Only create a component when a real, immediate need exists (never a speculative 
 
 ## Stage 10 — Readiness and Channel Ready
 
-1. `.venv/bin/python tools/channel_readiness.py channels/<channel_id> --write`. If any item fails, it tells you exactly which and why — address that before retrying. This never writes `readiness-report.json` unless every item genuinely passes.
-2. `.venv/bin/python tools/channel_state.py advance channels/<channel_id> CHANNEL_READY --next-action "Channel is ready." --actor "<user>" --reason "..." --prerequisite-ref channels/<channel_id>/readiness-report.json`.
+1. `.venv/bin/python tools/channel_readiness.py channels/<channel_id> --write`. If any item fails, it tells you exactly which and why — address that before retrying. This never writes `readiness-report.json` unless every item genuinely passes (the GO + freeze evidence is verified here, before the gate — requiring the gate first would be circular since the report is the gate's prerequisite).
+2. `.venv/bin/python tools/channel_state.py advance channels/<channel_id> CHANNEL_READY --next-action "Channel is ready." --actor "<user>" --reason "..." --prerequisite-ref channels/<channel_id>/readiness-report.json --human-decision-ref <the-same-GO-reference>`.
 3. `.venv/bin/python tools/validate_channel.py channels/<channel_id>` — final check: `state` should be `CHANNEL_READY`, `status` should be `COMPLETE`.
 
 ## Ongoing — Episode Production

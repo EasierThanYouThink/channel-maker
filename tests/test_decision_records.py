@@ -91,7 +91,8 @@ def test_strategy_gate_accepts_structured_or_plain_notes(tmp_path: Path) -> None
     prereq.write_text("# Evidence\n", encoding="utf-8")
     ref = prereq.relative_to(tmp_path).as_posix()
     runtime.advance("NICHE_INTELLIGENCE", next_action="n", actor="a", reason="r")
-    runtime.advance("OPPORTUNITY_MAP", next_action="n", actor="a", reason="r", prerequisite_refs=[ref])
+    # OPPORTUNITY_MAP is folded into the gated NICHE -> STRATEGY edge: the
+    # wrong-kind refusal below exercises the same gate directly.
 
     # A marked record of the wrong kind is refused ...
     review_note = tmp_path / "channels" / "decide-demo" / "review.md"

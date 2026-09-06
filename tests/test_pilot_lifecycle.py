@@ -138,7 +138,7 @@ def test_revise_requires_valid_revise_target(tmp_path: Path) -> None:
         )
     record_review(
         package, tmp_path, "pilot-1", decision="REVISE", decided_by="Seb", rationale="Needs a stronger hook.",
-        decision_ref="channels/pilot-channel/channel.yaml", revise_target="VISUAL_DNA_DISCOVERY",
+        decision_ref="channels/pilot-channel/channel.yaml", revise_target="DESIGN_DNA_DISCOVERY",
     )
 
 

@@ -279,7 +279,6 @@ def _walkthrough_init_to_ready(root: Path, tmp_path: Path) -> None:
         "--author", REVIEWER)
     strategy_note = f"channels/{CHANNEL_ID}/strategy/strategy.md"
     opportunity_ref = f"channels/{CHANNEL_ID}/intelligence/studies/s1/study.json"
-    advance(root, package, "OPPORTUNITY_MAP", prerequisite_ref=opportunity_ref)
     advance(root, package, "STRATEGY_SELECTION", prerequisite_ref=opportunity_ref,
             human_decision_ref=strategy_note)
     nxt = cli_json(root, "channel_state.py", "next", str(package))
@@ -348,10 +347,8 @@ def _walkthrough_init_to_ready(root: Path, tmp_path: Path) -> None:
             "--domain", domain, "--decision-ref", design_note, "--yes")
     cli(root, "design_dna.py", "motion", "freeze-domain", str(package),
         "--domain", "motion_identity", "--decision-ref", design_note, "--yes")
-    advance(root, package, "VISUAL_DNA_DISCOVERY",
-            prerequisite_ref=f"channels/{CHANNEL_ID}/design/visual-dna-seed.yaml")
-    advance(root, package, "MOTION_DNA_DISCOVERY",
-            prerequisite_ref=f"channels/{CHANNEL_ID}/motion/motion-dna-seed.yaml")
+    advance(root, package, "DESIGN_DNA_DISCOVERY",
+            prerequisite_ref=f"channels/{CHANNEL_ID}/script/script-dna.yaml")
     nxt = cli_json(root, "channel_state.py", "next", str(package))
     assert nxt["forward_state"] == "CHANNEL_IDENTITY"
 
@@ -377,9 +374,7 @@ def _walkthrough_init_to_ready(root: Path, tmp_path: Path) -> None:
         cli(root, "channel_identity.py", "freeze-domain", str(package),
             "--domain", domain, "--decision-ref", identity_note, "--yes")
     advance(root, package, "CHANNEL_IDENTITY",
-            prerequisite_ref=f"channels/{CHANNEL_ID}/identity/channel-identity.yaml")
-    advance(root, package, "STARTER_VISUAL_LIBRARY",
-            prerequisite_ref=f"channels/{CHANNEL_ID}/identity/channel-identity.yaml")
+            prerequisite_ref=f"channels/{CHANNEL_ID}/motion/motion-dna-seed.yaml")
 
     component = package / "components" / "Arrow.tsx"
     component.parent.mkdir(parents=True, exist_ok=True)
@@ -392,13 +387,21 @@ def _walkthrough_init_to_ready(root: Path, tmp_path: Path) -> None:
     component_record = sorted((package / "assets" / "registry").glob("*.json"))[0]
     cli(root, "asset_registry.py", "review", str(component_record), "--decision", "approved",
         "--reviewer", REVIEWER, "--reason", "Walkthrough approval.", "--yes")
-    advance(root, package, "PILOT_PLAN", prerequisite_ref=str(component_record.relative_to(root)))
 
     cli(root, "pilot.py", "plan", str(package), "pilot-1", "--topic", "How caffeine works",
         "--target-duration-seconds", "25", "--integration-goal", "Prove Script DNA",
         "--integration-goal", "Prove Visual DNA")
-    advance(root, package, "PILOT_PRODUCTION",
-            prerequisite_ref=f"channels/{CHANNEL_ID}/pilots/pilot-1/pilot.json")
+    # No PILOT_PLAN state: the approved component and the pilot plan arrive
+    # together as prerequisite refs on the CHANNEL_IDENTITY -> PILOT_PRODUCTION edge.
+    completed = subprocess.run(
+        [sys.executable, str(ROOT / "tools" / "channel_state.py"), "--root", str(root),
+         "advance", str(package), "PILOT_PRODUCTION", "--next-action", "Walkthrough.",
+         "--actor", REVIEWER, "--reason", "Walkthrough step.",
+         "--prerequisite-ref", str(component_record.relative_to(root)),
+         "--prerequisite-ref", f"channels/{CHANNEL_ID}/pilots/pilot-1/pilot.json"],
+        capture_output=True, text=True, stdin=subprocess.DEVNULL, cwd=ROOT,
+    )
+    assert completed.returncode == 0, f"advance PILOT_PRODUCTION\n{completed.stdout}\n{completed.stderr}"
     # Honest production: the walkthrough proves the full voice-first path —
     # script, synthesized narration, validated timing, scene manifest,
     # evaluation, and render — instead of standing strings in for a video.
@@ -462,15 +465,13 @@ def _walkthrough_init_to_ready(root: Path, tmp_path: Path) -> None:
     cli(root, "pilot.py", "record-review", str(package), "pilot-1", "--decision", "GO",
         "--decided-by", REVIEWER, "--rationale", "Fixed pacing.", "--decision-ref", go_note, "--yes")
     cli(root, "pilot.py", "validate", str(package), "pilot-1")
-    advance(root, package, "CHANNEL_FREEZE",
-            prerequisite_ref=f"channels/{CHANNEL_ID}/pilots/pilot-1/pilot.json",
-            human_decision_ref=go_note)
     cli(root, "pilot.py", "freeze", str(package), "pilot-1",
         "--new-channel-version", "0.2.0", "--frozen-by", REVIEWER, "--yes")
 
     cli(root, "channel_readiness.py", str(package), "--write")
     advance(root, package, "CHANNEL_READY",
-            prerequisite_ref=f"channels/{CHANNEL_ID}/readiness-report.json")
+            prerequisite_ref=f"channels/{CHANNEL_ID}/readiness-report.json",
+            human_decision_ref=go_note)
     final = cli_json(root, "channel_state.py", "show", str(package))
     assert final["state"]["state"] == "CHANNEL_READY"
     assert final["state"]["status"] == "COMPLETE"
@@ -517,8 +518,6 @@ def _walkthrough_voice_and_episode(root: Path, tmp_path: Path) -> None:
 
     package = scaffold_channel(root)
     advance(root, package, "NICHE_INTELLIGENCE")
-    advance(root, package, "OPPORTUNITY_MAP",
-            prerequisite_ref=f"channels/{CHANNEL_ID}/channel.yaml")
     strategy_note = write_note(root, "strategy.md", "# Strategy\n\nMechanism-first.\n")
     advance(root, package, "STRATEGY_SELECTION",
             prerequisite_ref=f"channels/{CHANNEL_ID}/channel.yaml", human_decision_ref=strategy_note)

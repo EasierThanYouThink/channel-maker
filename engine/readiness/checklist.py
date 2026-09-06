@@ -210,28 +210,31 @@ def check_readiness(package_root: Path, repository_root: Path) -> dict[str, Any]
         "No pilot with a recorded review decision was found." if not reviewed_ok else "Recorded.",
     ))
 
+    # No circularity: this item must pass BEFORE the CHANNEL_READY advance
+    # (the report is that advance's prerequisite), so it verifies the GO +
+    # freeze evidence itself. The READY edge's own human gate then rechecks
+    # the same decision ref at advance time.
     human_go_ok = False
-    freeze_event = next(
-        (e for e in package.state["events"] if e["operation"] == "ADVANCE" and e["to_state"] == "CHANNEL_FREEZE"),
-        None,
-    )
-    if freeze_event is not None and freeze_event.get("human_decision_ref"):
-        try:
-            pilot_id = frozen_pilot[0] if frozen_pilot else None
-            if pilot_id:
-                document = json.loads(pilot_path(root, pilot_id).read_text(encoding="utf-8"))
-                validate_pilot(document, repository_root=repository_root, expected_channel_id=channel_id)
-                current_rev = production_revision(document["production"], repository_root=repository_root)
-                human_go_ok = (
-                    document["review"]["decision"] == "GO"
-                    and document["review"].get("rev_id") == current_rev
-                )
-        except (PilotValidationError, OSError, json.JSONDecodeError):
-            human_go_ok = False
+    go_refs: list[str] = []
+    try:
+        pilot_id = frozen_pilot[0] if frozen_pilot else None
+        if pilot_id:
+            document = json.loads(pilot_path(root, pilot_id).read_text(encoding="utf-8"))
+            validate_pilot(document, repository_root=repository_root, expected_channel_id=channel_id)
+            current_rev = production_revision(document["production"], repository_root=repository_root)
+            human_go_ok = (
+                document["review"]["decision"] == "GO"
+                and document["review"].get("rev_id") == current_rev
+                and bool(document["review"].get("decision_ref"))
+            )
+            if human_go_ok:
+                go_refs = [document["review"]["decision_ref"]]
+    except (PilotValidationError, OSError, json.JSONDecodeError):
+        human_go_ok = False
     items.append(_item(
-        "explicit_human_go", "PILOT_REVIEW -> CHANNEL_FREEZE was recorded with an explicit human GO decision bound to the current production revision",
-        human_go_ok, [freeze_event["human_decision_ref"]] if human_go_ok and freeze_event else [],
-        "No CHANNEL_FREEZE advance with a human_decision_ref, the referenced pilot's decision is not GO, "
+        "explicit_human_go", "A frozen pilot carries an explicit human GO decision bound to the current production revision",
+        human_go_ok, go_refs,
+        "No frozen pilot with a GO review, the decision_ref is missing, "
         "or its production changed since the GO review."
         if not human_go_ok else "Recorded.",
     ))

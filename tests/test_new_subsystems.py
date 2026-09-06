@@ -25,13 +25,12 @@ def write_package(root: Path, channel_id: str = "lab-channel") -> Path:
         "canonical_sources": {"channel_state": f"channels/{channel_id}/CHANNEL_STATE.json"},
     }
     state = {
-        "schema_version": "0.2.0", "channel_id": channel_id, "revision": 0,
+        "schema_version": "0.3.0", "channel_id": channel_id, "revision": 0,
         "state": "CHANNEL_READY", "status": "COMPLETE",
         "completed": [
-            "CHANNEL_INIT", "NICHE_INTELLIGENCE", "OPPORTUNITY_MAP", "STRATEGY_SELECTION",
-            "CHANNEL_FOUNDATION", "SCRIPT_DNA_DISCOVERY", "VISUAL_DNA_DISCOVERY", "MOTION_DNA_DISCOVERY",
-            "CHANNEL_IDENTITY", "STARTER_VISUAL_LIBRARY", "PILOT_PLAN", "PILOT_PRODUCTION",
-            "PILOT_REVIEW", "CHANNEL_FREEZE",
+            "CHANNEL_INIT", "NICHE_INTELLIGENCE", "STRATEGY_SELECTION",
+            "CHANNEL_FOUNDATION", "SCRIPT_DNA_DISCOVERY", "DESIGN_DNA_DISCOVERY",
+            "CHANNEL_IDENTITY", "PILOT_PRODUCTION", "PILOT_REVIEW",
         ], "active_experiment": None,
         "waiting_for": None, "blocker": None, "next_action": "Produce.",
         "resume_state": None, "source_refs": [f"channels/{channel_id}/channel.yaml"],
