@@ -1,6 +1,6 @@
 # Hermes Agent Setup Checklist (Windows / macOS / Linux)
 
-Hermes Agent (hermes-agent.nousresearch.com) is a self-hosted CLI/desktop
+Hermes Agent (https://hermes-agent.nousresearch.com) is a self-hosted CLI/desktop
 scraping agent. Its exact CLI surface changes over time and was not fully
 confirmed when this skill was written — treat every command below except the
 presence check as provisional until discovered live in step 2.
@@ -28,7 +28,7 @@ which hermes        # macOS / Linux
 where hermes        # Windows PowerShell
 ```
 
-If missing: tell the user to install it from hermes-agent.nousresearch.com and
+If missing: tell the user to install it from https://hermes-agent.nousresearch.com and
 stop. Do not guess a package-manager install command — the distribution
 mechanism (desktop app download vs. package manager) was not confirmed.
 
@@ -45,7 +45,8 @@ Read the actual output before running anything else. Look specifically for:
 - a one-shot, non-interactive way to run a single task and get structured
   output back (this is what Stage 2 needs to drive real collection);
 - the exact subcommand for installing a skill (the example
-  `hermes skills install official/research/scrapling` is illustrative only —
+  `hermes skills install <category>/<name>` is illustrative only (check the
+  real help for the exact spelling — it is not `scrapling`) —
   confirm the real category/name for whatever covers web search, YouTube data,
   and screenshots);
 - the exact subcommand/flags for setting the model/provider.

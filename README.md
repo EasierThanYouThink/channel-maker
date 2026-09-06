@@ -54,21 +54,14 @@ session resumes exactly where you stopped.
 
 ## Getting Started
 
-> **What you'll need:** ~10 minutes, ~7GB of disk (mostly the local research
-> model), everything on your own machine — no API keys, no GPU, no cloud bill.
-> Details per OS: [`docs/SETUP.md`](docs/SETUP.md).
+> **What you'll need:** 30–60 minutes on a first run (mostly the ~6.6GB local
+> research-model download), ~7GB of disk, everything on your own machine — no
+> API keys, no GPU, no cloud bill. Details per OS: [`docs/SETUP.md`](docs/SETUP.md).
 
 ### Claude Code
 
-Clone, open in Claude Code, and paste:
-
-```
-Read .claude/skills/channel-maker/SKILL.md and README.md, then walk me through
-creating a YouTube channel in <your niche here> per the skill, starting at
-Stage 0.
-```
-
-Setup and verification:
+Setup and verification first (the skill's Stage 0 expects this done — the
+paste-prompt below will re-check it anyway):
 
 ```
 python tools/setup.py
@@ -76,10 +69,18 @@ python tools/check.py
 ```
 
 Setup creates `.venv`, installs `requirements.txt`, and reports external-services
-status. Details per OS: [`docs/SETUP.md`](docs/SETUP.md). You'll also need
+status. You'll also need
 [Hermes Agent](https://hermes-agent.nousresearch.com) and a local model for
 niche/market research (see Stage 0 of the skill) — Hermes does the public web
 research; nothing here has its own scraper.
+
+Then open in Claude Code and paste:
+
+```
+Read .claude/skills/channel-maker/SKILL.md and README.md, then walk me through
+creating a YouTube channel in <your niche here> per the skill, starting at
+Stage 0.
+```
 
 ### Other coding agents
 

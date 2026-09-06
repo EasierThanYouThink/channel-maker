@@ -79,6 +79,18 @@ def main() -> int:
             print(f"- {failure}")
         return 1
     print("\nCHECK PASSED")
+    # A green check covers code and contracts only — external services gate
+    # the skill itself (Stage 0/2 stay blocked on MISS). Always report them
+    # alongside the verdict so PASS is never misread as end-to-end healthy.
+    try:
+        from tools._platform import service_status as _service_status
+
+        for name, info in _service_status().items():
+            mark = "OK " if info["available"] else "MISS"
+            print(f"[{mark}] {name}: {info['detail']}")
+        print("Stage 0/2 need hermes + ollama; MISS above means the skill will stop there by design.")
+    except ImportError:
+        pass
     return 0
 
 

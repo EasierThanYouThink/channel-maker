@@ -37,7 +37,7 @@ Full checklist: [references/hermes-setup.md](references/hermes-setup.md). Summar
    `python tools/setup.py --check-only --json` (human-readable without
    `--json`). Act on every `MISS` below before continuing.
 2. Hermes MISS: tell the user to install Hermes Agent from
-   hermes-agent.nousresearch.com and stop here — do not guess an install
+   https://hermes-agent.nousresearch.com and stop here — do not guess an install
    command. Hermes OK: **hard requirement** — run `hermes --help`,
    `hermes skills --help`, `hermes config --help` to discover the real CLI
    surface before running any task command. Do not guess flags.
@@ -59,11 +59,11 @@ Do not proceed to Stage 1 until step 6 succeeds or the user explicitly accepts t
 
 A fresh session never assumes it starts at the beginning. Before doing anything else:
 
-1. `.venv/bin/python tools/channel_state.py show channels/<channel_id>` — full identity + workflow state dump.
-2. `.venv/bin/python tools/channel_state.py next channels/<channel_id>` — the machine's own answer for what's legal now: `allowed_operations`, the single `forward_state`, whether prerequisite refs or a human decision are required, and the recorded `next_action`. **This output, not the stage list below, decides your next command.** If it says `BLOCKED_ON_HUMAN`, your only legal operations are `resume` and `abandon` (see step 5) — `advance` will fail.
-3. Unsure an edge is legal? Dry-run it first: `.venv/bin/python tools/channel_state.py validate-transition channels/<channel_id> <TARGET> --prerequisite-ref ... [--human-decision-ref ...]` checks legality and path existence without bumping `revision`.
+1. `python tools/channel_state.py show channels/<channel_id>` — full identity + workflow state dump.
+2. `python tools/channel_state.py next channels/<channel_id>` — the machine's own answer for what's legal now: `allowed_operations`, the single `forward_state`, whether prerequisite refs or a human decision are required, and the recorded `next_action`. **This output, not the stage list below, decides your next command.** If it says `BLOCKED_ON_HUMAN`, your only legal operations are `resume` and `abandon` (see step 5) — `advance` will fail.
+3. Unsure an edge is legal? Dry-run it first: `python tools/channel_state.py validate-transition channels/<channel_id> <TARGET> --prerequisite-ref ... [--human-decision-ref ...]` checks legality and path existence without bumping `revision`.
 4. Never re-run a scaffold step blindly — most constructors refuse duplicates (`init_channel`, `init_niche_study`, `design_dna init`, `channel_identity init`, `pilot/episode plan` all fail if the artifact exists). If the artifact already exists, skip to the step that consumes it. Conversely, never re-run a `write` (foundation, Script DNA) to "fix" a draft after decisions were attached or frozen: re-writing wipes `decision_refs` and frozen flags. If a re-write or re-freeze is refused, read the error — it tells you whether `--force` is the deliberate escape hatch or you are repeating finished work.
-5. If the user needs to pause for a human (or the channel is already blocked): `.venv/bin/python tools/channel_state.py block channels/<channel_id> --actor "<user>" --reason "..." --reason-code <code> --summary "..." --question "..." --required-action "..."`, then later `.venv/bin/python tools/channel_state.py resume channels/<channel_id> --actor "<user>" --reason "..." --human-response-ref <a-real-path> --next-action "..."`. While blocked, only `resume` is legal.
+5. If the user needs to pause for a human (or the channel is already blocked): `python tools/channel_state.py block channels/<channel_id> --actor "<user>" --reason "..." --reason-code <code> --summary "..." --question "..." --required-action "..."`, then later `python tools/channel_state.py resume channels/<channel_id> --actor "<user>" --reason "..." --human-response-ref <a-real-path> --next-action "..."`. While blocked, only `resume` is legal.
 
 ## Stage 1 — Intent + Channel Scaffold
 
@@ -95,15 +95,15 @@ If `channels/<channel_id>` already exists (Stage 0.5), skip the scaffold and con
 4. Run the scaffold first (the package directory must not exist yet — do not
    create any files under `channels/<channel_id>/` beforehand):
    ```
-   .venv/bin/python tools/init_channel.py <channel_id> --name "<name>" --niche-primary "<niche>" \
+   python tools/init_channel.py <channel_id> --name "<name>" --niche-primary "<niche>" \
      --archetype <ARCHETYPE> --renderer <renderer>
    ```
 5. Write the surviving answers down as the channel thesis:
    `channels/<channel_id>/strategy/channel-thesis.md` (thesis, named audience,
    the differentiator in one sentence, the every-video promise). This file
    becomes the `human_decision_ref` the strategy gate in Stage 3 points at.
-6. `.venv/bin/python tools/validate_channel.py channels/<channel_id>` to confirm.
-7. `.venv/bin/python tools/channel_state.py advance channels/<channel_id> NICHE_INTELLIGENCE --next-action "Run Hermes-driven niche research." --actor "<user or 'claude'>" --reason "Channel initialized."
+6. `python tools/validate_channel.py channels/<channel_id>` to confirm.
+7. `python tools/channel_state.py advance channels/<channel_id> NICHE_INTELLIGENCE --next-action "Run Hermes-driven niche research." --actor "<user or 'claude'>" --reason "Channel initialized."
 
 ## Stage 1.5 — Channel Control Panel (start it, open it, keep it open)
 
@@ -172,7 +172,7 @@ stage (see `docs/OBSIDIAN_WIKI.md`).
 
 1. Scaffold the study:
    ```
-   .venv/bin/python tools/init_niche_study.py channels/<channel_id> --study-id <study-id> \
+   python tools/init_niche_study.py channels/<channel_id> --study-id <study-id> \
      --niche "<niche>" --archetype <ARCHETYPE> --format SHORTS --language en \
      --channel-role GROWTH_CANDIDATE --channel-role BASELINE_COMPARATOR \
      --video-role BREAKOUT --video-role CHANNEL_BASELINE \
@@ -184,7 +184,7 @@ stage (see `docs/OBSIDIAN_WIKI.md`).
    learns **what is working** (formats, pacing, topics, upload rhythm), never to
    copy expression. Pass each with a repeatable `--reference-channel`:
    ```
-   .venv/bin/python tools/build_niche_collection_request.py \
+   python tools/build_niche_collection_request.py \
      --channel-id <channel_id> --study-id <study-id> --target "<niche keywords>" \
      [--reference-channel "https://www.youtube.com/@somechannel" ...] \
      --allowed-channel-role GROWTH_CANDIDATE --allowed-channel-role BASELINE_COMPARATOR \
@@ -195,14 +195,14 @@ stage (see `docs/OBSIDIAN_WIKI.md`).
    only. Their scripts, thumbnails, and hooks are never reproduced — if a
    Script DNA example is ever adapted from observed evidence, it must use
    `--provenance-kind adapted_from_evidence` with the real `--source-ref`.
-3. `.venv/bin/python tools/submit_hermes_job.py data/local/hermes-queue/requests/<slug>.json`
-4. `.venv/bin/python tools/run_hermes_job_queue.py claim --next` — note the printed `response_path`/`runtime_metadata_path`. If there is no pending job it fails: re-check what you submitted. If collection itself fails, record that honestly with `.venv/bin/python tools/run_hermes_job_queue.py fail <job_id> --error "..."` rather than completing with invented data.
+3. `python tools/submit_hermes_job.py data/local/hermes-queue/requests/<slug>.json`
+4. `python tools/run_hermes_job_queue.py claim --next` — note the printed `response_path`/`runtime_metadata_path`. If there is no pending job it fails: re-check what you submitted. If collection itself fails, record that honestly with `python tools/run_hermes_job_queue.py fail <job_id> --error "..."` rather than completing with invented data.
 5. Drive Hermes live (per the CLI surface discovered in Stage 0) to collect public channel/video stats for the target. **Never record private analytics** (CTR, retention, swipe-away rate, average % viewed, traffic sources, subscriber conversion) — leave a field `null` if only a private version is available.
 6. Write the response and runtime-metadata files yourself in the exact shape documented in [references/evidence-response-contract.md](references/evidence-response-contract.md).
-7. `.venv/bin/python tools/run_hermes_job_queue.py complete <job_id>`.
+7. `python tools/run_hermes_job_queue.py complete <job_id>`.
 8. **Show the user the raw collected numbers before importing — this is the real manual-review moment**, not a formality.
-9. `.venv/bin/python tools/niche_intelligence.py import-evidence channels/<channel_id>/intelligence/studies/<study-id> <response_path> --reviewed-by "<the user's real name>"`. This fails loudly if `--reviewed-by` is empty — never fabricate a name.
-10. Optionally, for a flagged breakout video: `.venv/bin/python tools/niche_intelligence.py relative-views <request.json>`.
+9. `python tools/niche_intelligence.py import-evidence channels/<channel_id>/intelligence/studies/<study-id> <response_path> --reviewed-by "<the user's real name>"`. This fails loudly if `--reviewed-by` is empty — never fabricate a name.
+10. Optionally, for a flagged breakout video: `python tools/niche_intelligence.py relative-views <request.json>`.
 11. **What-works teardown — watch the winners, write down how they work.** For
     each BREAKOUT video and each reference-channel video worth learning from,
     have Hermes actually open it (screenshots included where Hermes does them
@@ -211,13 +211,13 @@ stage (see `docs/OBSIDIAN_WIKI.md`).
     `engine/niche_intelligence/contracts/` — use `UNKNOWN`/`null` honestly
     where Hermes can't see), then:
     ```
-    .venv/bin/python tools/niche_intelligence.py add-teardown-content channels/<channel_id>/intelligence/studies/<study-id> \
+    python tools/niche_intelligence.py add-teardown-content channels/<channel_id>/intelligence/studies/<study-id> \
       --key <video-slug> --video-evidence-id <niche:video:...> --payload-json <content-payload>.json --confidence 0.6
 
-    .venv/bin/python tools/niche_intelligence.py add-teardown-script channels/<channel_id>/intelligence/studies/<study-id> \
+    python tools/niche_intelligence.py add-teardown-script channels/<channel_id>/intelligence/studies/<study-id> \
       --key <video-slug>-script --video-evidence-id <niche:video:...> --payload-json <script-payload>.json --confidence 0.6
 
-    .venv/bin/python tools/niche_intelligence.py add-teardown-visual channels/<channel_id>/intelligence/studies/<study-id> \
+    python tools/niche_intelligence.py add-teardown-visual channels/<channel_id>/intelligence/studies/<study-id> \
       --key <video-slug>-visual --video-evidence-id <niche:video:...> --payload-json <visual-payload>.json --confidence 0.6
     ```
     Content teardown captures hook family + hook text, structure, viewer
@@ -230,25 +230,25 @@ stage (see `docs/OBSIDIAN_WIKI.md`).
     taste, never dictate design or enter the renderer.
 12. Synthesize the interpretive chain from the imported evidence (a real opportunity map cannot come from raw evidence alone). Start from the competitor statistics and the teardowns: for each reference channel, write at least one observation about what is working there (format/pacing/topic pattern with `--basis PUBLIC_FACT` and the competitor's evidence ref; use `--basis ANNOTATION` with the teardown ref for how-it-works claims), then hypotheses about *why* it works, then opportunities for the new channel to do the un-served variant:
     ```
-    .venv/bin/python tools/niche_intelligence.py add-observation channels/<channel_id>/intelligence/studies/<study-id> \
+    python tools/niche_intelligence.py add-observation channels/<channel_id>/intelligence/studies/<study-id> \
       --key <slug> --statement "..." --observation-type PERFORMANCE_PATTERN --scope "..." --basis PUBLIC_FACT \
       --evidence-ref <video-or-channel-evidence-artifact-id> --confidence 0.7 --limitation "..."
 
-    .venv/bin/python tools/niche_intelligence.py add-hypothesis channels/<channel_id>/intelligence/studies/<study-id> \
+    python tools/niche_intelligence.py add-hypothesis channels/<channel_id>/intelligence/studies/<study-id> \
       --key <slug> --statement "..." --predicted-effect "..." --applicable-context "..." \
       --observation-ref <observation-artifact-id> --competing-explanation "..." --confidence 0.5
 
-    .venv/bin/python tools/niche_intelligence.py add-opportunity channels/<channel_id>/intelligence/studies/<study-id> \
+    python tools/niche_intelligence.py add-opportunity channels/<channel_id>/intelligence/studies/<study-id> \
       --key <slug> --observed-market "..." --underrepresented "..." --proposal "..." \
       --hypothesis-ref <hypothesis-artifact-id> --evidence-ref <observation-artifact-id> --risk "..." --confidence 0.4
     ```
-12. Every what-works claim needs an ordinary comparator: collect at least one BASELINE_COMPARATOR channel or CHANNEL_BASELINE/RECENT_NORMAL/UNDERPERFORMER video per study — `validate` refuses breakout-only studies. Check the sampling gaps first: `.venv/bin/python tools/niche_intelligence.py coverage channels/<channel_id>/intelligence/studies/<study-id>` (roles, formats, missing fields, chain depths). `.venv/bin/python tools/niche_intelligence.py validate channels/<channel_id>/intelligence/studies/<study-id>` must pass before Stage 3. `publish-summaries` (Stage 3) carries teardowns into `wiki/market/teardowns/` alongside the stats, so the wiki remembers *how* the winners work, not just their numbers.
+13. Every what-works claim needs an ordinary comparator: collect at least one BASELINE_COMPARATOR channel or CHANNEL_BASELINE/RECENT_NORMAL/UNDERPERFORMER video per study — `validate` refuses breakout-only studies. Check the sampling gaps first: `python tools/niche_intelligence.py coverage channels/<channel_id>/intelligence/studies/<study-id>` (roles, formats, missing fields, chain depths). `python tools/niche_intelligence.py validate channels/<channel_id>/intelligence/studies/<study-id>` must pass before Stage 3. `publish-summaries` (Stage 3) carries teardowns into `wiki/market/teardowns/` alongside the stats, so the wiki remembers *how* the winners work, not just their numbers.
 
 Sample-role assignment (`GROWTH_CANDIDATE`, `BREAKOUT`, etc.) is a judgment call — there is no deterministic threshold in this repo's philosophy (`docs/NICHE_INTELLIGENCE.md`). Use your own analysis and say so plainly.
 
 ## Stage 3 — Opportunity Map + Human Gate
 
-1. `.venv/bin/python tools/niche_intelligence.py publish-summaries channels/<channel_id> channels/<channel_id>/intelligence/studies/<study-id>`.
+1. `python tools/niche_intelligence.py publish-summaries channels/<channel_id> channels/<channel_id>/intelligence/studies/<study-id>`.
 2. Summarize the opportunity map for the user conversationally from those wiki pages / the `opportunity_proposal` artifacts.
 3. Get the user's real strategy decision — and stress-test it first. Put the
    Stage 1 thesis (`channels/<channel_id>/strategy/channel-thesis.md`) next to
@@ -259,35 +259,35 @@ Sample-role assignment (`GROWTH_CANDIDATE`, `BREAKOUT`, etc.) is a judgment call
    discussed, not waved through. Write the surviving decision down first as a structured record (selected opportunity ids, the rejected alternative, the resource constraint, and the revisit condition) — a
    `tools/decision_record.py write channels/<channel_id>/strategy/strategy.md --kind strategy --title "<title>" --summary "<why this direction>" --selected <opportunity-id> [--selected ...] --rejected <declined-alternative> [--constraint "<budget>"] --revisit "<when to reconsider>" --author "<user>" (a plain markdown note also works, but records the decision less precisely) — because `human_decision_ref` must resolve to a real repository file, never a fabricated string. Then cross the workflow's first human gate straight from niche intelligence (no intermediate map state — the published summaries are the prerequisite evidence):
    ```
-   .venv/bin/python tools/channel_state.py advance channels/<channel_id> STRATEGY_SELECTION --next-action "<next action>" --actor "<user>" --reason "<reason>" --prerequisite-ref <path-to-opportunity-map-evidence> --human-decision-ref <the-real-reference>
+   python tools/channel_state.py advance channels/<channel_id> STRATEGY_SELECTION --next-action "<next action>" --actor "<user>" --reason "<reason>" --prerequisite-ref <path-to-opportunity-map-evidence> --human-decision-ref <the-real-reference>
    ```
-4. `.venv/bin/python tools/validate_channel.py channels/<channel_id>` as a final check.
+4. `python tools/validate_channel.py channels/<channel_id>` as a final check.
 
 ## Stage 4 — Channel Foundation
 
 1. Draft the conceptual identity layer with the user (audience, promise, personality, differentiation, emotional goal, boundaries, what the channel deliberately avoids). Hold it against the channel thesis from Stage 1 — if the foundation drifts from the thesis, say so and resolve the contradiction before writing:
    ```
-   .venv/bin/python tools/channel_foundation.py write channels/<channel_id> \
+   python tools/channel_foundation.py write channels/<channel_id> \
      --audience-description "..." --promise "..." --niche-primary "<niche>" \
      --personality <trait> [--personality <trait> ...] --balance <MOSTLY_EDUCATIONAL|BALANCED|MOSTLY_ENTERTAINMENT> \
      --differentiation "..." --emotional-goal "..." --content-boundary "..." \
      --primary-format SHORTS --avoids "..."
    ```
-2. Get the user's real sign-off, write the decision note first (same create-file-first rule as Stage 3), and attach it: `.venv/bin/python tools/channel_foundation.py attach-decision channels/<channel_id> --decision-ref <a-real-path>`. Verify with `.venv/bin/python tools/channel_foundation.py validate channels/<channel_id>`.
-3. `.venv/bin/python tools/channel_state.py advance channels/<channel_id> CHANNEL_FOUNDATION --next-action "..." --actor "<user>" --reason "..." --prerequisite-ref channels/<channel_id>/strategy/foundation.yaml`.
+2. Get the user's real sign-off, write the decision note first (same create-file-first rule as Stage 3), and attach it: `python tools/channel_foundation.py attach-decision channels/<channel_id> --decision-ref <a-real-path>`. Verify with `python tools/channel_foundation.py validate channels/<channel_id>`.
+3. `python tools/channel_state.py advance channels/<channel_id> CHANNEL_FOUNDATION --next-action "..." --actor "<user>" --reason "..." --prerequisite-ref channels/<channel_id>/strategy/foundation.yaml`.
 
 ## Stage 5 — Script DNA Discovery
 
-1. Draft candidate scripting identity: `.venv/bin/python tools/script_dna.py write channels/<channel_id> --hook-philosophy "..." --narrator-personality <trait> ... --sentence-length-qualitative "..." --technical-depth "..." --humor-level "..." --information-density "..." --question-usage "..." --number-usage "..." --story-structure "..." --ending-behavior "..." --cta-philosophy "..." --fact-verification-requirements "..."` (add `--preferred-cliche`/`--forbidden-cliche`/`--unresolved-variable` as needed).
+1. Draft candidate scripting identity: `python tools/script_dna.py write channels/<channel_id> --hook-philosophy "..." --narrator-personality <trait> ... --sentence-length-qualitative "..." --technical-depth "..." --humor-level "..." --information-density "..." --question-usage "..." --number-usage "..." --story-structure "..." --ending-behavior "..." --cta-philosophy "..." --fact-verification-requirements "..."` (add `--preferred-cliche`/`--forbidden-cliche`/`--unresolved-variable` as needed).
 2. Prove it with examples — at least one approved example is required before any freeze (collect rejected alternatives too; they record the voice's boundary): `tools/script_dna.py add-example channels/<channel_id> --text "..." --provenance-kind <human_authored|model_drafted|adapted_from_evidence> --created-by "<you>" --source-ref "..."`, then `tools/script_dna.py review-example channels/<channel_id> <example_id> --decision <approved|rejected|borderline> --reviewer "<user>" --reason "..."` (interactive confirm, or `--yes` if already confirmed with the user in chat).
-3. Audition the voice before freezing: synthesize the approved example (`tools/voiceover.py synthesize` with the channel's candidate voice), play it to the user, and get their listen-check sign-off — never freeze adjectives the user hasn't heard. Then freeze — decision note first, then: `.venv/bin/python tools/script_dna.py freeze channels/<channel_id> --decision-ref <a-real-path> --audition-example <example_id> --audition-timing <timing-json>` (interactive confirm, or `--yes`). Verify with `.venv/bin/python tools/script_dna.py validate channels/<channel_id>`. Then update the learning memory: `python tools/channel_style.py sync channels/<channel_id> --force` (refreshes `wiki/style/voice.md`; see `docs/OBSIDIAN_WIKI.md`).
-4. `.venv/bin/python tools/channel_state.py advance channels/<channel_id> SCRIPT_DNA_DISCOVERY --next-action "..." --actor "<user>" --reason "..." --prerequisite-ref channels/<channel_id>/script/script-dna.yaml`.
+3. Audition the voice before freezing: synthesize the approved example (`tools/voiceover.py synthesize` with the channel's candidate voice), play it to the user, and get their listen-check sign-off — never freeze adjectives the user hasn't heard. Then freeze — decision note first, then: `python tools/script_dna.py freeze channels/<channel_id> --decision-ref <a-real-path> --audition-example <example_id> --audition-timing <timing-json>` (interactive confirm, or `--yes`). Verify with `python tools/script_dna.py validate channels/<channel_id>`. Then update the learning memory: `python tools/channel_style.py sync channels/<channel_id> --force` (refreshes `wiki/style/voice.md`; see `docs/OBSIDIAN_WIKI.md`).
+4. `python tools/channel_state.py advance channels/<channel_id> SCRIPT_DNA_DISCOVERY --next-action "..." --actor "<user>" --reason "..." --prerequisite-ref channels/<channel_id>/script/script-dna.yaml`.
 
 ## Stage 6 — Visual + Motion DNA Discovery
 
 Visual DNA has five domains (`visual_identity`, `typography`, `color_language`, `composition_grammar`, `scene_aesthetics`); Motion DNA has one (`motion_identity`) — separate artifacts, per `docs/CHANNEL_DESIGN_DNA.md`. For each:
 
-1. `.venv/bin/python tools/design_dna.py <visual|motion> init channels/<channel_id>`.
+1. `python tools/design_dna.py <visual|motion> init channels/<channel_id>`.
 2. Discovery loop per domain: create/gather candidate reference images, register them (`tools/design_exemplars.py --channel <channel_id> add <image> --title "..." --domain <domain> --provenance-kind <...> --created-by "<you>" --source-ref "..."`), show the user, get their approve/reject/borderline call (`tools/design_exemplars.py --channel <channel_id> review <exemplar_id> --decision ... --reviewer "<user>" --reason "..."`, interactive confirm or `--yes` if already confirmed in chat), then `tools/design_dna.py <visual|motion> add-reference channels/<channel_id> --domain <domain> --exemplar-id <exemplar_id>` for approved ones. Narrow and repeat until the user is satisfied — do not invent a fixed number of rounds.
 3. Freeze each domain only when the user explicitly says so (a domain with no approved references cannot freeze) — decision note first, then: `tools/design_dna.py <visual|motion> freeze-domain channels/<channel_id> --domain <domain> --decision-ref <a-real-path>` (interactive confirm, or `--yes`). Re-freezing an already-frozen domain is refused unless you pass `--force` — treat that refusal as a signal you are repeating work, not as an error to route around. After each freeze: `python tools/channel_style.py sync channels/<channel_id> --force` (refreshes `wiki/style/visual.md` / `motion.md`).
 4. Prove the system holds together — individually attractive references can clash as a system, so this is an enforced artifact, not just a glance. Compose one frame showing the visual domains together and record it grounded in its approved exemplars, then get the user's approve/reject/borderline call (same confirm rules as exemplar reviews):
@@ -312,7 +312,7 @@ Only starts once Foundation, Script DNA, and Visual DNA are frozen — see
 `docs/CHANNEL_IDENTITY.md`. Two domains: `logo` (an image) and `description` (a
 short About-page bio, in the frozen Script DNA voice).
 
-1. `.venv/bin/python tools/channel_identity.py init channels/<channel_id>`.
+1. `python tools/channel_identity.py init channels/<channel_id>`.
 2. Discovery loop per domain: produce/gather candidates (a logo image, or a draft description string), register them (`tools/channel_identity.py add --channel <channel_id> --domain <logo|description> --title "..." [--image <path> | --text "..."] --provenance-kind <...> --created-by "<you>" --source-ref "..."`), show the user, get their approve/reject/borderline call (`tools/channel_identity.py review --channel <channel_id> <candidate_id> --decision ... --reviewer "<user>" --reason "..."`, interactive confirm or `--yes` if already confirmed in chat), then `tools/channel_identity.py add-reference channels/<channel_id> --domain <domain> --candidate-id <candidate_id>` for approved ones. Narrow and repeat until the user is satisfied — do not invent a fixed number of rounds. Attach exactly the selected candidate per domain (the deliverable, not the shortlist) and show the logo at actual avatar size.
 3. Freeze each domain only when the user explicitly says so (a domain with no references cannot freeze) — decision note first, then: `tools/channel_identity.py freeze-domain channels/<channel_id> --domain <domain> --decision-ref <a-real-path>` (interactive confirm, or `--yes`). Same `--force` rule as Stage 6 for re-freezes. Then `python tools/channel_style.py sync channels/<channel_id> --force`.
 4. `tools/channel_identity.py check-ready channels/<channel_id>` must report both domains frozen before advancing (`tools/channel_identity.py validate channels/<channel_id>` is the schema-level check). No advance yet — identity freezes, the Stage 8 library, and the pilot plan all happen inside `CHANNEL_IDENTITY`; the single exit edge is Stage 9's advance to `PILOT_PRODUCTION`.
@@ -321,44 +321,44 @@ short About-page bio, in the frozen Script DNA voice).
 
 Only create a component when a real, immediate need exists (never a speculative catalog):
 
-1. `.venv/bin/python tools/asset_registry.py register --scope CHANNEL --channel-id <channel_id> --category <primitive|object|character|diagram|mechanism|effect> --name "..." --description "..." --renderer <renderer> --source-kind tsx --source-path <renderer>/src/channels/<channel_id>/<Name>.tsx --export <ExportName> --justification "..."` after actually writing the component.
+1. `python tools/asset_registry.py register --scope CHANNEL --channel-id <channel_id> --category <primitive|object|character|diagram|mechanism|effect> --name "..." --description "..." --renderer <renderer> --source-kind tsx --source-path <renderer>/src/channels/<channel_id>/<Name>.tsx --export <ExportName> --justification "..."` after actually writing the component.
 2. Get the user's review against a rendered scene using the component — never approve source code the user hasn't seen working: `tools/asset_registry.py review <component_path> --decision <approved|rejected|deprecated> --reviewer "<user>" --reason "..."` (interactive confirm, or `--yes` if already confirmed in chat). The review binds the verdict to the source bytes. A rejection is terminal: the component leaves the queue for good.
 3. No workflow advance here — there is no library state. Once at least one component is approved (or the pilot honestly needs no reusable component — scene-local construction, `tools/pilot.py plan --no-reusable-components` — instead of registering a token part), carry the approval (or waiver evidence) as a prerequisite ref on the `CHANNEL_IDENTITY` → `PILOT_PRODUCTION` edge in Stage 9.
 
 ## Stage 9 — Pilot Plan, Production, Review
 
-1. `.venv/bin/python tools/pilot.py plan channels/<channel_id> <pilot-id> --topic "..." --target-duration-seconds <20-30> --integration-goal "Prove Script DNA" --integration-goal "Prove Visual DNA" ...` (no `PILOT_PLAN` state — plan while still in `CHANNEL_IDENTITY`), then advance into production with the pilot plan plus the Stage 8 component approval (or `--no-reusable-components` waiver evidence) as prerequisite refs:
+1. `python tools/pilot.py plan channels/<channel_id> <pilot-id> --topic "..." --target-duration-seconds <20-30> --integration-goal "Prove Script DNA" --integration-goal "Prove Visual DNA" ...` (no `PILOT_PLAN` state — plan while still in `CHANNEL_IDENTITY`), then advance into production with the pilot plan plus the Stage 8 component approval (or `--no-reusable-components` waiver evidence) as prerequisite refs:
    ```
-   .venv/bin/python tools/channel_state.py advance channels/<channel_id> PILOT_PRODUCTION --next-action "..." --actor "<user>" --reason "..." --prerequisite-ref <approved-component-path> --prerequisite-ref channels/<channel_id>/pilots/<pilot-id>/pilot.json
+   python tools/channel_state.py advance channels/<channel_id> PILOT_PRODUCTION --next-action "..." --actor "<user>" --reason "..." --prerequisite-ref <approved-component-path> --prerequisite-ref channels/<channel_id>/pilots/<pilot-id>/pilot.json
    ```
 2. Build the pilot with the channel's declared renderer — script, voiceover, timed visual beats, scene-local components, a deterministic render — per the contract in `docs/RENDER_CONTRACT.md`, using the evaluation contract tooling for evidence. Voice first, because everything visual keys off it:
    1. Write the final script to a file (e.g. `channels/<channel_id>/pilots/<pilot-id>/script.md`) and fact-check it against the Script DNA requirements.
    2. Synthesize the narration — one voice per channel, picked now and reused forever after:
       ```
-      .venv/bin/python tools/voiceover.py synthesize --script-path channels/<channel_id>/pilots/<pilot-id>/script.md --voice lessac-medium \
+      python tools/voiceover.py synthesize --script-path channels/<channel_id>/pilots/<pilot-id>/script.md --voice lessac-medium \
         --output-audio channels/<channel_id>/pilots/<pilot-id>/voiceover.wav \
         --output-timing channels/<channel_id>/pilots/<pilot-id>/voiceover-timing.json
       ```
       The first run downloads the voice model (~60MB) into `data/local/piper-voices/`; synthesis itself is fully offline.
    3. Play it back to the user (or report duration + sentence/word counts) and get their sign-off on the read. If they want line changes, edit the script and re-synthesize — never hand-edit the timing JSON.
-   4. `.venv/bin/python tools/voiceover.py validate channels/<channel_id>/pilots/<pilot-id>/voiceover-timing.json --target-duration-seconds <20-30>` must pass — this proves the narration fits the format before any scene is built.
-   5. Derive timed visual beats from the timing JSON's sentence spans, build scenes, and package evidence: `.venv/bin/python tools/build_scene_candidate.py --scene-id ... --generator-agent ... --model ... --prompt-version ... --input audio=channels/<channel_id>/pilots/<pilot-id>/voiceover.wav --input narration_timing=channels/<channel_id>/pilots/<pilot-id>/voiceover-timing.json ... --output <manifest-path>`, then `.venv/bin/python tools/evaluate_scene.py ...` per its `--help`.
+   4. `python tools/voiceover.py validate channels/<channel_id>/pilots/<pilot-id>/voiceover-timing.json --target-duration-seconds <20-30>` must pass — this proves the narration fits the format before any scene is built.
+   5. Derive timed visual beats from the timing JSON's sentence spans, build scenes, and package evidence: `python tools/build_scene_candidate.py --scene-id ... --generator-agent ... --model ... --prompt-version ... --input audio=channels/<channel_id>/pilots/<pilot-id>/voiceover.wav --input narration_timing=channels/<channel_id>/pilots/<pilot-id>/voiceover-timing.json ... --output <manifest-path>`, then `python tools/evaluate_scene.py ...` per its `--help`.
    6. Attach everything as it's produced (repeat `record-production` as new evidence lands — it dedups by artifact id):
       ```
-      .venv/bin/python tools/pilot.py record-production channels/<channel_id> <pilot-id> --script-ref channels/<channel_id>/pilots/<pilot-id>/script.md --voiceover-ref channels/<channel_id>/pilots/<pilot-id>/voiceover.wav --scene-candidate-manifest <path> --evaluation-result <path> --render-ref ...
+      python tools/pilot.py record-production channels/<channel_id> <pilot-id> --script-ref channels/<channel_id>/pilots/<pilot-id>/script.md --voiceover-ref channels/<channel_id>/pilots/<pilot-id>/voiceover.wav --scene-candidate-manifest <path> --evaluation-result <path> --render-ref ...
       ```
-   7. `.venv/bin/python tools/pilot.py validate channels/<channel_id> <pilot-id>` as a final evidence check.
-3. `.venv/bin/python tools/channel_state.py advance channels/<channel_id> PILOT_REVIEW --next-action "..." --actor "<user>" --reason "..." --prerequisite-ref channels/<channel_id>/pilots/<pilot-id>/pilot.json`.
+   7. `python tools/pilot.py validate channels/<channel_id> <pilot-id>` as a final evidence check.
+3. `python tools/channel_state.py advance channels/<channel_id> PILOT_REVIEW --next-action "..." --actor "<user>" --reason "..." --prerequisite-ref channels/<channel_id>/pilots/<pilot-id>/pilot.json`.
 4. Get the user's real GO/REVISE/ABANDON_DIRECTION decision — never fabricate it. Write the decision record first (same create-file-first rule as Stage 3): read the production rev from `channels/<channel_id>/pilots/<pilot-id>/pilot.json` (`production.revision`), then `tools/decision_record.py write channels/<channel_id>/pilots/<pilot-id>/review-<decision-lower>.md --kind review --title "<title>" --summary "<rationale>" --decision <GO|REVISE|ABANDON_DIRECTION> --rev <production-rev> --author "<user>" — the record binds the verdict to the exact production bytes it approves, then:
    ```
-   .venv/bin/python tools/pilot.py record-review channels/<channel_id> <pilot-id> --decision GO --decided-by "<user>" --decision-ref <a-real-path> --rationale "..." --yes
+   python tools/pilot.py record-review channels/<channel_id> <pilot-id> --decision GO --decided-by "<user>" --decision-ref <a-real-path> --rationale "..." --yes
    ```
    (`--yes` is required non-interactively; without it the CLI stops and asks. Re-recording a review archives the previous decision into the review history — check the current one first.)
    REVISE requires `--revise-target <STATE>` where `<STATE>` is one of the fixed re-entry states (`STRATEGY_SELECTION`, `CHANNEL_FOUNDATION`, `SCRIPT_DNA_DISCOVERY`, `DESIGN_DNA_DISCOVERY`, `CHANNEL_IDENTITY`, `PILOT_PRODUCTION` — niche-intelligence states and `PILOT_REVIEW` itself are not valid targets) and routes via `tools/channel_state.py revise channels/<channel_id> <STATE> --actor "<user>" --decision-ref <same-ref> --next-action "..." --reason "..." --yes`. A revise truncates `completed` at the target and sets status `REVISING`: re-walk forward with fresh `advance` calls (each needing its own prerequisite refs) until `PILOT_REVIEW`, then record the new review. Frozen DNA/identity artifacts are not auto-unfrozen — only the state pointer moves. The revise event records `invalidated_artifact_families` naming what must be re-approved on the way forward — check it with `channel_state.py show` before re-walking.
    ABANDON_DIRECTION routes via `tools/channel_state.py abandon channels/<channel_id> --actor "<user>" --decision-ref <same-ref> --reason "..." --yes`, and is terminal — there is no un-abandon.
 5. On GO, freeze first (explicit confirmation), then cross the workflow's second human gate — there is no `CHANNEL_FREEZE` state:
    ```
-   .venv/bin/python tools/pilot.py freeze channels/<channel_id> <pilot-id> --new-channel-version <next-version> --frozen-by "<user>" --yes
+   python tools/pilot.py freeze channels/<channel_id> <pilot-id> --new-channel-version <next-version> --frozen-by "<user>" --yes
    ```
    (then Stage 10 writes the readiness report and advances straight to `CHANNEL_READY`, gated on the same decision reference.)
     Retrying a freeze at the same version with unchanged content completes
@@ -372,9 +372,9 @@ Only create a component when a real, immediate need exists (never a speculative 
 
 ## Stage 10 — Readiness and Channel Ready
 
-1. `.venv/bin/python tools/channel_readiness.py channels/<channel_id> --write`. If any item fails, it tells you exactly which and why — address that before retrying. This never writes `readiness-report.json` unless every item genuinely passes (the GO + freeze evidence is verified here, before the gate — requiring the gate first would be circular since the report is the gate's prerequisite).
-2. `.venv/bin/python tools/channel_state.py advance channels/<channel_id> CHANNEL_READY --next-action "Channel is ready." --actor "<user>" --reason "..." --prerequisite-ref channels/<channel_id>/readiness-report.json --human-decision-ref <the-same-GO-reference>`.
-3. `.venv/bin/python tools/validate_channel.py channels/<channel_id>` — final check: `state` should be `CHANNEL_READY`, `status` should be `COMPLETE`.
+1. `python tools/channel_readiness.py channels/<channel_id> --write`. If any item fails, it tells you exactly which and why — address that before retrying. This never writes `readiness-report.json` unless every item genuinely passes (the GO + freeze evidence is verified here, before the gate — requiring the gate first would be circular since the report is the gate's prerequisite).
+2. `python tools/channel_state.py advance channels/<channel_id> CHANNEL_READY --next-action "Channel is ready." --actor "<user>" --reason "..." --prerequisite-ref channels/<channel_id>/readiness-report.json --human-decision-ref <the-same-GO-reference>`.
+3. `python tools/validate_channel.py channels/<channel_id>` — final check: `state` should be `CHANNEL_READY`, `status` should be `COMPLETE`.
 
 ## Ongoing — Episode Production
 
@@ -389,17 +389,17 @@ in Stage 9, and a genuine identity/DNA change later gets its own separate, delib
    niche intelligence (`channels/<channel_id>/intelligence/studies/<study-id>/opportunities/`) via
    `--opportunity-ref <opportunity-artifact-id>`. Omit `--opportunity-ref` entirely for an
    ungrounded topic (it defaults to null — do not pass an empty value).
-2. `.venv/bin/python tools/episode.py plan channels/<channel_id> <episode-id> --topic "..." --target-duration-seconds <20-30> [--opportunity-ref <id>]`.
+2. `python tools/episode.py plan channels/<channel_id> <episode-id> --topic "..." --target-duration-seconds <20-30> [--opportunity-ref <id>]`.
 3. Build it for real — same voice-first procedure as Stage 9 step 2 (script file, `tools/voiceover.py synthesize` with the channel's established voice, user listen-check, `voiceover.py validate` against the target duration), then timed visual beats, scene-local components, a
    deterministic render — per `docs/RENDER_CONTRACT.md`, using the same evaluation contract
    tooling as Stage 9 (`tools/build_scene_candidate.py`, `tools/evaluate_scene.py`) for evidence.
-   Attach it as it's produced: `.venv/bin/python tools/episode.py record-production channels/<channel_id> <episode-id> --script-ref ... --voiceover-ref ... --scene-candidate-manifest <path> --evaluation-result <path> --render-ref ...`.
+   Attach it as it's produced: `python tools/episode.py record-production channels/<channel_id> <episode-id> --script-ref ... --voiceover-ref ... --scene-candidate-manifest <path> --evaluation-result <path> --render-ref ...`.
 4. Get the user's real GO/REVISE/ABANDON call — decision note first, then (never fabricate it):
    ```
-   .venv/bin/python tools/episode.py record-review channels/<channel_id> <episode-id> --decision GO --decided-by "<user>" --decision-ref <a-real-path> --rationale "..." --yes
+   python tools/episode.py record-review channels/<channel_id> <episode-id> --decision GO --decided-by "<user>" --decision-ref <a-real-path> --rationale "..." --yes
    ```
     REVISE means rework this episode's production and record review again once it's ready (re-recording archives the previous decision into history);
-    ABANDON means this episode doesn't get made — neither routes through `channel_state.py`. Verify with `.venv/bin/python tools/episode.py validate channels/<channel_id> <episode-id>`.
+    ABANDON means this episode doesn't get made — neither routes through `channel_state.py`. Verify with `python tools/episode.py validate channels/<channel_id> <episode-id>`.
     After the review, write what the episode taught the style as a `lessons/` (or `failures/`) wiki note, then `python tools/channel_style.py sync channels/<channel_id> --force` so the Obsidian style snapshot learns it (see `docs/OBSIDIAN_WIKI.md`).
 5. Repeat from step 1 for the next episode. Publishing the finished render to YouTube is outside
    this skill's scope — the human does that.
