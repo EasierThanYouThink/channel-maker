@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import hashlib
 import json
 import tempfile
 import wave
@@ -10,6 +11,7 @@ from pathlib import Path
 import pytest
 
 from engine.voiceover import (
+    VOICES,
     VoiceoverValidationError,
     align_words,
     ensure_voice_model,
@@ -28,6 +30,43 @@ def test_split_sentences_basic() -> None:
 def test_split_sentences_rejects_empty() -> None:
     with pytest.raises(VoiceoverValidationError, match="no synthesizable sentences"):
         split_sentences("   ")
+
+
+def test_ensure_voice_model_replaces_same_size_corrupt_cache(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path,
+) -> None:
+    model_bytes = b"good"
+    config_bytes = b'{"audio": {}}'
+    monkeypatch.setitem(
+        VOICES,
+        "test-voice",
+        {
+            "model_file": "test.onnx",
+            "model_url": "https://example.invalid/test.onnx",
+            "model_bytes": len(model_bytes),
+            "model_sha256": hashlib.sha256(model_bytes).hexdigest(),
+            "config_url": "https://example.invalid/test.onnx.json",
+            "config_sha256": hashlib.sha256(config_bytes).hexdigest(),
+            "sample_rate_hz": 22050,
+        },
+    )
+    model_path = tmp_path / "test.onnx"
+    model_path.write_bytes(b"evil")
+    downloads: list[Path] = []
+
+    def download(url: str, target: str | Path):
+        path = Path(target)
+        downloads.append(path)
+        path.write_bytes(config_bytes if url.endswith(".json") else model_bytes)
+        return str(path), None
+
+    monkeypatch.setattr("urllib.request.urlretrieve", download)
+
+    model, config = ensure_voice_model("test-voice", tmp_path)
+
+    assert model.read_bytes() == model_bytes
+    assert config.read_bytes() == config_bytes
+    assert downloads
 
 
 def test_align_words_measured_from_phoneme_stream() -> None:

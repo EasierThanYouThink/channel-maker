@@ -29,9 +29,10 @@ VOICES: dict[str, dict[str, Any]] = {
         "language": "en_US",
         "description": "US English, calm — the default channel narrator.",
         "model_file": "en_US-lessac-medium.onnx",
-        "model_url": "https://huggingface.co/rhasspy/piper-voices/resolve/main/en/en_US/lessac/medium/en_US-lessac-medium.onnx",
-        "model_bytes": 63201294,
-        "config_url": "https://huggingface.co/rhasspy/piper-voices/resolve/main/en/en_US/lessac/medium/en_US-lessac-medium.onnx.json",
+        "model_url": "https://huggingface.co/rhasspy/piper-voices/resolve/1162a9173d0ce503555aed757976b7a9912eae4c/en/en_US/lessac/medium/en_US-lessac-medium.onnx",
+        "model_sha256": "5efe09e69902187827af646e1a6e9d269dee769f9877d17b16b1b46eeaaf019f",
+        "config_url": "https://huggingface.co/rhasspy/piper-voices/resolve/1162a9173d0ce503555aed757976b7a9912eae4c/en/en_US/lessac/medium/en_US-lessac-medium.onnx.json",
+        "config_sha256": "efe19c417bed055f2d69908248c6ba650fa135bc868b0e6abb3da181dab690a0",
         "sample_rate_hz": 22050,
     },
 }
@@ -42,6 +43,14 @@ _SENTENCE_SPLIT = re.compile(r"(?<=[.!?])\s+")
 # grouping phonemes into words. Content tokens (including ' ' word breaks
 # and attached punctuation like '.') are kept verbatim.
 _BOUNDARY_MARKERS = {"^", "$", "<", ">", "_", "#", "|", "‖", "sil"}
+
+
+def _file_sha256(path: Path) -> str:
+    digest = hashlib.sha256()
+    with path.open("rb") as handle:
+        for chunk in iter(lambda: handle.read(1024 * 1024), b""):
+            digest.update(chunk)
+    return digest.hexdigest()
 
 
 def split_sentences(text: str) -> list[str]:
@@ -62,12 +71,12 @@ def ensure_voice_model(voice_name: str, cache_dir: Path) -> tuple[Path, Path]:
     cache_dir.mkdir(parents=True, exist_ok=True)
     model_path = cache_dir / spec["model_file"]
     config_path = cache_dir / (spec["model_file"] + ".json")
-    for path, url, expected in (
-        (model_path, spec["model_url"], spec["model_bytes"]),
-        (config_path, spec["config_url"], None),
+    for path, url, expected_sha256 in (
+        (model_path, spec["model_url"], spec["model_sha256"]),
+        (config_path, spec["config_url"], spec["config_sha256"]),
     ):
         if path.is_file():
-            if expected is not None and path.stat().st_size != expected:
+            if _file_sha256(path) != expected_sha256:
                 path.unlink()
             else:
                 continue
@@ -79,11 +88,10 @@ def ensure_voice_model(voice_name: str, cache_dir: Path) -> tuple[Path, Path]:
             raise VoiceoverValidationError(
                 f"could not download voice {voice_name!r} from {url}: {exc}"
             ) from exc
-        if expected is not None and path.stat().st_size != expected:
+        if _file_sha256(path) != expected_sha256:
             path.unlink()
             raise VoiceoverValidationError(
-                f"downloaded voice {voice_name!r} has unexpected size "
-                f"(got {path.stat().st_size if path.exists() else 0}, want {expected})"
+                f"downloaded voice {voice_name!r} failed SHA-256 verification for {path.name}"
             )
     return model_path, config_path
 
