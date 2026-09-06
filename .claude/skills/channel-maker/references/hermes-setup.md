@@ -70,6 +70,18 @@ ollama pull ornith-1.5:9b
 ```
 
 This exposes an OpenAI-compatible endpoint at `http://localhost:11434/v1`.
+Ollama automatically uses a supported GPU when one is available. Preload
+Ornith and inspect the actual placement rather than assuming it from hardware:
+
+```bash
+python tools/ollama_gpu.py --json
+```
+
+`full_gpu` is fastest; `hybrid` still uses the GPU but usually indicates VRAM
+pressure; `cpu_only` remains functional. Use `--require-gpu` only when GPU
+acceleration is a hard requirement for that run. On a supported GPU, close
+other GPU-heavy applications, run `ollama stop ornith-1.5:9b`, and retry before
+troubleshooting drivers. See https://docs.ollama.com/gpu.
 
 ## 4. Point Hermes at the local model
 

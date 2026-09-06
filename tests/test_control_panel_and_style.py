@@ -121,6 +121,7 @@ def test_setup_check_only_json() -> None:
     assert report["services"]["hermes"]["available"] in (True, False)
     assert "ollama" in report["services"] and "piper_tts" in report["services"]
     assert "venv_present" in report and "project_python" in report
+    assert report["ornith_gpu_check"] == "python tools/ollama_gpu.py --json"
 
 
 def test_dashboard_overview_page(tmp_path: Path) -> None:

@@ -43,7 +43,11 @@ Full checklist: [references/hermes-setup.md](references/hermes-setup.md). Summar
    surface before running any task command. Do not guess flags.
 3. Ollama MISS: tell the user to install it from ollama.com. Ollama OK but
    `ornith-1.5` absent from `ollama list` (grep/`Select-String` per OS):
-   confirm with the user, then `ollama pull ornith-1.5:9b` (~6.6GB).
+   confirm with the user, then `ollama pull ornith-1.5:9b` (~6.6GB). Once
+   installed, run `python tools/ollama_gpu.py --json` to preload it and report
+   its real processor split. A GPU is optional, but never claim acceleration
+   from hardware presence alone; use this result. If it is hybrid or CPU-only,
+   explain the VRAM/driver guidance without blocking CPU-capable users.
 4. Configure `~/.hermes/config.yaml` (`%USERPROFILE%\.hermes\config.yaml` on
    Windows) so Hermes uses the local model, using whatever syntax step 2
    discovered (a `providers.custom` block pointing `base_url` at

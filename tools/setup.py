@@ -64,6 +64,7 @@ def main() -> int:
             "venv_python": str(_venv_python(venv)),
             "project_python": project_python(ROOT),
             "services": service_status(),
+            "ornith_gpu_check": "python tools/ollama_gpu.py --json",
             "docs": "docs/SETUP.md for per-OS install steps for MISS services",
         }
         if args.json:
@@ -76,6 +77,7 @@ def main() -> int:
             for name, info in report["services"].items():
                 mark = "OK " if info["available"] else "MISS"
                 print(f"[{mark}] {name}: {info['detail']}")
+            print(f"ornith processor check: {report['ornith_gpu_check']}")
             print("\nSee docs/SETUP.md for per-OS install steps for MISS services.")
         return 0
 
@@ -100,6 +102,7 @@ def main() -> int:
     else:
         print("  source .venv/bin/activate     # activate (bash/zsh)")
     print("  python tools/check.py           # verify (works on all OSes)")
+    print("  python tools/ollama_gpu.py       # preload Ornith + report CPU/GPU split")
     print("  See docs/SETUP.md for Hermes + Ollama per-OS steps.")
     return 0
 

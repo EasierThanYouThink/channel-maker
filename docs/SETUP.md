@@ -61,6 +61,26 @@ python tools/check.py
 | Node/npm | only for `remotion` renderers | nodejs.org LTS |
 | Piper voice | `tools/voiceover.py` downloads `lessac-medium` (~60MB) into `data/local/piper-voices/` on first synthesize | automatic, offline after |
 
+## Ornith GPU acceleration (optional, recommended)
+
+Ollama selects a supported NVIDIA, AMD, or Apple GPU automatically; Channel
+Maker does not maintain a separate CPU and GPU model. CPU execution remains a
+supported fallback, but research is substantially faster with GPU offload.
+
+After pulling Ornith, preload it and report the actual processor split:
+
+```
+python tools/ollama_gpu.py
+```
+
+The command reports `full_gpu`, `hybrid`, or `cpu_only` and supports `--json`
+for agents. Use `--require-gpu` when any GPU acceleration is required, or
+`--require-full-gpu` when the whole model must fit in VRAM. If a supported GPU
+produces a hybrid or CPU-only result, close other GPU-heavy applications, run
+`ollama stop ornith-1.5:9b`, and preload again. `ollama ps` is the underlying
+Ollama status view. See [Ollama hardware support](https://docs.ollama.com/gpu)
+and [Ollama's processor-status explanation](https://docs.ollama.com/faq#how-can-i-tell-if-my-model-was-loaded-onto-the-gpu).
+
 Hermes config (`~/.hermes/config.yaml`, `%USERPROFILE%\.hermes\config.yaml` on
 Windows) — confirm against `hermes config --help` first:
 

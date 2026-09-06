@@ -55,7 +55,9 @@ session resumes exactly where you stopped.
 
 > **What you'll need:** 30–60 minutes on a first run (mostly the ~6.6GB local
 > research-model download), ~7GB of disk, everything on your own machine — no
-> API keys, no GPU, no cloud bill. Details per OS: [`docs/SETUP.md`](docs/SETUP.md).
+> API keys or cloud bill. A GPU is optional, but strongly recommended for faster
+> Ornith research; Ollama uses supported GPUs automatically. Details per OS:
+> [`docs/SETUP.md`](docs/SETUP.md).
 
 ### Claude Code
 
@@ -165,7 +167,7 @@ home — research and voice run on your machine or through your own setups.
 | Tool | What it's used for here | Required? |
 |---|---|---|
 | [Hermes Agent](https://hermes-agent.nousresearch.com) | Public niche/market research: pulls competitor channel/video stats, opens breakout videos (screenshots included) for what-works teardowns. Raw numbers are shown to you before anything is imported. | Yes, for Stage 2 |
-| Ollama + `ornith-1.5:9b` | Local model behind Hermes (~6.6GB one-time pull). Hermes points at it instead of any cloud API. | Yes, for Stage 2 |
+| Ollama + `ornith-1.5:9b` | Local model behind Hermes (~6.6GB one-time pull). Ollama automatically uses a supported NVIDIA, AMD, or Apple GPU when available; CPU remains supported. | Yes, for Stage 2 |
 | Piper TTS (`lessac-medium`) | Channel voice: fully offline narration synthesis plus measured timing evidence every visual beat keys off. Model (~60MB) auto-downloads on first use. One voice per channel, picked once and enforced. | Yes, for pilot/episodes |
 | Remotion (or any renderer) | Turns timed beats and components into the actual video file. Any pipeline works as long as it satisfies the evidence contract — Remotion is one valid choice, not a dependency. | Yes, for pilot/episodes |
 | Obsidian | Human-readable learning memory: each channel folder *is* a vault (graph view works out of the box), and the style snapshot visibly accumulates lessons after every freeze and episode. | Optional, recommended |
@@ -230,8 +232,21 @@ suite.
 ## FAQ
 
 **Do I need a GPU?**
-No. TTS, research models, and all tooling run on CPU. Rendering speed
-depends on whatever renderer your channel declares.
+No, but you will want one for speed. Ornith can run on CPU, while Ollama
+automatically offloads it to a supported NVIDIA, AMD, or Apple GPU when enough
+VRAM is available. After installing the model, preload it and inspect the real
+processor split:
+
+```
+python tools/ollama_gpu.py
+```
+
+Use `--require-gpu` to fail when Ollama falls back entirely to CPU, or
+`--require-full-gpu` to require a complete GPU load. A hybrid result usually
+means another application is consuming VRAM; close it, run
+`ollama stop ornith-1.5:9b`, and retry. See [Ollama's hardware support](https://docs.ollama.com/gpu).
+Piper TTS and the rest of the Python tooling continue to work on CPU. Rendering
+speed depends on whatever renderer your channel declares.
 
 **What does it cost?**
 Time, disk (~7GB for the local research model), and decisions. No API keys,

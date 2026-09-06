@@ -1,5 +1,14 @@
 # Changelog
 
+## Unreleased
+
+- Added a cross-platform Ornith preloader and CPU/GPU placement diagnostic with
+  human-readable and JSON output plus optional GPU/full-GPU requirements.
+- Corrected setup guidance: a GPU is optional, but Ollama automatically uses a
+  supported accelerator and GPU offload is strongly recommended for research speed.
+- Replaced personal author identity in public-facing history and licensing with
+  the `EasierThanYouThink` project identity and contact address.
+
 ## v0.2.2 — pre-public security and privacy hardening
 
 Backward-compatible for documented CLIs and channel packages. The dashboard's
