@@ -56,7 +56,7 @@ session resumes exactly where you stopped.
 > **What you'll need:** 30–60 minutes on a first run (mostly the ~6.6GB local
 > research-model download), ~7GB of disk, everything on your own machine — no
 > API keys or cloud bill. A GPU is optional, but strongly recommended for faster
-> Ornith research; Ollama uses supported GPUs automatically. Details per OS:
+> Ornith research; Claude asks you to choose GPU or CPU during setup. Details per OS:
 > [`docs/SETUP.md`](docs/SETUP.md).
 
 ### Claude Code
@@ -233,18 +233,20 @@ suite.
 
 **Do I need a GPU?**
 No, but you will want one for speed. Ornith can run on CPU, while Ollama
-automatically offloads it to a supported NVIDIA, AMD, or Apple GPU when enough
-VRAM is available. After installing the model, preload it and inspect the real
-processor split:
+can offload it to a supported NVIDIA, AMD, or Apple GPU. Claude asks you to
+choose GPU (recommended) or CPU before it configures Hermes. For the 9B model
+at the default 4096-token context, plan on at least 8 GB of **free** accelerator
+memory; larger contexts and concurrent models need more.
 
 ```
-python tools/ollama_gpu.py
+python tools/ollama_gpu.py --processor gpu --require-full-gpu  # recommended
+python tools/ollama_gpu.py --processor cpu                     # slower fallback
 ```
 
-Use `--require-gpu` to fail when Ollama falls back entirely to CPU, or
-`--require-full-gpu` to require a complete GPU load. A hybrid result usually
-means another application is consuming VRAM; close it, run
-`ollama stop ornith-1.5:9b`, and retry. See [Ollama's hardware support](https://docs.ollama.com/gpu).
+A hybrid result usually means another application is consuming accelerator
+memory. Choose whether to close it, run `ollama stop ornith-1.5:9b`, and retry,
+or explicitly accept the slower fallback. See
+[Ollama's hardware support](https://docs.ollama.com/gpu).
 Piper TTS and the rest of the Python tooling continue to work on CPU. Rendering
 speed depends on whatever renderer your channel declares.
 

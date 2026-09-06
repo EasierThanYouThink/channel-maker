@@ -44,16 +44,27 @@ Full checklist: [references/hermes-setup.md](references/hermes-setup.md). Summar
 3. Ollama MISS: tell the user to install it from ollama.com. Ollama OK but
    `ornith-1.5` absent from `ollama list` (grep/`Select-String` per OS):
    confirm with the user, then `ollama pull ornith-1.5:9b` (~6.6GB). Once
-   installed, run `python tools/ollama_gpu.py --json` to preload it and report
-   its real processor split. A GPU is optional, but never claim acceleration
-   from hardware presence alone; use this result. If it is hybrid or CPU-only,
-   explain the VRAM/driver guidance without blocking CPU-capable users.
+   installed, **Ask the user to choose the Ornith processor** before configuring
+   Hermes:
+   - **GPU (recommended):** substantially faster. Recommend at least 8 GB of free
+     accelerator memory at the default 4096-token context (VRAM on a discrete
+     GPU; available unified memory on Apple Silicon). Larger contexts and
+     concurrent models need more. Run
+     `python tools/ollama_gpu.py --processor gpu --require-full-gpu --json`.
+   - **CPU:** slower, but supported and requires no VRAM. Run
+     `python tools/ollama_gpu.py --processor cpu --json`.
+   Never infer the choice or claim acceleration from hardware presence alone;
+   use the diagnostic result. If GPU was chosen but the result is `hybrid` or
+   `cpu_only`, ask whether to free accelerator memory and retry (stop the model
+   first with `ollama stop ornith-1.5:9b`) or explicitly accept hybrid/CPU
+   fallback. Do not silently change the user's choice.
 4. Configure `~/.hermes/config.yaml` (`%USERPROFILE%\.hermes\config.yaml` on
    Windows) so Hermes uses the local model, using whatever syntax step 2
    discovered (a `providers.custom` block pointing `base_url` at
    `http://localhost:11434/v1` with `model: "custom/ornith-1.5:9b"` is the
    expected shape, but confirm against the real CLI/config help rather than
-   assuming).
+   assuming). Preserve the processor choice in that provider's request body:
+   `extra_body.options.num_gpu: -1` for GPU or `0` for CPU.
 5. Interactively install whatever Hermes skills cover web search, YouTube data, and screenshots — confirm each prompt with the user rather than silently accepting defaults.
 6. **Go/no-go smoke test:** have Hermes fetch one public YouTube channel page and confirm it returns something sensible. If Hermes has no clean one-shot "run task, get structured output" mode, tell the user and fall back to collecting directly via WebFetch/WebSearch in Stage 2, using Hermes only for whatever it's confirmed to do well.
 

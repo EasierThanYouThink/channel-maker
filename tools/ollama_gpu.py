@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
-"""Preload Ornith in Ollama and report its real CPU/GPU placement.
+"""Preload Ornith in Ollama and report its requested and real placement.
 
-Ollama chooses the accelerator automatically. This tool makes that choice
-observable and gives agents a machine-readable way to require GPU placement.
+Automatic placement remains the default. Callers can instead request maximum
+GPU offload or CPU-only execution, then verify what Ollama actually loaded.
 """
 
 from __future__ import annotations
@@ -56,11 +56,28 @@ def _request_json(
     return result
 
 
-def preload_model(model: str, keep_alive: str, api_base: str, timeout: float) -> None:
+def preload_model(
+    model: str,
+    keep_alive: str,
+    api_base: str,
+    timeout: float,
+    processor: str = "auto",
+) -> None:
     """Ask Ollama to load a model without generating output."""
+    payload: dict[str, Any] = {
+        "model": model,
+        "stream": False,
+        "keep_alive": keep_alive,
+    }
+    if processor == "gpu":
+        payload["options"] = {"num_gpu": -1}
+    elif processor == "cpu":
+        payload["options"] = {"num_gpu": 0}
+    elif processor != "auto":
+        raise ValueError(f"Unknown processor preference: {processor}")
     _request_json(
         f"{api_base.rstrip('/')}/generate",
-        payload={"model": model, "stream": False, "keep_alive": keep_alive},
+        payload=payload,
         timeout=timeout,
     )
 
@@ -162,6 +179,12 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--keep-alive", default="5m", help="How long Ollama should retain the preloaded model")
     parser.add_argument("--timeout", type=float, default=300.0)
     parser.add_argument("--status-only", action="store_true", help="Do not preload; inspect models already in memory")
+    parser.add_argument(
+        "--processor",
+        choices=("auto", "gpu", "cpu"),
+        default="auto",
+        help="Requested placement: automatic, maximum GPU offload, or CPU only",
+    )
     parser.add_argument("--require-gpu", action="store_true", help="Exit 1 unless at least part of the model is on GPU")
     parser.add_argument("--require-full-gpu", action="store_true", help="Exit 1 unless the model is fully on GPU")
     parser.add_argument("--json", action="store_true")
@@ -170,10 +193,16 @@ def main(argv: list[str] | None = None) -> int:
     api_base = (args.api_base or native_api_base()).rstrip("/")
     try:
         if not args.status_only:
-            preload_model(args.model, args.keep_alive, api_base, args.timeout)
+            preload_model(args.model, args.keep_alive, api_base, args.timeout, args.processor)
         report = classify_model(args.model, running_models(api_base, args.timeout))
+        report["requested_processor"] = args.processor
     except OllamaError as exc:
-        report = {"model": args.model, "status": "error", "error": str(exc)}
+        report = {
+            "model": args.model,
+            "requested_processor": args.processor,
+            "status": "error",
+            "error": str(exc),
+        }
         print(json.dumps(report, indent=2, sort_keys=True) if args.json else "", end="")
         if not args.json:
             _print_human(report)
@@ -187,6 +216,10 @@ def main(argv: list[str] | None = None) -> int:
         _print_human(report)
 
     if not report["loaded"]:
+        return 1
+    if args.processor == "gpu" and not report["gpu_accelerated"]:
+        return 1
+    if args.processor == "cpu" and report["gpu_accelerated"]:
         return 1
     if args.require_full_gpu and not report["fully_on_gpu"]:
         return 1

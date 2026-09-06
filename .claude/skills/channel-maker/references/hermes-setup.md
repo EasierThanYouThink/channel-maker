@@ -70,18 +70,28 @@ ollama pull ornith-1.5:9b
 ```
 
 This exposes an OpenAI-compatible endpoint at `http://localhost:11434/v1`.
-Ollama automatically uses a supported GPU when one is available. Preload
-Ornith and inspect the actual placement rather than assuming it from hardware:
+Ask the user to choose before configuring Hermes:
+
+- **GPU (recommended):** substantially faster. Recommend at least 8 GB of free
+  accelerator memory for this 9B model at the default 4096-token context.
+  Larger contexts and concurrent models need more.
+- **CPU:** slower, but supported and requires no VRAM.
+
+Preload Ornith with the chosen placement and inspect the result rather than
+assuming it from installed hardware:
 
 ```bash
-python tools/ollama_gpu.py --json
+python tools/ollama_gpu.py --processor gpu --require-full-gpu --json  # GPU
+python tools/ollama_gpu.py --processor cpu --json                     # CPU
 ```
 
-`full_gpu` is fastest; `hybrid` still uses the GPU but usually indicates VRAM
-pressure; `cpu_only` remains functional. Use `--require-gpu` only when GPU
-acceleration is a hard requirement for that run. On a supported GPU, close
-other GPU-heavy applications, run `ollama stop ornith-1.5:9b`, and retry before
-troubleshooting drivers. See https://docs.ollama.com/gpu.
+For a discrete GPU, “free accelerator memory” means free VRAM; on Apple Silicon
+it means available unified memory. `full_gpu` is fastest; `hybrid` still uses
+the GPU but usually indicates memory pressure; `cpu_only` remains functional.
+If GPU was chosen and full offload fails, ask whether the user wants to close
+other GPU-heavy applications, run `ollama stop ornith-1.5:9b`, and retry, or
+explicitly accept hybrid/CPU fallback. Never silently change their choice. See
+https://docs.ollama.com/gpu.
 
 ## 4. Point Hermes at the local model
 
@@ -94,8 +104,15 @@ providers:
     type: openai
     base_url: http://localhost:11434/v1
     api_key: "${OPENAI_API_KEY}"
+    extra_body:
+      options:
+        num_gpu: -1  # GPU choice; use 0 for CPU
 model: "custom/ornith-1.5:9b"
 ```
+
+Confirm `extra_body` against the installed Hermes version before editing. The
+selected value must match the user's answer: `-1` asks Ollama for maximum GPU
+offload; `0` forces CPU placement.
 
 A dummy value in `OPENAI_API_KEY` is fine — a local Ollama endpoint typically
 does not enforce it, but Hermes may still require the variable to be set.

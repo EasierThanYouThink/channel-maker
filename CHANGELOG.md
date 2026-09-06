@@ -4,8 +4,12 @@
 
 - Added a cross-platform Ornith preloader and CPU/GPU placement diagnostic with
   human-readable and JSON output plus optional GPU/full-GPU requirements.
+- Claude now asks whether Ornith should use GPU (recommended) or CPU, carries
+  that choice into Hermes requests, and verifies the observed placement.
 - Corrected setup guidance: a GPU is optional, but Ollama automatically uses a
-  supported accelerator and GPU offload is strongly recommended for research speed.
+  supported accelerator and GPU offload is strongly recommended for research
+  speed; the 9B model should have at least 8 GB of free accelerator memory at
+  the default context.
 - Replaced personal author identity in public-facing history and licensing with
   the `EasierThanYouThink` project identity and contact address.
 

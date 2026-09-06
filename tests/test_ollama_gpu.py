@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+from pathlib import Path
 
 from tools import ollama_gpu
 
@@ -75,6 +76,36 @@ def test_preload_uses_empty_native_generate_request(monkeypatch) -> None:
     }
 
 
+def test_preload_can_request_gpu_or_cpu_placement(monkeypatch) -> None:
+    bodies = []
+
+    class Response:
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *_args):
+            return False
+
+        def read(self) -> bytes:
+            return b'{"done":true}'
+
+    def fake_urlopen(request, timeout):
+        bodies.append(json.loads(request.data))
+        return Response()
+
+    monkeypatch.setattr(ollama_gpu.request, "urlopen", fake_urlopen)
+
+    ollama_gpu.preload_model(
+        "ornith-1.5:9b", "5m", "http://localhost:11434/api", 30, processor="gpu"
+    )
+    ollama_gpu.preload_model(
+        "ornith-1.5:9b", "5m", "http://localhost:11434/api", 30, processor="cpu"
+    )
+
+    assert bodies[0]["options"] == {"num_gpu": -1}
+    assert bodies[1]["options"] == {"num_gpu": 0}
+
+
 def test_running_models_reads_native_process_endpoint(monkeypatch) -> None:
     class Response:
         def __enter__(self):
@@ -102,7 +133,7 @@ def test_main_preloads_and_accepts_hybrid_gpu(monkeypatch, capsys) -> None:
     monkeypatch.setattr(
         ollama_gpu,
         "preload_model",
-        lambda model, keep_alive, api_base, timeout: preloaded.append(model),
+        lambda model, keep_alive, api_base, timeout, processor: preloaded.append((model, processor)),
     )
     monkeypatch.setattr(
         ollama_gpu,
@@ -114,7 +145,7 @@ def test_main_preloads_and_accepts_hybrid_gpu(monkeypatch, capsys) -> None:
 
     assert ollama_gpu.main(["--json", "--require-gpu"]) == 0
     report = json.loads(capsys.readouterr().out)
-    assert preloaded == ["ornith-1.5:9b"]
+    assert preloaded == [("ornith-1.5:9b", "auto")]
     assert report["status"] == "hybrid"
 
 
@@ -130,6 +161,26 @@ def test_main_can_require_full_gpu(monkeypatch, capsys) -> None:
     assert json.loads(capsys.readouterr().out)["fully_on_gpu"] is False
 
 
+def test_main_enforces_selected_cpu_or_gpu_placement(monkeypatch, capsys) -> None:
+    requested = []
+    monkeypatch.setattr(
+        ollama_gpu,
+        "preload_model",
+        lambda model, keep_alive, api_base, timeout, processor: requested.append(processor),
+    )
+    monkeypatch.setattr(
+        ollama_gpu,
+        "running_models",
+        lambda *_args: [{"name": "ornith-1.5:9b", "size": 1000, "size_vram": 0}],
+    )
+
+    assert ollama_gpu.main(["--json", "--processor", "cpu"]) == 0
+    assert json.loads(capsys.readouterr().out)["requested_processor"] == "cpu"
+    assert ollama_gpu.main(["--json", "--processor", "gpu"]) == 1
+    assert json.loads(capsys.readouterr().out)["requested_processor"] == "gpu"
+    assert requested == ["cpu", "gpu"]
+
+
 def test_main_reports_api_failure_without_traceback(monkeypatch, capsys) -> None:
     def fail(*_args):
         raise ollama_gpu.OllamaError("Ollama is unavailable")
@@ -139,6 +190,19 @@ def test_main_reports_api_failure_without_traceback(monkeypatch, capsys) -> None
     assert ollama_gpu.main(["--json"]) == 2
     assert json.loads(capsys.readouterr().out) == {
         "model": "ornith-1.5:9b",
+        "requested_processor": "auto",
         "status": "error",
         "error": "Ollama is unavailable",
     }
+
+
+def test_skill_requires_an_explicit_gpu_or_cpu_choice() -> None:
+    skill = (Path(__file__).parents[1] / ".claude/skills/channel-maker/SKILL.md").read_text(
+        encoding="utf-8"
+    )
+
+    assert "Ask the user to choose the Ornith processor" in skill
+    assert "GPU (recommended)" in skill
+    assert "at least 8 GB of free" in skill
+    assert "--processor gpu --require-full-gpu" in skill
+    assert "--processor cpu" in skill

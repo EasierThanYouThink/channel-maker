@@ -61,24 +61,30 @@ python tools/check.py
 | Node/npm | only for `remotion` renderers | nodejs.org LTS |
 | Piper voice | `tools/voiceover.py` downloads `lessac-medium` (~60MB) into `data/local/piper-voices/` on first synthesize | automatic, offline after |
 
-## Ornith GPU acceleration (optional, recommended)
+## Choose Ornith GPU or CPU execution
 
-Ollama selects a supported NVIDIA, AMD, or Apple GPU automatically; Channel
-Maker does not maintain a separate CPU and GPU model. CPU execution remains a
-supported fallback, but research is substantially faster with GPU offload.
+Channel Maker asks which processor Ornith should use before configuring Hermes.
+Choose GPU for substantially faster research, or CPU when accelerator memory is
+unavailable. Both choices use the same model.
 
-After pulling Ornith, preload it and report the actual processor split:
+For `ornith-1.5:9b` at Ollama's default 4096-token context, we recommend at
+least 8 GB of **free** accelerator memory—not merely 8 GB installed. That means
+free VRAM on a discrete GPU or available unified memory on Apple Silicon.
+Larger contexts and concurrent models require more.
+
+After pulling Ornith, request the selected placement and verify the result:
 
 ```
-python tools/ollama_gpu.py
+python tools/ollama_gpu.py --processor gpu --require-full-gpu  # recommended
+python tools/ollama_gpu.py --processor cpu                     # slower fallback
 ```
 
 The command reports `full_gpu`, `hybrid`, or `cpu_only` and supports `--json`
-for agents. Use `--require-gpu` when any GPU acceleration is required, or
-`--require-full-gpu` when the whole model must fit in VRAM. If a supported GPU
-produces a hybrid or CPU-only result, close other GPU-heavy applications, run
-`ollama stop ornith-1.5:9b`, and preload again. `ollama ps` is the underlying
-Ollama status view. See [Ollama hardware support](https://docs.ollama.com/gpu)
+for agents. If the GPU command reports hybrid or CPU-only placement, choose
+whether to free memory and retry or deliberately accept the slower fallback.
+To retry, close other GPU-heavy applications, run
+`ollama stop ornith-1.5:9b`, and issue the GPU command again. `ollama ps` is the
+underlying Ollama status view. See [Ollama hardware support](https://docs.ollama.com/gpu)
 and [Ollama's processor-status explanation](https://docs.ollama.com/faq#how-can-i-tell-if-my-model-was-loaded-onto-the-gpu).
 
 Hermes config (`~/.hermes/config.yaml`, `%USERPROFILE%\.hermes\config.yaml` on
@@ -90,8 +96,14 @@ providers:
     type: openai
     base_url: http://localhost:11434/v1
     api_key: "${OPENAI_API_KEY}"
+    extra_body:
+      options:
+        num_gpu: -1  # GPU choice; use 0 for CPU
 model: "custom/ornith-1.5:9b"
 ```
+
+The `num_gpu` value must match the user's choice. Confirm that the installed
+Hermes version supports this `extra_body` shape before changing its config.
 
 PowerShell equivalents for the skill's bootstrap commands:
 
