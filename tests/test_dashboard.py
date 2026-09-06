@@ -1,16 +1,48 @@
 from __future__ import annotations
 
+import http.client
 import json
+import threading
+from contextlib import contextmanager
 from pathlib import Path
+from types import SimpleNamespace
+from unittest.mock import patch
 
 import pytest
 import yaml
 
 from tools.dashboard.actions import ActionError, run_action
 from tools.dashboard.markdown import render as render_markdown
+from tools.dashboard.server import Handler
 from tools.dashboard.views import channel_detail, list_channels, review_queue
 
 AT = "2026-09-05T12:00:00+00:00"
+
+
+@contextmanager
+def running_dashboard():
+    from http.server import ThreadingHTTPServer
+
+    server = ThreadingHTTPServer(("127.0.0.1", 0), Handler)
+    thread = threading.Thread(target=server.serve_forever, daemon=True)
+    thread.start()
+    try:
+        yield server
+    finally:
+        server.shutdown()
+        server.server_close()
+        thread.join()
+
+
+def post_action(server, payload: dict, *, headers: dict[str, str] | None = None):
+    connection = http.client.HTTPConnection(*server.server_address)
+    body = json.dumps(payload)
+    request_headers = {"Content-Type": "application/json", **(headers or {})}
+    connection.request("POST", "/action", body=body, headers=request_headers)
+    response = connection.getresponse()
+    response_body = json.loads(response.read())
+    connection.close()
+    return response.status, response_body
 
 
 def write_package(root: Path, channel_id: str = "dash-channel") -> Path:
@@ -85,6 +117,22 @@ def test_run_action_never_uses_a_shell_string(tmp_path: Path) -> None:
     assert result.returncode == 0, result.stderr
     document = json.loads((package / "CHANNEL_STATE.json").read_text(encoding="utf-8"))
     assert document["state"] == "NICHE_INTELLIGENCE"
+
+
+def test_dashboard_rejects_action_without_process_token() -> None:
+    result = SimpleNamespace(returncode=0, stdout="", stderr="")
+    with (
+        patch("tools.dashboard.server.run_action", return_value=result) as dispatch,
+        running_dashboard() as server,
+    ):
+        status, body = post_action(
+            server,
+            {"action": "advance", "params": {}, "confirmed": True},
+        )
+
+    assert status == 403
+    assert "token" in body["error"]
+    dispatch.assert_not_called()
 
 
 def test_render_markdown_handles_headings_lists_and_code() -> None:

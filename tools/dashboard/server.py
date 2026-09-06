@@ -10,8 +10,10 @@ this is a local developer tool, not a service exposed to the network.
 from __future__ import annotations
 
 import argparse
+import hmac
 import html
 import json
+import secrets
 import sys
 from contextlib import suppress
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
@@ -32,8 +34,11 @@ from tools.dashboard.views import (  # noqa: E402
     wiki_pages,
 )
 
+ACTION_TOKEN = secrets.token_urlsafe(32)
+ACTION_TOKEN_HEADER = "X-Channel-Maker-Token"
+
 PAGE_SHELL = """<!doctype html>
-<html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>{title}</title>
+<html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="channel-maker-action-token" content="{action_token}"><title>{title}</title>
 <style>
 :root {{
   --bg: #0f1115; --panel: #171b22; --card: #1e242e; --line: #2c3440;
@@ -88,7 +93,11 @@ footer {{ color: var(--muted); font-size: 0.8rem; padding: 1rem 1.5rem 2rem; tex
 
 
 def _page(title: str, body: str) -> bytes:
-    return PAGE_SHELL.format(title=html.escape(title), body=body).encode("utf-8")
+    return PAGE_SHELL.format(
+        title=html.escape(title),
+        action_token=html.escape(ACTION_TOKEN, quote=True),
+        body=body,
+    ).encode("utf-8")
 
 
 def _channels_page() -> bytes:
@@ -286,6 +295,14 @@ class Handler(BaseHTTPRequestHandler):
         parsed = urlparse(self.path)
         if parsed.path != "/action":
             self._send(404, b"{}", "application/json")
+            return
+        supplied_token = self.headers.get(ACTION_TOKEN_HEADER, "")
+        if not supplied_token or not hmac.compare_digest(supplied_token, ACTION_TOKEN):
+            self._send(
+                403,
+                json.dumps({"error": "missing or invalid dashboard action token"}).encode("utf-8"),
+                "application/json",
+            )
             return
         length = int(self.headers.get("Content-Length", "0"))
         try:
