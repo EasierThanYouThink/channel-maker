@@ -91,12 +91,20 @@ class ChannelStateMachine:
         new references strictly.
         """
         try:
-            return validate_channel_package(
+            package = validate_channel_package(
                 self.package_root, self.repository_root,
                 allow_missing_historical_refs=lenient,
             )
         except ChannelValidationError as exc:
             raise ChannelStateError(str(exc)) from exc
+        if package.state.get("schema_version") != "0.3.0":
+            # Pre-collapse documents are always read through the current
+            # vocabulary (in memory only — the next mutation persists the
+            # migration). Otherwise old event chains fail new-vocabulary
+            # replay and the channel goes dark on reads.
+            upgraded = self._upgrade(dict(package.state))
+            package = ChannelPackage(package.root, package.identity, upgraded)
+        return package
 
     def reference_warnings(self) -> list[str]:
         try:
@@ -192,8 +200,8 @@ class ChannelStateMachine:
             from engine.decisions import DecisionError, validate_record_file
 
             expected_kind = {
-                ("OPPORTUNITY_MAP", "STRATEGY_SELECTION"): "strategy",
-                ("PILOT_REVIEW", "CHANNEL_FREEZE"): "review",
+                ("NICHE_INTELLIGENCE", "STRATEGY_SELECTION"): "strategy",
+                ("PILOT_REVIEW", "CHANNEL_READY"): "review",
             }.get((state["state"], target))
             try:
                 validate_record_file(resolved, expected_kind=expected_kind)
@@ -228,11 +236,18 @@ class ChannelStateMachine:
 
     @staticmethod
     def _upgrade(state: dict[str, Any]) -> dict[str, Any]:
+        from .workflow import migrate_020_to_030
+
         value = copy.deepcopy(state)
         if value["schema_version"] == "0.1.0":
             value["schema_version"] = "0.2.0"
-            value["legacy_mapping"] = value["completed"] != completed_prefix_for(value["state"])
+            try:
+                value["legacy_mapping"] = value["completed"] != completed_prefix_for(value["state"])
+            except ValueError:
+                value["legacy_mapping"] = True
             value["events"] = []
+        if value["schema_version"] == "0.2.0":
+            value = migrate_020_to_030(value)
         return value
 
     def _apply(

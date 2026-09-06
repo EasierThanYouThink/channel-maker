@@ -70,8 +70,12 @@ def _repository_path_error(repository_root: Path, value: str, label: str) -> str
 
 def channel_state_semantic_errors(state: dict[str, Any]) -> list[str]:
     errors: list[str] = []
-    if state["schema_version"] != "0.2.0":
+    if state["schema_version"] != "0.3.0":
+        # Pre-0.3.0 documents keep their own vocabulary until the next
+        # mutation migrates them (see workflow.migrate_020_to_030).
         return errors
+    if state["state"] not in WORKFLOW_STATES:
+        return [f"unknown workflow state {state['state']!r} for schema 0.3.0: {sorted(WORKFLOW_STATES)}"]
     expected_completed = completed_prefix_for(state["state"])
     if not state["legacy_mapping"] and state["completed"] != expected_completed:
         errors.append(

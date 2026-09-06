@@ -43,7 +43,7 @@ def write_runtime_package(
         "canonical_sources": {"channel_state": f"channels/{channel_id}/CHANNEL_STATE.json"},
     }
     state = {
-        "schema_version": "0.2.0",
+        "schema_version": "0.3.0",
         "channel_id": channel_id,
         "revision": 0,
         "state": state_name,
@@ -97,12 +97,14 @@ def test_finance_channel_advances_forward_and_rejects_skips(tmp_path: Path) -> N
     assert state["events"][0]["operation"] == "ADVANCE"
 
     niche_ref = evidence(tmp_path, "finance-demo", "niche-evidence")
+    strategy_ref = evidence(tmp_path, "finance-demo", "strategy-decision")
     state = runtime.advance(
-        "OPPORTUNITY_MAP",
-        next_action="Build opportunity options.",
+        "STRATEGY_SELECTION",
+        next_action="Build on the selected strategy.",
         actor="test",
-        reason="Niche evidence recorded.",
+        reason="Niche evidence recorded and strategy selected.",
         prerequisite_refs=[niche_ref],
+        human_decision_ref=strategy_ref,
         occurred_at="2026-08-23T12:01:00+00:00",
         expected_revision=1,
     )
@@ -114,14 +116,14 @@ def test_transition_prerequisites_and_human_gate_are_enforced(tmp_path: Path) ->
     package = write_runtime_package(tmp_path, state_name="NICHE_INTELLIGENCE")
     runtime = ChannelStateMachine(package, tmp_path)
     with pytest.raises(ChannelStateError, match="prerequisite"):
-        runtime.validate_transition("OPPORTUNITY_MAP")
+        runtime.validate_transition("STRATEGY_SELECTION")
     with pytest.raises(ChannelStateError, match="does not exist"):
         runtime.validate_transition(
-            "OPPORTUNITY_MAP",
+            "STRATEGY_SELECTION",
             prerequisite_refs=["channels/finance-demo/missing.md"],
         )
 
-    package = write_runtime_package(tmp_path, channel_id="gate-demo", state_name="OPPORTUNITY_MAP")
+    package = write_runtime_package(tmp_path, channel_id="gate-demo", state_name="NICHE_INTELLIGENCE")
     runtime = ChannelStateMachine(package, tmp_path)
     opportunity_ref = evidence(tmp_path, "gate-demo", "opportunity-map")
     with pytest.raises(ChannelStateError, match="human decision"):
@@ -135,7 +137,7 @@ def test_transition_prerequisites_and_human_gate_are_enforced(tmp_path: Path) ->
 
 
 def test_human_gate_rejects_fabricated_decision_ref(tmp_path: Path) -> None:
-    package = write_runtime_package(tmp_path, channel_id="gate-demo", state_name="OPPORTUNITY_MAP")
+    package = write_runtime_package(tmp_path, channel_id="gate-demo", state_name="NICHE_INTELLIGENCE")
     runtime = ChannelStateMachine(package, tmp_path)
     opportunity_ref = evidence(tmp_path, "gate-demo", "opportunity-map")
     with pytest.raises(ChannelStateError, match="human decision reference does not resolve"):
@@ -187,18 +189,18 @@ def test_pilot_review_revision_invalidates_dependent_completion(tmp_path: Path) 
     package = write_runtime_package(tmp_path, state_name="PILOT_REVIEW")
     runtime = ChannelStateMachine(package, tmp_path)
     revised = runtime.revise(
-        "VISUAL_DNA_DISCOVERY",
+        "DESIGN_DNA_DISCOVERY",
         decision_ref="human-review:pilot-001-revise-visual",
-        next_action="Revise Visual DNA candidates.",
+        next_action="Revise design candidates.",
         reason="Pilot visuals are inconsistent.",
         actor="test",
         occurred_at=AT,
     )
-    assert revised["state"] == "VISUAL_DNA_DISCOVERY"
+    assert revised["state"] == "DESIGN_DNA_DISCOVERY"
     assert revised["status"] == "REVISING"
-    assert revised["completed"] == completed_prefix_for("VISUAL_DNA_DISCOVERY")
+    assert revised["completed"] == completed_prefix_for("DESIGN_DNA_DISCOVERY")
     invalidated = revised["events"][-1]["invalidated_states"]
-    assert "VISUAL_DNA_DISCOVERY" in invalidated
+    assert "DESIGN_DNA_DISCOVERY" in invalidated
     assert "PILOT_PRODUCTION" in invalidated
     assert "PILOT_REVIEW" in invalidated
     with pytest.raises(ChannelStateError, match="not allowed"):
@@ -225,7 +227,7 @@ def test_event_chain_corruption_and_missing_paths_fail_package_validation(tmp_pa
     before = (package / "CHANNEL_STATE.json").read_bytes()
     with pytest.raises(ChannelStateError, match="does not exist"):
         ChannelStateMachine(package, tmp_path).advance(
-            "OPPORTUNITY_MAP", next_action="Continue.", actor="test", reason="Evidence.",
+            "STRATEGY_SELECTION", next_action="Continue.", actor="test", reason="Evidence.",
             prerequisite_refs=["channels/missing-ref/not-there.md"], occurred_at=AT,
         )
     assert (package / "CHANNEL_STATE.json").read_bytes() == before
@@ -266,16 +268,16 @@ def test_revise_event_names_invalidated_artifact_families(tmp_path: Path) -> Non
     package = write_runtime_package(tmp_path, state_name="PILOT_REVIEW")
     runtime = ChannelStateMachine(package, tmp_path)
     revised = runtime.revise(
-        "VISUAL_DNA_DISCOVERY",
+        "DESIGN_DNA_DISCOVERY",
         decision_ref="human-review:pilot-001-revise-visual",
-        next_action="Revise Visual DNA candidates.",
+        next_action="Revise design candidates.",
         reason="Pilot visuals are inconsistent.",
         actor="test",
         occurred_at=AT,
     )
     event = revised["events"][-1]
-    assert event["invalidated_artifact_families"] == ["visual-dna", "identity", "library", "pilot"]
-    assert revised["state"] == "VISUAL_DNA_DISCOVERY"
+    assert event["invalidated_artifact_families"] == ["visual-dna", "motion-dna", "identity", "library", "pilot"]
+    assert revised["state"] == "DESIGN_DNA_DISCOVERY"
 
 
 def test_deleted_historical_prereq_is_recoverable_not_fatal(tmp_path: Path) -> None:
@@ -307,6 +309,57 @@ def test_deleted_historical_prereq_is_recoverable_not_fatal(tmp_path: Path) -> N
     )
     assert blocked["status"] == "BLOCKED_ON_HUMAN"
     assert runtime.next_allowed_action().allowed_operations == ("resume", "abandon")
+
+
+def test_020_channel_migrates_to_10_state_vocabulary_on_mutation(tmp_path: Path) -> None:
+    # A pre-collapse 0.2.0 document loads (old names stay schema-valid) and
+    # migrates to 0.3.0 on its next mutation: dropped states remap, merged
+    # ADVANCE pairs fold refs forward, the chain revalidates cleanly.
+    from engine.channel.workflow import event_id_for
+
+    package = write_runtime_package(tmp_path, channel_id="migrate-demo", state_name="NICHE_INTELLIGENCE")
+    state = load_state(package)
+    state["schema_version"] = "0.2.0"
+
+    def advance_event(seq, frm, to, refs=None, human=None, prev=None):
+        event = {
+            "sequence": seq, "channel_id": "migrate-demo", "operation": "ADVANCE",
+            "from_state": frm, "to_state": to, "from_status": "ACTIVE", "to_status": "ACTIVE",
+            "occurred_at": AT, "actor": "test", "reason": "r",
+            "prerequisite_refs": refs or [], "human_decision_ref": human,
+            "invalidated_states": [], "invalidated_artifact_families": [],
+            "state_revision": seq, "previous_event_id": prev,
+        }
+        event["event_id"] = event_id_for(event)
+        return event
+
+    first = advance_event(1, "CHANNEL_INIT", "NICHE_INTELLIGENCE")
+    second = advance_event(2, "NICHE_INTELLIGENCE", "OPPORTUNITY_MAP", ["e1"], None, first["event_id"])
+    state["events"] = [first, second]
+    state["revision"] = 2
+    state["state"] = "OPPORTUNITY_MAP"
+    state["completed"] = ["CHANNEL_INIT", "NICHE_INTELLIGENCE"]
+    (package / "CHANNEL_STATE.json").write_text(json.dumps(state), encoding="utf-8")
+
+    # Reads present the migrated vocabulary (no silent breakage, no dark
+    # channel): OPPORTUNITY_MAP folds back into NICHE_INTELLIGENCE.
+    shown = ChannelStateMachine(package, tmp_path).show()
+    assert shown["state"]["state"] == "NICHE_INTELLIGENCE"
+
+    # First mutation migrates: OPPORTUNITY_MAP folds back into
+    # NICHE_INTELLIGENCE (ambiguous position -> legacy_mapping blocks
+    # forward advance until a human re-walks it deliberately).
+    migrated = ChannelStateMachine(package, tmp_path).block_on_human(
+        reason_code="x", summary="s", question="q?", required_action="a",
+        actor="test", occurred_at=AT,
+    )
+    assert migrated["schema_version"] == "0.3.0"
+    assert migrated["state"] == "NICHE_INTELLIGENCE"
+    assert migrated["completed"] == ["CHANNEL_INIT"]
+    assert migrated["legacy_mapping"] is True
+    assert len(migrated["events"]) == 2  # trailing self-loop dropped
+    assert migrated["events"][0]["to_state"] == "NICHE_INTELLIGENCE"
+    validate_channel_package(package, tmp_path)
 
 
 def test_abandon_from_blocked_is_legal(tmp_path: Path) -> None:

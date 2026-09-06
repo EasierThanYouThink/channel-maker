@@ -21,7 +21,7 @@
     "updated_at"
   ],
   "properties": {
-    "schema_version": {"enum": ["0.1.0", "0.2.0"]},
+    "schema_version": {"enum": ["0.1.0", "0.2.0", "0.3.0"]},
     "channel_id": {"type": "string", "pattern": "^[a-z][a-z0-9-]*$"},
     "revision": {"type": "integer", "minimum": 0},
     "state": {"$ref": "#/$defs/workflowState"},
@@ -84,19 +84,20 @@
       "enum": [
         "CHANNEL_INIT",
         "NICHE_INTELLIGENCE",
-        "OPPORTUNITY_MAP",
         "STRATEGY_SELECTION",
         "CHANNEL_FOUNDATION",
         "SCRIPT_DNA_DISCOVERY",
-        "VISUAL_DNA_DISCOVERY",
-        "MOTION_DNA_DISCOVERY",
+        "DESIGN_DNA_DISCOVERY",
         "CHANNEL_IDENTITY",
-        "STARTER_VISUAL_LIBRARY",
-        "PILOT_PLAN",
         "PILOT_PRODUCTION",
         "PILOT_REVIEW",
-        "CHANNEL_FREEZE",
-        "CHANNEL_READY"
+        "CHANNEL_READY",
+        "OPPORTUNITY_MAP",
+        "VISUAL_DNA_DISCOVERY",
+        "MOTION_DNA_DISCOVERY",
+        "STARTER_VISUAL_LIBRARY",
+        "PILOT_PLAN",
+        "CHANNEL_FREEZE"
       ]
     },
     "repositoryPath": {
@@ -156,6 +157,10 @@
     },
     {
       "if": {"properties": {"schema_version": {"const": "0.2.0"}}},
+      "then": {"required": ["legacy_mapping", "events"]}
+    },
+    {
+      "if": {"properties": {"schema_version": {"const": "0.3.0"}}},
       "then": {"required": ["legacy_mapping", "events"]}
     },
     {
