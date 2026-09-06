@@ -121,10 +121,12 @@ def test_strategy_gate_accepts_structured_or_plain_notes(tmp_path: Path) -> None
 
 
 def _pilot_media(root: Path) -> None:
+    from engine.production.probing import encode_minimal_mp4, encode_minimal_wav
+
     (root / "evidence").mkdir(parents=True, exist_ok=True)
     (root / "evidence" / "script.md").write_text("# Script\n", encoding="utf-8")
-    (root / "evidence" / "voiceover.wav").write_bytes(b"RIFF" + b"\x00" * 10)
-    (root / "evidence" / "render.mp4").write_bytes(b"video")
+    (root / "evidence" / "voiceover.wav").write_bytes(encode_minimal_wav())
+    (root / "evidence" / "render.mp4").write_bytes(encode_minimal_mp4())
     for relative, artifact_type, artifact_id in (
         ("evidence/scene.json", "scene_candidate_manifest", "scene-candidate:x:abc123"),
         ("evidence/eval.json", "evaluation_result", "evaluation-result:abc123"),

@@ -190,8 +190,10 @@ def test_pilot_refreeze_refuses_without_force(tmp_path: Path) -> None:
     write_evidence(tmp_path, "evidence/scene.json", artifact_type="scene_candidate_manifest", artifact_id="scene-candidate:x:abc123")
     write_evidence(tmp_path, "evidence/eval.json", artifact_type="evaluation_result", artifact_id="evaluation-result:abc123")
     (tmp_path / "evidence" / "script.md").write_text("# Script\n", encoding="utf-8")
-    (tmp_path / "evidence" / "voiceover.wav").write_bytes(b"RIFF" + b"\x00" * 100)
-    (tmp_path / "evidence" / "render.mp4").write_bytes(b"fake-video-bytes")
+    from engine.production.probing import encode_minimal_mp4, encode_minimal_wav
+
+    (tmp_path / "evidence" / "voiceover.wav").write_bytes(encode_minimal_wav())
+    (tmp_path / "evidence" / "render.mp4").write_bytes(encode_minimal_mp4())
     record_production(
         package, tmp_path, "pilot-1",
         scene_candidate_manifest_paths=["evidence/scene.json"], evaluation_result_paths=["evidence/eval.json"],
@@ -227,8 +229,10 @@ def test_pilot_record_review_cli_requires_yes_when_non_interactive(tmp_path: Pat
     write_evidence(tmp_path, "evidence/scene.json", artifact_type="scene_candidate_manifest", artifact_id="scene-candidate:x:abc123")
     write_evidence(tmp_path, "evidence/eval.json", artifact_type="evaluation_result", artifact_id="evaluation-result:abc123")
     (tmp_path / "evidence" / "script.md").write_text("# Script\n", encoding="utf-8")
-    (tmp_path / "evidence" / "voiceover.wav").write_bytes(b"RIFF" + b"\x00" * 100)
-    (tmp_path / "evidence" / "render.mp4").write_bytes(b"fake-video-bytes")
+    from engine.production.probing import encode_minimal_mp4, encode_minimal_wav
+
+    (tmp_path / "evidence" / "voiceover.wav").write_bytes(encode_minimal_wav())
+    (tmp_path / "evidence" / "render.mp4").write_bytes(encode_minimal_mp4())
     record_production(
         package, tmp_path, "pilot-1",
         scene_candidate_manifest_paths=["evidence/scene.json"], evaluation_result_paths=["evidence/eval.json"],

@@ -69,10 +69,17 @@ def write_evidence(root: Path, relative: str, *, artifact_type: str, artifact_id
 
 
 def write_media(root: Path, tag: bytes = b"v1") -> None:
+    from engine.production.probing import encode_minimal_mp4, encode_minimal_wav
+
     (root / "evidence").mkdir(parents=True, exist_ok=True)
     (root / "evidence" / "script.md").write_text("# Script\n", encoding="utf-8")
-    (root / "evidence" / "voiceover.wav").write_bytes(b"RIFF" + tag)
-    (root / "evidence" / "render.mp4").write_bytes(b"video-" + tag)
+    # Structurally valid media whose bytes still differ per tag (drives revisions).
+    (root / "evidence" / "voiceover.wav").write_bytes(
+        encode_minimal_wav(duration_s=0.1 if tag == b"v1" else 0.2)
+    )
+    (root / "evidence" / "render.mp4").write_bytes(
+        encode_minimal_mp4(major_brand=b"isom" if tag == b"v1" else b"iso2")
+    )
 
 
 def produce_pilot(package: Path, root: Path) -> None:

@@ -88,13 +88,26 @@ def check_production(
     """Return a list of missing-production problems; empty means complete.
 
     Manifest/evaluation *hashes* are verified by pilot/episode validation, not
-    here — this check establishes that the production exists at all. Render
-    media is required to exist and be non-empty; byte-level media probing
-    (dimensions, duration, audio presence) is future work pending a pinned
-    probing tool (see docs/RENDER_CONTRACT.md).
+    here — this check establishes that the production exists at all, and that
+    its media files are structurally sound per engine.production.probing
+    (WAV fully decoded; MP4 container-level; other suffixes existence-only).
+    Decoded video dimensions/duration still need a pinned probing tool
+    (see docs/RENDER_CONTRACT.md).
     """
+    from engine.production.probing import probe_file
+
     repository_root = repository_root.resolve()
     problems: list[str] = []
+
+    def probe_media(ref: str) -> None:
+        if not ref:
+            return
+        resolved = (repository_root / ref).resolve()
+        if not resolved.is_relative_to(repository_root) or not resolved.is_file():
+            return  # missing-file problems are reported by the caller below
+        report = probe_file(resolved)
+        problems.extend(f"{label}: {problem}" for problem in report["problems"])
+
     if not production.get("script_ref"):
         problems.append(f"{label}: no script_ref recorded; no narration script exists")
     elif not _exists(repository_root, production["script_ref"]):
@@ -103,6 +116,8 @@ def check_production(
         problems.append(f"{label}: no voiceover_ref recorded; no narration audio exists")
     elif not _exists(repository_root, production["voiceover_ref"]):
         problems.append(f"{label}: voiceover audio is missing: {production['voiceover_ref']}")
+    else:
+        probe_media(production["voiceover_ref"])
     if not production.get("scene_candidate_manifest_refs"):
         problems.append(f"{label}: no scene candidate manifest attached; no scene evidence exists")
     if not production.get("evaluation_result_refs"):
@@ -116,6 +131,8 @@ def check_production(
             problems.append(f"{label}: render file is missing: {render_ref}")
         elif resolved.stat().st_size == 0:
             problems.append(f"{label}: render file is empty: {render_ref}")
+        else:
+            probe_media(render_ref)
     return problems
 
 

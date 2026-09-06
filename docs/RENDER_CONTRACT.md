@@ -66,9 +66,13 @@ record the following so a review binds to an exact, reproducible export:
   just individual scenes: scene order, narration mix, and timeline coverage
   against the sentence spans in the voiceover timing.
 
-Byte-level media probing (dimensions, decoded duration, audio presence) is
-future work pending a pinned probing tool — no new binary dependencies are
-introduced for it in v1.
+Byte-level media probing is stdlib-only (`engine/production/probing.py`, no
+new binary dependencies): voiceover WAV files fully decode (header, frames,
+duration), render MP4 files prove an `ftyp` container (container-level only —
+not a decode check), PNG stills prove signature + IHDR. Corrupt media blocks
+a GO via `check_production`; anything else stays hash-bound. Decoded video
+dimensions, decoded duration, and audio presence remain future work pending
+a pinned probing tool.
 
 ## Word-timing caveat
 

@@ -417,7 +417,9 @@ def _walkthrough_init_to_ready(root: Path, tmp_path: Path) -> None:
     voice_audio = f"channels/{CHANNEL_ID}/pilots/pilot-1/voiceover.wav"
     voice_timing = f"channels/{CHANNEL_ID}/pilots/pilot-1/voiceover-timing.json"
     render_ref = f"channels/{CHANNEL_ID}/pilots/pilot-1/render.mp4"
-    (package / "pilots" / "pilot-1" / "render.mp4").write_bytes(b"walkthrough-render-v1")
+    from engine.production.probing import encode_minimal_mp4 as _encode_mp4
+
+    (package / "pilots" / "pilot-1" / "render.mp4").write_bytes(_encode_mp4(major_brand=b"isom"))
     cli(root, "voiceover.py", "synthesize", "--script-path", str(script_path),
         "--output-audio", voice_audio, "--output-timing", voice_timing,
         "--voice-model-dir", str(_shared_model_cache()))
@@ -444,7 +446,7 @@ def _walkthrough_init_to_ready(root: Path, tmp_path: Path) -> None:
         "--reason", "Pacing.", "--yes")
     # The REVISE loop reworks production for real: new render bytes, a rebuilt
     # manifest, a fresh evaluation, and a re-record before the next review.
-    (package / "pilots" / "pilot-1" / "render.mp4").write_bytes(b"walkthrough-render-v2-fixed-pacing")
+    (package / "pilots" / "pilot-1" / "render.mp4").write_bytes(_encode_mp4(major_brand=b"iso2"))
     manifest_rel, eval_rel = _build_pilot_evidence(
         root, package, voice_audio, voice_timing, render_ref, "v2")
     cli(root, "pilot.py", "record-production", str(package), "pilot-1",
@@ -538,8 +540,10 @@ def _walkthrough_voice_and_episode(root: Path, tmp_path: Path) -> None:
         "--target-duration-seconds", "25")
     # Complete production, like the pilot path: the episode GO gate requires
     # it. The render bytes stand in for the channel renderer's export.
+    from engine.production.probing import encode_minimal_mp4 as _encode_mp4_ep
+
     ep_render = f"channels/{CHANNEL_ID}/episodes/ep-voice/render.mp4"
-    (package / "episodes" / "ep-voice" / "render.mp4").write_bytes(b"walkthrough-episode-render")
+    (package / "episodes" / "ep-voice" / "render.mp4").write_bytes(_encode_mp4_ep(major_brand=b"isom"))
     ep_manifest, ep_eval = _build_evidence(
         root, evidence_dir=f"channels/{CHANNEL_ID}/episodes/ep-voice",
         scene_id="ep-voice-scene", voice_audio=voice_audio,

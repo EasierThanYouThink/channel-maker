@@ -203,9 +203,11 @@ def test_full_incremental_build_flips_every_item_and_persists_at_the_end(tmp_pat
         evidence_path = tmp_path / relative
         evidence_path.parent.mkdir(parents=True, exist_ok=True)
         evidence_path.write_text(json.dumps({"artifact_type": artifact_type, "artifact_id": artifact_id}), encoding="utf-8")
+    from engine.production.probing import encode_minimal_mp4, encode_minimal_wav
+
     (tmp_path / "evidence" / "pilot-script.md").write_text("# Script\n", encoding="utf-8")
-    (tmp_path / "evidence" / "pilot-voiceover.wav").write_bytes(b"RIFF" + b"\x00" * 100)
-    (tmp_path / "evidence" / "pilot-render.mp4").write_bytes(b"fake-video-bytes")
+    (tmp_path / "evidence" / "pilot-voiceover.wav").write_bytes(encode_minimal_wav())
+    (tmp_path / "evidence" / "pilot-render.mp4").write_bytes(encode_minimal_mp4())
     record_production(
         package, tmp_path, "pilot-1",
         scene_candidate_manifest_paths=["evidence/pilot-scene.json"],

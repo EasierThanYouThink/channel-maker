@@ -57,13 +57,15 @@ def write_evidence(root: Path, relative: str, *, artifact_type: str, artifact_id
 
 def write_production_media(root: Path, prefix: str = "evidence") -> dict[str, str]:
     """Create the real files a GO decision requires: script, audio, render."""
+    from engine.production.probing import encode_minimal_mp4, encode_minimal_wav
+
     script = root / prefix / "script.md"
     script.parent.mkdir(parents=True, exist_ok=True)
-    script.write_text("# Script\n\nCaffeine blocks adenosine.\n", encoding="utf-8")
+    script.write_text("# Script\n", encoding="utf-8")
     audio = root / prefix / "voiceover.wav"
-    audio.write_bytes(b"RIFF" + b"\x00" * 100)
+    audio.write_bytes(encode_minimal_wav())
     render = root / prefix / "render.mp4"
-    render.write_bytes(b"fake-video-bytes")
+    render.write_bytes(encode_minimal_mp4())
     return {
         "script_ref": script.relative_to(root).as_posix(),
         "voiceover_ref": audio.relative_to(root).as_posix(),
