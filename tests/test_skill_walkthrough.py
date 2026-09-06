@@ -7,11 +7,16 @@ skill edit that breaks the documented path fails here first.
 
 Test B covers the voice-first production procedure plus the Ongoing episode
 loop; it needs the Piper voice model and skips cleanly when offline.
+
+Both tests run fully isolated in a seeded tmp repository root (channels,
+memory contracts, and engine wiki copied in): nothing touches the real
+checkout's channels/ tree, and pytest's tmp_path owns cleanup.
 """
 
 from __future__ import annotations
 
 import json
+import shutil
 import subprocess
 import sys
 import tempfile
@@ -24,6 +29,20 @@ import yaml
 ROOT = Path(__file__).resolve().parents[1]
 CHANNEL_ID = "walk-channel"
 REVIEWER = "Walkthrough Tester"
+
+
+def isolated_root(tmp_path: Path) -> Path:
+    """Build a seeded tmp repository root for one walkthrough run.
+
+    Only the static engine inputs travel: the memory contract, the engine
+    wiki, and an empty channels/ tree. Everything the walkthrough writes
+    (packages, evidence, index) lands under tmp_path.
+    """
+    iso = tmp_path / "iso-root"
+    (iso / "channels").mkdir(parents=True)
+    shutil.copytree(ROOT / "engine" / "memory" / "contracts", iso / "engine" / "memory" / "contracts")
+    shutil.copytree(ROOT / "engine" / "memory" / "wiki", iso / "engine" / "memory" / "wiki")
+    return iso
 
 
 def cli(root: Path, script: str, *argv: str) -> str:
@@ -121,24 +140,7 @@ def advance(root: Path, package: Path, target: str, **flags: str) -> None:
 
 
 def test_skill_walkthrough_init_to_ready_with_revise_loop(tmp_path: Path) -> None:
-    root = ROOT
-    try:
-        _walkthrough_init_to_ready(root, tmp_path)
-    finally:
-        _remove_scratch_channel(root)
-
-
-def _remove_scratch_channel(root: Path) -> None:
-    import shutil
-
-    package = root / "channels" / CHANNEL_ID
-    if package.is_dir():
-        if not (package / SCRATCH_MARKER).is_file():
-            raise AssertionError(
-                f"refusing to delete {package}: missing scratch marker; "
-                "it may be a real channel"
-            )
-        shutil.rmtree(package)
+    _walkthrough_init_to_ready(isolated_root(tmp_path), tmp_path)
 
 
 def _build_evidence(
@@ -154,13 +156,17 @@ def _build_evidence(
     """
     manifest_rel = f"{evidence_dir}/scene-manifest-{suffix}.json"
     eval_rel = f"{evidence_dir}/eval-result-{suffix}.json"
+    # build_scene_candidate resolves --input/--output against the subprocess
+    # cwd, not --root: pass absolute paths. Recorded manifest locations stay
+    # portable (repo-relative) via the resolver.
+    absolute = lambda relative: str((root / relative).resolve())
     cli(root, "build_scene_candidate.py", "--scene-id", f"{scene_id}-{suffix}",
         "--generator-agent", "walkthrough", "--model", "synthetic",
         "--prompt-version", "walkthrough-v1",
-        "--input", f"audio={voice_audio}",
-        "--input", f"narration_timing={voice_timing}",
-        "--input", f"video={render_ref}",
-        "--output", manifest_rel)
+        "--input", f"audio={absolute(voice_audio)}",
+        "--input", f"narration_timing={absolute(voice_timing)}",
+        "--input", f"video={absolute(render_ref)}",
+        "--output", absolute(manifest_rel))
     manifest = json.loads((root / manifest_rel).read_text(encoding="utf-8"))
     contract_rel = f"{evidence_dir}/eval-contract.json"
     contract_path = root / contract_rel
@@ -208,7 +214,8 @@ def _build_evidence(
         }],
         "created_by": {"tool": "walkthrough", "version": "1.0.0"},
     }), encoding="utf-8")
-    cli(root, "evaluate_scene.py", manifest_rel, contract_rel, assessment_rel, eval_rel)
+    cli(root, "evaluate_scene.py", absolute(manifest_rel), absolute(contract_rel),
+        absolute(assessment_rel), absolute(eval_rel))
     return manifest_rel, eval_rel
 
 
@@ -529,11 +536,7 @@ def test_skill_walkthrough_voice_and_episode_loop(tmp_path: Path) -> None:
     section and test_skill_walkthrough_init_to_ready_with_revise_loop); the
     early state here is a mechanics fixture, not a lifecycle claim.
     """
-    root = ROOT
-    try:
-        _walkthrough_voice_and_episode(root, tmp_path)
-    finally:
-        _remove_scratch_channel(root)
+    _walkthrough_voice_and_episode(isolated_root(tmp_path), tmp_path)
 
 
 def _walkthrough_voice_and_episode(root: Path, tmp_path: Path) -> None:
