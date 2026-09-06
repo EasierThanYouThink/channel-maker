@@ -1,5 +1,19 @@
 # Changelog
 
+## v0.2.1 — Windows portability and observable CI
+
+Backward-compatible: logical Hermes job IDs and all documented CLI commands
+are unchanged; existing POSIX queue records remain usable without migration.
+
+- Human-gated CLIs now treat end-of-input as non-interactive, so Windows null
+  stdin produces the normal `--yes` requirement instead of an uncaught
+  `EOFError`.
+- Hermes queue records, responses, and runtime metadata use bounded,
+  SHA-256-derived filenames on every OS while preserving their descriptive
+  colon-separated job IDs inside JSON and at the CLI boundary.
+- The complete Python 3.11–3.14 matrix now runs on Ubuntu, Windows, and macOS
+  without fail-fast cancellation, using current GitHub Action runtimes.
+
 ## v0.2.0 — tighter lifecycle, proven media, isolated tests
 
 Backward-compatible: existing channels migrate automatically on their next
