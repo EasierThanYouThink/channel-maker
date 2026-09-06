@@ -17,20 +17,14 @@ ROOT = Path(__file__).resolve().parents[1]
 SCHEMA_DIR = ROOT / "schemas"
 TOOL_VERSION = "1.0.0"
 
+# Only the Stage-9 renderer-evidence path is live. Legacy entries
+# (source_manifest, transcripts, shots, evaluation_request, …) were pruned:
+# they pointed at schema files that do not exist under schemas/, so any
+# schema_for() call for them failed with a confusing file-read error
+# instead of a clean unknown-type error. See docs/RENDER_CONTRACT.md.
 ARTIFACT_SCHEMAS = {
-    "source_manifest": "source_manifest.schema.json",
-    "video_metadata": "video.schema.json",
-    "transcript": "transcript.schema.json",
-    "shot_measurement": "shot_measurement.schema.json",
-    "shot_interpretation": "shot_interpretation.schema.json",
-    "review_event": "review_event.schema.json",
-    "hypothesis": "hypothesis.schema.json",
-    "rule_proposal": "rule_proposal.schema.json",
-    "annotation_request": "annotation_request.schema.json",
-    "aggregate_report": "aggregate_report.schema.json",
     "scene_candidate_manifest": "scene_candidate_manifest.schema.json",
     "evaluation_contract": "evaluation_contract.schema.json",
-    "evaluation_request": "evaluation_request.schema.json",
     "critic_assessment": "critic_assessment.schema.json",
     "evaluation_result": "evaluation_result.schema.json",
 }

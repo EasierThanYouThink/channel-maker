@@ -64,6 +64,22 @@ def test_require_valid_needs_no_taxonomies_config() -> None:
         require_valid({"artifact_type": "evaluation_result", "dummy": True}, label="t")
 
 
+def test_artifact_schemas_map_only_live_types() -> None:
+    # Deferred #4 cleanup: every map value must resolve to a real file
+    # under schemas/, and pruned legacy types must fail with a clean
+    # unknown-type error (not a confusing file-read error).
+    from tools._core import ARTIFACT_SCHEMAS, ChannelMakerError, schema_for
+
+    root = Path(__file__).resolve().parents[1]
+    for artifact_type, filename in ARTIFACT_SCHEMAS.items():
+        assert (root / "schemas" / filename).is_file(), artifact_type
+        assert isinstance(schema_for(artifact_type), dict)
+    with pytest.raises(ChannelMakerError, match="unknown artifact_type"):
+        schema_for("transcript")
+    with pytest.raises(ChannelMakerError, match="unknown artifact_type"):
+        schema_for("evaluation_request")
+
+
 def test_build_candidate_manifest_validates(tmp_path: Path) -> None:
     import sys
 
