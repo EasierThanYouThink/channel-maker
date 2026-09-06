@@ -107,6 +107,36 @@ def test_ensure_voice_model_stages_verified_download_before_install(
     assert not list(tmp_path.glob("*.download"))
 
 
+def test_ensure_voice_model_rejects_invalid_download_and_cleans_staging(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path,
+) -> None:
+    expected = b"trusted"
+    monkeypatch.setitem(
+        VOICES,
+        "rejected-voice",
+        {
+            "model_file": "rejected.onnx",
+            "model_url": "https://example.invalid/rejected.onnx",
+            "model_sha256": hashlib.sha256(expected).hexdigest(),
+            "config_url": "https://example.invalid/rejected.onnx.json",
+            "config_sha256": hashlib.sha256(b"config").hexdigest(),
+            "sample_rate_hz": 22050,
+        },
+    )
+
+    def download(_url: str, target: str | Path):
+        Path(target).write_bytes(b"tampered")
+        return str(target), None
+
+    monkeypatch.setattr("urllib.request.urlretrieve", download)
+
+    with pytest.raises(VoiceoverValidationError, match="failed SHA-256 verification"):
+        ensure_voice_model("rejected-voice", tmp_path)
+
+    assert not (tmp_path / "rejected.onnx").exists()
+    assert not list(tmp_path.glob("*.download"))
+
+
 def test_align_words_measured_from_phoneme_stream() -> None:
     phonemes = ["h", "ə", "l", "o", " ", "w", "ɜ", "l", "d"]
     tokens = ["^", *phonemes, "$"]

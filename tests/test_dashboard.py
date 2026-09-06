@@ -13,7 +13,7 @@ import yaml
 
 from tools.dashboard.actions import ActionError, run_action
 from tools.dashboard.markdown import render as render_markdown
-from tools.dashboard.server import ACTION_TOKEN, ACTION_TOKEN_HEADER, Handler
+from tools.dashboard.server import ACTION_TOKEN, ACTION_TOKEN_HEADER, Handler, _page
 from tools.dashboard.views import channel_detail, list_channels, review_queue
 
 AT = "2026-09-05T12:00:00+00:00"
@@ -183,6 +183,34 @@ def test_dashboard_rejects_non_json_action_with_valid_token() -> None:
     assert status == 415
     assert "application/json" in body["error"]
     dispatch.assert_not_called()
+
+
+def test_dashboard_allows_tokened_same_origin_json_action() -> None:
+    result = SimpleNamespace(returncode=0, stdout="done", stderr="")
+    with (
+        patch("tools.dashboard.server.run_action", return_value=result) as dispatch,
+        running_dashboard() as server,
+    ):
+        port = server.server_address[1]
+        status, body = post_action(
+            server,
+            {"action": "advance", "params": {}, "confirmed": True},
+            headers={
+                ACTION_TOKEN_HEADER: ACTION_TOKEN,
+                "Origin": f"http://127.0.0.1:{port}",
+            },
+        )
+
+    assert status == 200
+    assert body == {"returncode": 0, "stdout": "done", "stderr": ""}
+    dispatch.assert_called_once_with("advance", {}, confirmed=True)
+
+
+def test_dashboard_page_exposes_process_token_to_same_origin_client() -> None:
+    page = _page("Dashboard", "").decode("utf-8")
+
+    assert 'name="channel-maker-action-token"' in page
+    assert f'content="{ACTION_TOKEN}"' in page
 
 
 def test_render_markdown_handles_headings_lists_and_code() -> None:

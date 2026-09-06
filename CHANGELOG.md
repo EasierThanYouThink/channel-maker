@@ -1,5 +1,18 @@
 # Changelog
 
+## v0.2.2 — pre-public security and privacy hardening
+
+Backward-compatible for documented CLIs and channel packages. The dashboard's
+internal mutation endpoint now requires same-origin proof available from its
+served page rather than accepting direct unauthenticated requests.
+
+- Generated channel packages are ignored by Git while the repository placeholder
+  remains tracked, preventing accidental publication of local channel data.
+- Dashboard writes require a per-process anti-forgery token, JSON content, and a
+  loopback same-origin request whenever an Origin header is supplied.
+- Piper model and configuration downloads use an immutable upstream revision,
+  verify pinned SHA-256 hashes, and install atomically only after verification.
+
 ## v0.2.1 — Windows portability and observable CI
 
 Backward-compatible: logical Hermes job IDs and all documented CLI commands
