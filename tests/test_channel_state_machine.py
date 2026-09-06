@@ -361,6 +361,37 @@ def test_020_channel_migrates_to_10_state_vocabulary_on_mutation(tmp_path: Path)
     validate_channel_package(package, tmp_path)
 
 
+def test_concurrent_writers_with_same_expected_revision_only_one_wins(tmp_path: Path) -> None:
+    # The discipline Stage 0.5 teaches (pass --expected-revision from the
+    # latest show) rests on this: two writers racing on the same revision
+    # cannot both land — the loser gets "revision changed", never a silent
+    # overwrite. Outcome is order-independent: exactly one success.
+    import threading
+
+    package = write_runtime_package(tmp_path, channel_id="race-demo")
+    outcomes: list[str] = []
+
+    def block(name: str) -> None:
+        try:
+            ChannelStateMachine(package, tmp_path).block_on_human(
+                reason_code="race", summary=f"{name}.", question="Q?",
+                required_action="Answer.", actor=name, occurred_at=AT,
+                expected_revision=0,
+            )
+            outcomes.append("ok")
+        except ChannelStateError as exc:
+            assert "revision changed" in str(exc)
+            outcomes.append("conflict")
+
+    threads = [threading.Thread(target=block, args=(f"agent-{index}",)) for index in range(2)]
+    for thread in threads:
+        thread.start()
+    for thread in threads:
+        thread.join()
+    assert sorted(outcomes) == ["conflict", "ok"]
+    assert load_state(package)["revision"] == 1
+
+
 def test_abandon_from_blocked_is_legal(tmp_path: Path) -> None:
     package = write_runtime_package(tmp_path, channel_id="quit-demo")
     runtime = ChannelStateMachine(package, tmp_path)
