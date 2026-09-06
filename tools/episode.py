@@ -11,6 +11,8 @@ ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
+from _confirmation import require_confirmation  # noqa: E402
+
 from engine.episode import (  # noqa: E402
     EpisodeValidationError,
     episode_path,
@@ -63,13 +65,15 @@ def parse_args() -> argparse.Namespace:
 
 
 def _require_human_confirm(args: argparse.Namespace, what: str) -> None:
-    if args.yes:
-        return
-    if not sys.stdin.isatty():
-        raise EpisodeValidationError(f"episode {what} requires --yes (non-interactive) or an interactive human terminal")
-    confirmation = input(f"Record human episode {what}? Type yes: ").strip().lower()
-    if confirmation != "yes":
-        raise EpisodeValidationError(f"human episode {what} cancelled")
+    require_confirmation(
+        assume_yes=args.yes,
+        prompt=f"Record human episode {what}? Type yes: ",
+        error_type=EpisodeValidationError,
+        noninteractive_message=(
+            f"episode {what} requires --yes (non-interactive) or an interactive human terminal"
+        ),
+        cancelled_message=f"human episode {what} cancelled",
+    )
 
 
 def main() -> int:

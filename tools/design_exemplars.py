@@ -12,6 +12,8 @@ ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
+from _confirmation import require_confirmation  # noqa: E402
+
 from engine.design import ChannelExemplarStore, DesignValidationError  # noqa: E402
 
 
@@ -58,12 +60,15 @@ def main() -> int:
                 model=args.model, model_version=args.model_version, prompt_ref=args.prompt_ref,
             )
         elif args.command == "review":
-            if not args.yes:
-                if not sys.stdin.isatty():
-                    raise DesignValidationError("exemplar review requires --yes (non-interactive) or an interactive human terminal")
-                confirmation = input(f"Record human {args.decision} decision for {args.exemplar_id}? Type yes: ").strip().lower()
-                if confirmation != "yes":
-                    raise DesignValidationError("human exemplar review cancelled")
+            require_confirmation(
+                assume_yes=args.yes,
+                prompt=f"Record human {args.decision} decision for {args.exemplar_id}? Type yes: ",
+                error_type=DesignValidationError,
+                noninteractive_message=(
+                    "exemplar review requires --yes (non-interactive) or an interactive human terminal"
+                ),
+                cancelled_message="human exemplar review cancelled",
+            )
             result = store.review(
                 args.exemplar_id, decision=args.decision, reviewer=args.reviewer, reason=args.reason,
                 created_at=args.created_at or datetime.now(timezone.utc).isoformat(timespec="seconds"),

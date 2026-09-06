@@ -12,6 +12,8 @@ ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
+from _confirmation import require_confirmation  # noqa: E402
+
 from engine.programming import (  # noqa: E402
     ProgrammingError,
     approve_slate,
@@ -132,10 +134,15 @@ def main() -> int:
                 episode_ids=args.episode_ids, rationale=args.rationale,
             ), indent=2, sort_keys=True))
         elif args.command == "approve-slate":
-            if not args.yes and not sys.stdin.isatty():
-                raise ProgrammingError("approving a slate requires --yes (non-interactive) or an interactive human terminal")
-            if not args.yes and input("Approve this slate? Type yes: ").strip().lower() != "yes":
-                raise ProgrammingError("slate approval cancelled")
+            require_confirmation(
+                assume_yes=args.yes,
+                prompt="Approve this slate? Type yes: ",
+                error_type=ProgrammingError,
+                noninteractive_message=(
+                    "approving a slate requires --yes (non-interactive) or an interactive human terminal"
+                ),
+                cancelled_message="slate approval cancelled",
+            )
             print(json.dumps(approve_slate(
                 args.package_root, args.root, slate_id=args.slate_id,
                 approved_by=args.approved_by, decision_ref=args.decision_ref,

@@ -12,6 +12,8 @@ ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
+from _confirmation import require_confirmation  # noqa: E402
+
 from engine.library import (  # noqa: E402
     LibraryValidationError,
     list_components,
@@ -57,12 +59,13 @@ def parse_args() -> argparse.Namespace:
 
 
 def _confirm(prompt: str, *, assume_yes: bool) -> None:
-    if assume_yes:
-        return
-    if not sys.stdin.isatty():
-        raise LibraryValidationError("this action requires --yes (non-interactive) or an interactive human terminal")
-    if input(prompt).strip().lower() != "yes":
-        raise LibraryValidationError("action cancelled")
+    require_confirmation(
+        assume_yes=assume_yes,
+        prompt=prompt,
+        error_type=LibraryValidationError,
+        noninteractive_message="this action requires --yes (non-interactive) or an interactive human terminal",
+        cancelled_message="action cancelled",
+    )
 
 
 def main() -> int:

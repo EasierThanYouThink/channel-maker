@@ -13,6 +13,8 @@ ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
+from _confirmation import require_confirmation  # noqa: E402
+
 from engine.channel import ChannelStateError, ChannelStateMachine  # noqa: E402
 
 
@@ -80,13 +82,15 @@ def parse_args() -> argparse.Namespace:
 
 
 def _require_human_confirm(args: argparse.Namespace, what: str) -> None:
-    if args.yes:
-        return
-    if not sys.stdin.isatty():
-        raise ChannelStateError(f"channel {what} requires --yes (non-interactive) or an interactive human terminal")
-    confirmation = input(f"Record human channel {what}? Type yes: ").strip().lower()
-    if confirmation != "yes":
-        raise ChannelStateError(f"human channel {what} cancelled")
+    require_confirmation(
+        assume_yes=args.yes,
+        prompt=f"Record human channel {what}? Type yes: ",
+        error_type=ChannelStateError,
+        noninteractive_message=(
+            f"channel {what} requires --yes (non-interactive) or an interactive human terminal"
+        ),
+        cancelled_message=f"human channel {what} cancelled",
+    )
 
 
 def main() -> int:

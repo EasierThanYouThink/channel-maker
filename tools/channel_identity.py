@@ -14,6 +14,8 @@ ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
+from _confirmation import require_confirmation  # noqa: E402
+
 from engine.identity import (  # noqa: E402
     ChannelIdentityStore,
     IdentityValidationError,
@@ -27,12 +29,13 @@ from engine.identity import (  # noqa: E402
 
 
 def _confirm(prompt: str, *, assume_yes: bool) -> None:
-    if assume_yes:
-        return
-    if not sys.stdin.isatty():
-        raise IdentityValidationError("this action requires --yes (non-interactive) or an interactive human terminal")
-    if input(prompt).strip().lower() != "yes":
-        raise IdentityValidationError("action cancelled")
+    require_confirmation(
+        assume_yes=assume_yes,
+        prompt=prompt,
+        error_type=IdentityValidationError,
+        noninteractive_message="this action requires --yes (non-interactive) or an interactive human terminal",
+        cancelled_message="action cancelled",
+    )
 
 
 def parse_args() -> argparse.Namespace:
@@ -109,12 +112,15 @@ def main() -> int:
             return 0
         if args.command == "review":
             store = ChannelIdentityStore(args.root, args.channel)
-            if not args.yes:
-                if not sys.stdin.isatty():
-                    raise IdentityValidationError("identity candidate review requires --yes (non-interactive) or an interactive human terminal")
-                confirmation = input(f"Record human {args.decision} decision for {args.candidate_id}? Type yes: ").strip().lower()
-                if confirmation != "yes":
-                    raise IdentityValidationError("human identity candidate review cancelled")
+            require_confirmation(
+                assume_yes=args.yes,
+                prompt=f"Record human {args.decision} decision for {args.candidate_id}? Type yes: ",
+                error_type=IdentityValidationError,
+                noninteractive_message=(
+                    "identity candidate review requires --yes (non-interactive) or an interactive human terminal"
+                ),
+                cancelled_message="human identity candidate review cancelled",
+            )
             result = store.review(
                 args.candidate_id, decision=args.decision, reviewer=args.reviewer, reason=args.reason,
                 created_at=args.created_at or datetime.now(timezone.utc).isoformat(timespec="seconds"),

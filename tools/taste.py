@@ -12,6 +12,8 @@ ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
+from _confirmation import require_confirmation  # noqa: E402
+
 from engine.taste import (  # noqa: E402
     TasteError,
     list_comparisons,
@@ -68,12 +70,15 @@ def parse_args() -> argparse.Namespace:
 
 
 def _require_human_confirm(args: argparse.Namespace) -> None:
-    if args.yes:
-        return
-    if not sys.stdin.isatty():
-        raise TasteError("promoting a taste policy requires --yes (non-interactive) or an interactive human terminal")
-    if input("Promote this taste policy to guidance? Type yes: ").strip().lower() != "yes":
-        raise TasteError("taste promotion cancelled")
+    require_confirmation(
+        assume_yes=args.yes,
+        prompt="Promote this taste policy to guidance? Type yes: ",
+        error_type=TasteError,
+        noninteractive_message=(
+            "promoting a taste policy requires --yes (non-interactive) or an interactive human terminal"
+        ),
+        cancelled_message="taste promotion cancelled",
+    )
 
 
 def main() -> int:

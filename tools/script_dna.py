@@ -14,6 +14,8 @@ ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
+from _confirmation import require_confirmation  # noqa: E402
+
 from engine.script import (  # noqa: E402
     ScriptExampleStore,
     ScriptValidationError,
@@ -24,12 +26,13 @@ from engine.script import (  # noqa: E402
 
 
 def _confirm(prompt: str, *, assume_yes: bool) -> None:
-    if assume_yes:
-        return
-    if not sys.stdin.isatty():
-        raise ScriptValidationError("this action requires --yes (non-interactive) or an interactive human terminal")
-    if input(prompt).strip().lower() != "yes":
-        raise ScriptValidationError("action cancelled")
+    require_confirmation(
+        assume_yes=assume_yes,
+        prompt=prompt,
+        error_type=ScriptValidationError,
+        noninteractive_message="this action requires --yes (non-interactive) or an interactive human terminal",
+        cancelled_message="action cancelled",
+    )
 
 
 def parse_args() -> argparse.Namespace:
