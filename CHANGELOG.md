@@ -1,5 +1,30 @@
 # Changelog
 
+## v0.2.0 — tighter lifecycle, proven media, isolated tests
+
+Backward-compatible: existing channels migrate automatically on their next
+read or write (15-state history folds into the 10-state vocabulary, event
+evidence preserved); nothing needs manual rework.
+
+- CM1 lifecycle collapsed 15 → 10 states with identical gate semantics:
+  the opportunity map folds into the gated strategy edge, Visual + Motion
+  DNA merge into one design stage, the library and pilot plan arrive as
+  evidence on the production edge, and freezing leads straight to
+  `CHANNEL_READY` through the second human gate.
+- Production media is now probed, not just present: voiceover WAV files
+  fully decode, render MP4 files prove an `ftyp` container, PNG stills
+  prove signature + IHDR — all stdlib-only, no new dependencies. Corrupt
+  media blocks a GO.
+- System proofs are enforced artifacts: an approved composed frame (visual
+  domains together, grounded in approved exemplars) and an approved
+  narrated motion sample (clip bound to an existing narration ref) are
+  required before design stages count as ready, and both surface in the
+  dashboard review queue.
+- Skill walkthrough runs fully isolated in a seeded tmp repository root:
+  nothing touches the checkout's `channels/` tree.
+- Dead artifact-schema entries pruned to the four live Stage-9 types, so
+  unknown types fail with a clean error instead of a missing-file error.
+
 ## v0.1.0 — first public release
 
 Channel Maker as a standalone repo: a Claude Code skill plus its supporting
