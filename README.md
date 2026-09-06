@@ -1,9 +1,5 @@
 # Channel Maker
 
-![check](https://github.com/EasierThanYouThink/channel-maker/actions/workflows/check.yml/badge.svg)
-![version](https://img.shields.io/github/v/tag/EasierThanYouThink/channel-maker)
-![license](https://img.shields.io/github/license/EasierThanYouThink/channel-maker)
-
 A complete YouTube channel-making methodology for your coding agent, built on
 one composable skill and an evidence-first engine that enforces it. V1 is
 CREATE-only and niche-driven: niche research, video teardowns, channel
@@ -11,8 +7,10 @@ foundation, Script/Visual/Motion DNA, identity, asset library, pilot, then
 ongoing episodes — every irreversible step gated on a real human decision,
 enforced in code.
 
-A 14-second 1080p render in the style this workflow produces (bold kinetic
-typography hook — one of the approved headline directions):
+> Still in beta development — this skill was created by a developer, for
+> developers. If something breaks, report it as a bug; if you want to help
+> shape it, get in contact. This project exists to support the Claude
+> developer community.
 
 <video src="https://github.com/user-attachments/assets/e0c09a15-ec66-4430-91aa-c5fdb87bacb5" controls width="640"></video>
 
@@ -60,27 +58,31 @@ session resumes exactly where you stopped.
 
 ### Claude Code
 
-Setup and verification first (the skill's Stage 0 expects this done — the
-paste-prompt below will re-check it anyway):
+No setup work on your side — Claude does all of it. Three steps:
+
+**1 — Create a folder** for your channel project (e.g. `Claude_Channel`) and
+open a terminal inside it.
+
+**2 — Start Claude Code** from that folder:
 
 ```
-python tools/setup.py
-python tools/check.py
+claude
 ```
 
-Setup creates `.venv`, installs `requirements.txt`, and reports external-services
-status. You'll also need
-[Hermes Agent](https://hermes-agent.nousresearch.com) and a local model for
-niche/market research (see Stage 0 of the skill) — Hermes does the public web
-research; nothing here has its own scraper.
-
-Then open in Claude Code and paste:
+**3 — Paste this prompt** (best results with Opus 5 on high effort):
 
 ```
-Read .claude/skills/channel-maker/SKILL.md and README.md, then walk me through
-creating a YouTube channel in <your niche here> per the skill, starting at
-Stage 0.
+Clone https://github.com/EasierThanYouThink/channel-maker.git into this
+folder, then read .claude/skills/channel-maker/SKILL.md and README.md, run
+the full environment setup (venv, dependencies, service checks), and walk me
+through creating a YouTube channel in <your niche here> per the skill,
+starting at Stage 0.
 ```
+
+That's it — Claude clones the repo, installs everything, checks the
+machine (Hermes Agent for public web research, a local model, voice, Node),
+and starts the channel walkthrough with you. Nothing here has its own
+scraper; public web research goes through Hermes (see Stage 0 of the skill).
 
 ### Other coding agents
 
