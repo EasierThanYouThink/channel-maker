@@ -7,10 +7,11 @@ foundation, Script/Visual/Motion DNA, identity, asset library, pilot, then
 ongoing episodes — every irreversible step gated on a real human decision,
 enforced in code.
 
-> Still in beta development — this skill was created by a developer, for
-> developers. If something breaks, report it as a bug; if you want to help
-> shape it, get in contact. This project exists to support the Claude
-> developer community.
+> [!WARNING]
+> **Public Beta:** Channel Maker is under active development. Expect rough
+> edges and workflow changes. Back up channel projects before upgrading, and
+> report problems through GitHub Issues. Feedback and contributions from the
+> Claude developer community are welcome.
 
 <video src="https://github.com/user-attachments/assets/e0c09a15-ec66-4430-91aa-c5fdb87bacb5" controls width="640"></video>
 
