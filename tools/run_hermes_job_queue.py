@@ -17,6 +17,7 @@ from datetime import UTC, datetime
 from pathlib import Path
 
 from _core import ROOT, ChannelMakerError, load_json, write_json_atomic
+from _hermes_queue import find_job_path
 
 RESPONSE_REQUIRED_FIELDS = ("worker", "model", "prompt_version", "collected_at")
 METADATA_REQUIRED_FIELDS = ("status", "worker", "runtime", "model", "request_sha256", "ended_at", "review_required")
@@ -28,7 +29,8 @@ def claim(queue_dir: Path, job_id: str | None) -> dict[str, object]:
     pending.mkdir(parents=True, exist_ok=True)
     running.mkdir(parents=True, exist_ok=True)
     if job_id is not None:
-        candidates = [pending / f"{job_id}.json"]
+        selected = find_job_path(pending, job_id)
+        candidates = [] if selected is None else [selected]
     else:
         candidates = sorted(pending.glob("*.json"))
     for candidate in candidates:
@@ -51,8 +53,8 @@ def claim(queue_dir: Path, job_id: str | None) -> dict[str, object]:
 
 
 def complete(queue_dir: Path, job_id: str) -> dict[str, object]:
-    running_path = queue_dir / "running" / f"{job_id}.json"
-    if not running_path.is_file():
+    running_path = find_job_path(queue_dir / "running", job_id)
+    if running_path is None:
         raise ChannelMakerError(f"job is not running: {job_id}")
     job = load_json(running_path)
 
@@ -80,8 +82,8 @@ def complete(queue_dir: Path, job_id: str) -> dict[str, object]:
 
 
 def fail(queue_dir: Path, job_id: str, error: str) -> dict[str, object]:
-    running_path = queue_dir / "running" / f"{job_id}.json"
-    if not running_path.is_file():
+    running_path = find_job_path(queue_dir / "running", job_id)
+    if running_path is None:
         raise ChannelMakerError(f"job is not running: {job_id}")
     job = load_json(running_path)
     job.update({"status": "failed", "ended_at": datetime.now(UTC).isoformat(), "error": error})

@@ -14,6 +14,7 @@ from _core import (
     sha256_file,
     write_json_atomic,
 )
+from _hermes_queue import find_job_path, job_path
 
 REQUIRED_REQUEST_FIELDS = ("mode", "channel_id", "study_id", "target")
 
@@ -25,9 +26,9 @@ def submit(request_path: Path, queue_dir: Path, output: Path | None, metadata: P
         raise ChannelMakerError(f"collection request is missing required fields: {missing}")
     digest = content_hash({"request_sha256": sha256_file(request_path), "worker": "hermes-agent"})
     job_id = f"hermes-collection:{request['channel_id']}:{request['study_id']}:{digest[:12]}"
-    target = queue_dir / "pending" / f"{job_id}.json"
-    response = output or queue_dir / "responses" / f"{job_id}.json"
-    run_metadata = metadata or queue_dir / "runs" / f"{job_id}.json"
+    target = job_path(queue_dir / "pending", job_id)
+    response = output or job_path(queue_dir / "responses", job_id)
+    run_metadata = metadata or job_path(queue_dir / "runs", job_id)
     job = {
         "schema_version": "1.0.0",
         "artifact_type": "hermes_collection_job",
@@ -40,12 +41,13 @@ def submit(request_path: Path, queue_dir: Path, output: Path | None, metadata: P
         "submitted_at": datetime.now(UTC).isoformat(),
         "attempt": 0,
     }
-    if target.exists():
-        existing = load_json(target)
+    existing_path = find_job_path(queue_dir / "pending", job_id)
+    if existing_path is not None:
+        existing = load_json(existing_path)
         comparable_keys = job.keys() - {"submitted_at"}
         if {key: existing.get(key) for key in comparable_keys} != {key: job[key] for key in comparable_keys}:
-            raise ChannelMakerError(f"refusing to overwrite a different queued job: {target}")
-        return target
+            raise ChannelMakerError(f"refusing to overwrite a different queued job: {existing_path}")
+        return existing_path
     write_json_atomic(target, job)
     return target
 
