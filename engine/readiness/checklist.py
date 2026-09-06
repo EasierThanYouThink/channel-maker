@@ -130,22 +130,30 @@ def check_readiness(package_root: Path, repository_root: Path) -> dict[str, Any]
         "Script DNA is missing, invalid, or not yet frozen." if not script_ok else "Recorded.",
     ))
 
-    # 4/5. Visual and Motion DNA: every domain frozen.
+    # 4/5. Visual and Motion DNA: every domain frozen, plus the approved
+    # system proof (composed frame for visual, narrated sample for motion).
+    from engine.design import approved_composition, approved_motion_sample, composition_path, motion_sample_path
+
     dna_results: dict[str, bool] = {}
     for kind in ("visual", "motion"):
         path = seed_path(kind, root)
+        proof_ok = approved_composition(root) if kind == "visual" else approved_motion_sample(root)
+        proof_path = composition_path(root) if kind == "visual" else motion_sample_path(root)
         ok = False
         if path.is_file():
             try:
                 document = yaml.safe_load(path.read_text(encoding="utf-8"))
-                ok = all_domains_frozen(kind, document)
+                ok = all_domains_frozen(kind, document) and proof_ok
             except yaml.YAMLError:
                 ok = False
         dna_results[kind] = ok
+        refs = [str(path.relative_to(repository_root))] if path.is_file() else []
+        if proof_ok:
+            refs.append(str(proof_path.relative_to(repository_root)))
         items.append(_item(
-            f"{kind}_dna_frozen", f"{kind.title()} DNA: every domain frozen", ok,
-            [str(path.relative_to(repository_root))] if ok else [],
-            f"{kind.title()} DNA seed is missing or has at least one unfrozen domain." if not ok else "Recorded.",
+            f"{kind}_dna_frozen", f"{kind.title()} DNA: every domain frozen plus the approved system proof", ok,
+            refs if ok else [],
+            f"{kind.title()} DNA seed is missing, has an unfrozen domain, or lacks its approved system proof." if not ok else "Recorded.",
         ))
 
     # 5b. Channel Identity: logo and description both frozen.

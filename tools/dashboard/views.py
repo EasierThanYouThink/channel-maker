@@ -221,7 +221,8 @@ def channel_overview(root: Path, channel_id: str) -> dict[str, Any]:
 def review_queue(root: Path) -> dict[str, list[dict[str, Any]]]:
     channels_root = root / "channels"
     queue: dict[str, list[dict[str, Any]]] = {
-        "script_examples": [], "design_exemplars": [], "identity_candidates": [], "asset_components": [],
+        "script_examples": [], "design_exemplars": [], "design_system_proofs": [],
+        "identity_candidates": [], "asset_components": [],
         "pilots": [], "episodes": [], "niche_opportunities": [],
     }
     if not channels_root.is_dir():
@@ -234,6 +235,11 @@ def review_queue(root: Path) -> dict[str, list[dict[str, Any]]]:
         for record in _json_records(package_root / "design" / "exemplars" / "records"):
             if record.get("classification") == "experimental":
                 queue["design_exemplars"].append({"channel_id": channel_id, **record})
+        for proof_file in (package_root / "design" / "composition-check.json", package_root / "motion" / "motion-sample.json"):
+            if proof_file.is_file():
+                record = json.loads(proof_file.read_text(encoding="utf-8"))
+                if record.get("classification") == "experimental":
+                    queue["design_system_proofs"].append({"channel_id": channel_id, **record})
         for record in _json_records(package_root / "identity" / "candidates" / "records"):
             if record.get("classification") == "experimental":
                 queue["identity_candidates"].append({"channel_id": channel_id, **record})

@@ -135,6 +135,20 @@ def test_full_incremental_build_flips_every_item_and_persists_at_the_end(tmp_pat
         add_reference("visual", package, tmp_path, domain=domain, exemplar_id=record["exemplar_id"])
     for domain in ("visual_identity", "typography", "color_language", "composition_grammar", "scene_aesthetics"):
         freeze_domain("visual", package, tmp_path, domain=domain, human_confirmed=True, decision_ref=any_ref)
+    from engine.design import record_composition, review_composition
+    from engine.production.probing import encode_minimal_png
+
+    approved_id = exemplar_store.list(classification="approved")[0]["exemplar_id"]
+    composed = tmp_path / "src" / "composed.png"
+    composed.write_bytes(encode_minimal_png(width=8, height=4))
+    record_composition(
+        package, tmp_path, image=composed, exemplar_ids=[approved_id],
+        created_by="Seb", source_ref="manual",
+    )
+    review_composition(
+        package, tmp_path, decision="approved", reviewer="Seb",
+        reason="System holds.", human_confirmed=True,
+    )
     report = check_readiness(package, tmp_path)
     assert item_status(report, "visual_dna_frozen")
     assert item_status(report, "approved_exemplar")
@@ -148,6 +162,21 @@ def test_full_incremental_build_flips_every_item_and_persists_at_the_end(tmp_pat
     exemplar_store.review(motion_record["exemplar_id"], decision="approved", reviewer="Seb", reason="Matches.", created_at=AT, human_confirmed=True)
     add_reference("motion", package, tmp_path, domain="motion_identity", exemplar_id=motion_record["exemplar_id"])
     freeze_domain("motion", package, tmp_path, domain="motion_identity", human_confirmed=True, decision_ref=any_ref)
+    from engine.design import record_motion_sample, review_motion_sample
+    from engine.production.probing import encode_minimal_mp4
+
+    narration = tmp_path / "script.md"
+    narration.write_text("# Narration\n", encoding="utf-8")
+    sample_video = tmp_path / "src" / "motion-sample.mp4"
+    sample_video.write_bytes(encode_minimal_mp4())
+    record_motion_sample(
+        package, tmp_path, video=sample_video, narration_ref="script.md",
+        created_by="Seb", source_ref="manual",
+    )
+    review_motion_sample(
+        package, tmp_path, decision="approved", reviewer="Seb",
+        reason="Moves well.", human_confirmed=True,
+    )
     # DESIGN_DNA_DISCOVERY exits only once both visual and motion seeds are fully frozen.
     machine.advance("DESIGN_DNA_DISCOVERY", next_action="n", actor="a", reason="r", prerequisite_refs=[any_ref])
     report = check_readiness(package, tmp_path)

@@ -330,6 +330,7 @@ def _walkthrough_init_to_ready(root: Path, tmp_path: Path) -> None:
         ("color_language", "ref-color.png"), ("composition_grammar", "ref-comp.png"),
         ("scene_aesthetics", "ref-scene.png"), ("motion_identity", "ref-motion.png"),
     ]
+    visual_exemplar_id = None
     for domain, filename in exemplars:
         image = make_png(tmp_path / "src" / filename)
         kind = "motion" if domain == "motion_identity" else "visual"
@@ -337,6 +338,8 @@ def _walkthrough_init_to_ready(root: Path, tmp_path: Path) -> None:
                        "--title", domain, "--domain", domain, "--provenance-kind", "human_supplied_original",
                        "--created-by", REVIEWER, "--source-ref", "walkthrough")
         exemplar_id = out["exemplar_id"]
+        if domain == "visual_identity":
+            visual_exemplar_id = exemplar_id
         cli(root, "design_exemplars.py", "--channel", CHANNEL_ID, "review", exemplar_id,
             "--decision", "approved", "--reviewer", REVIEWER, "--reason", "Walkthrough approval.", "--yes")
         cli(root, "design_dna.py", kind, "add-reference", str(package),
@@ -347,6 +350,29 @@ def _walkthrough_init_to_ready(root: Path, tmp_path: Path) -> None:
             "--domain", domain, "--decision-ref", design_note, "--yes")
     cli(root, "design_dna.py", "motion", "freeze-domain", str(package),
         "--domain", "motion_identity", "--decision-ref", design_note, "--yes")
+    # System proofs: the composed frame and the narrated sample are enforced
+    # artifacts — check-ready refuses without their approvals.
+    from engine.production.probing import encode_minimal_mp4, encode_minimal_png
+
+    composed = tmp_path / "src" / "composed.png"
+    composed.write_bytes(encode_minimal_png(width=8, height=4))
+    cli(root, "design_dna.py", "visual", "record-composition", str(package),
+        "--image", str(composed), "--exemplar-id", visual_exemplar_id,
+        "--created-by", REVIEWER, "--source-ref", "walkthrough")
+    cli(root, "design_dna.py", "visual", "review-composition", str(package),
+        "--decision", "approved", "--reviewer", REVIEWER,
+        "--reason", "System holds together.", "--yes")
+    sample_video = tmp_path / "src" / "motion-sample.mp4"
+    sample_video.write_bytes(encode_minimal_mp4())
+    cli(root, "design_dna.py", "motion", "record-sample", str(package),
+        "--video", str(sample_video),
+        "--narration-ref", f"channels/{CHANNEL_ID}/script/audition-timing.json",
+        "--created-by", REVIEWER, "--source-ref", "walkthrough")
+    cli(root, "design_dna.py", "motion", "review-sample", str(package),
+        "--decision", "approved", "--reviewer", REVIEWER,
+        "--reason", "Moves like us.", "--yes")
+    cli(root, "design_dna.py", "visual", "check-ready", str(package))
+    cli(root, "design_dna.py", "motion", "check-ready", str(package))
     advance(root, package, "DESIGN_DNA_DISCOVERY",
             prerequisite_ref=f"channels/{CHANNEL_ID}/script/script-dna.yaml")
     nxt = cli_json(root, "channel_state.py", "next", str(package))

@@ -91,6 +91,16 @@ ACTIONS: dict[str, ActionSpec] = {
         flags={"decision": "--decision", "reviewer": "--reviewer", "reason": "--reason"},
         gated=True, confirmed_by_field="reviewer",
     ),
+    "review_composition": ActionSpec(
+        argv=["tools/design_dna.py", "visual", "review-composition", "{package_root}"],
+        flags={"decision": "--decision", "reviewer": "--reviewer", "reason": "--reason"},
+        gated=True, confirmed_by_field="reviewer",
+    ),
+    "review_motion_sample": ActionSpec(
+        argv=["tools/design_dna.py", "motion", "review-sample", "{package_root}"],
+        flags={"decision": "--decision", "reviewer": "--reviewer", "reason": "--reason"},
+        gated=True, confirmed_by_field="reviewer",
+    ),
     "freeze_identity_domain": ActionSpec(
         argv=["tools/channel_identity.py", "freeze-domain", "{package_root}"],
         flags={"domain": "--domain", "decision_ref": "--decision-ref"},
