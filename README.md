@@ -1,5 +1,9 @@
 # Channel Maker
 
+![check](https://github.com/EasierThanYouThink/channel-maker/actions/workflows/check.yml/badge.svg)
+![version](https://img.shields.io/github/v/tag/EasierThanYouThink/channel-maker)
+![license](https://img.shields.io/github/license/EasierThanYouThink/channel-maker)
+
 A complete YouTube channel-making methodology for your coding agent, built on
 one composable skill and an evidence-first engine that enforces it. V1 is
 CREATE-only and niche-driven: niche research, video teardowns, channel
@@ -7,10 +11,14 @@ foundation, Script/Visual/Motion DNA, identity, asset library, pilot, then
 ongoing episodes — every irreversible step gated on a real human decision,
 enforced in code.
 
+A 14-second 1080p render in the style this workflow produces (bold kinetic
+typography hook — one of the approved headline directions):
+
+<video src="https://github.com/user-attachments/assets/e0c09a15-ec66-4430-91aa-c5fdb87bacb5" controls width="640"></video>
+
 Table of Contents
 
 - [How it works](#how-it-works)
-- [Demo](#demo)
 - [Getting Started](#getting-started)
   - [Claude Code](#claude-code)
   - [Other coding agents](#other-coding-agents)
@@ -23,6 +31,7 @@ Table of Contents
 - [Contributing](#contributing)
 - [Updating](#updating)
 - [Verify](#verify)
+- [FAQ](#faq)
 - [License](#license)
 
 ## How it works
@@ -43,14 +52,11 @@ videos through an episode loop that never touches the frozen channel version.
 And because channel state lives in files, not in the conversation, any fresh
 session resumes exactly where you stopped.
 
-## Demo
-
-A 14-second 1080p render in the style this workflow produces (bold kinetic
-typography hook — one of the approved headline directions):
-
-<video src="https://github.com/user-attachments/assets/e0c09a15-ec66-4430-91aa-c5fdb87bacb5" controls width="640"></video>
-
 ## Getting Started
+
+> **What you'll need:** ~10 minutes, ~7GB of disk (mostly the local research
+> model), everything on your own machine — no API keys, no GPU, no cloud bill.
+> Details per OS: [`docs/SETUP.md`](docs/SETUP.md).
 
 ### Claude Code
 
@@ -199,6 +205,31 @@ public issue.
 
 Runs schema/channel/memory/niche-intelligence validation and the full pytest
 suite.
+
+## FAQ
+
+**Do I need a GPU?**
+No. TTS, research models, and all tooling run on CPU. Rendering speed
+depends on whatever renderer your channel declares.
+
+**What does it cost?**
+Time, disk (~7GB for the local research model), and decisions. No API keys,
+no subscriptions, nothing phones home.
+
+**Isn't this just AI slop at scale?**
+The workflow is built to resist exactly that: every freeze, review, and
+GO/REVISE call requires a recorded human decision, enforced in code — scores
+and metrics only advise. If you wave everything through, you'll get slop
+faster. That's on you, and the gates make sure you know it.
+
+**How long until my first channel is ready?**
+Days of real decisions, not minutes. The pilot alone is a full
+script → voice → visuals → render → review loop. Anyone promising faster is
+selling a different thing.
+
+**Built something with Channel Maker?**
+Open a PR adding it to this section — show the channel, tell us what the
+gates caught. Real examples beat every paragraph above.
 
 ## License
 
