@@ -24,6 +24,7 @@ Table of Contents
 - [Control panel](#control-panel-interactive)
 - [Voice](#voice)
 - [Rendering](#rendering)
+- [Tools it stands on](#tools-it-stands-on)
 - [What's Inside](#whats-inside)
 - [Philosophy](#philosophy)
 - [Contributing](#contributing)
@@ -154,6 +155,23 @@ channel, picked once and reused.
 Stage 9 (pilot production) doesn't assume a specific rendering pipeline — see
 [`docs/RENDER_CONTRACT.md`](docs/RENDER_CONTRACT.md) for the evidence contract
 any renderer must satisfy.
+
+## Tools it stands on
+
+One channel run touches every service below; the skill, the wiki, and the
+control panel bind them into a single creator workflow. Nothing here phones
+home — research and voice run on your machine or through your own setups.
+
+| Tool | What it's used for here | Required? |
+|---|---|---|
+| [Hermes Agent](https://hermes-agent.nousresearch.com) | Public niche/market research: pulls competitor channel/video stats, opens breakout videos (screenshots included) for what-works teardowns. Raw numbers are shown to you before anything is imported. | Yes, for Stage 2 |
+| Ollama + `ornith-1.5:9b` | Local model behind Hermes (~6.6GB one-time pull). Hermes points at it instead of any cloud API. | Yes, for Stage 2 |
+| Piper TTS (`lessac-medium`) | Channel voice: fully offline narration synthesis plus measured timing evidence every visual beat keys off. Model (~60MB) auto-downloads on first use. One voice per channel, picked once and enforced. | Yes, for pilot/episodes |
+| Remotion (or any renderer) | Turns timed beats and components into the actual video file. Any pipeline works as long as it satisfies the evidence contract — Remotion is one valid choice, not a dependency. | Yes, for pilot/episodes |
+| Obsidian | Human-readable learning memory: each channel folder *is* a vault (graph view works out of the box), and the style snapshot visibly accumulates lessons after every freeze and episode. | Optional, recommended |
+| YouTube (public pages) | Evidence source only — public stats and captions the new channel learns *what's working* from, never to copy. Publishing the finished render stays manual, by you. | As a data source |
+| Node/npm | Only needed if your channel's renderer is Remotion. | Only for Remotion |
+| This repo's dashboard | Local-only (127.0.0.1) control panel: workflow progress, unified review queue, wiki browsing, confirm-gated freeze/review/GO buttons. | Optional, recommended |
 
 ## What's Inside
 
