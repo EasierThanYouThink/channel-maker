@@ -314,6 +314,14 @@ class Handler(BaseHTTPRequestHandler):
                 "application/json",
             )
             return
+        content_type = self.headers.get("Content-Type", "").partition(";")[0].strip().lower()
+        if content_type != "application/json":
+            self._send(
+                415,
+                json.dumps({"error": "dashboard actions require application/json"}).encode("utf-8"),
+                "application/json",
+            )
+            return
         length = int(self.headers.get("Content-Length", "0"))
         try:
             request = json.loads(self.rfile.read(length) or b"{}")

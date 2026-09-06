@@ -45,6 +45,15 @@ def post_action(server, payload: dict, *, headers: dict[str, str] | None = None)
     return response.status, response_body
 
 
+def raw_post_action(server, body: str, *, headers: dict[str, str]):
+    connection = http.client.HTTPConnection(*server.server_address)
+    connection.request("POST", "/action", body=body, headers=headers)
+    response = connection.getresponse()
+    response_body = json.loads(response.read())
+    connection.close()
+    return response.status, response_body
+
+
 def write_package(root: Path, channel_id: str = "dash-channel") -> Path:
     package = root / "channels" / channel_id
     package.mkdir(parents=True)
@@ -152,6 +161,27 @@ def test_dashboard_rejects_cross_origin_action_with_valid_token() -> None:
 
     assert status == 403
     assert "origin" in body["error"]
+    dispatch.assert_not_called()
+
+
+def test_dashboard_rejects_non_json_action_with_valid_token() -> None:
+    result = SimpleNamespace(returncode=0, stdout="", stderr="")
+    payload = json.dumps({"action": "advance", "params": {}, "confirmed": True})
+    with (
+        patch("tools.dashboard.server.run_action", return_value=result) as dispatch,
+        running_dashboard() as server,
+    ):
+        status, body = raw_post_action(
+            server,
+            payload,
+            headers={
+                "Content-Type": "text/plain",
+                ACTION_TOKEN_HEADER: ACTION_TOKEN,
+            },
+        )
+
+    assert status == 415
+    assert "application/json" in body["error"]
     dispatch.assert_not_called()
 
 
