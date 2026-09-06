@@ -70,9 +70,11 @@ Byte-level media probing is stdlib-only (`engine/production/probing.py`, no
 new binary dependencies): voiceover WAV files fully decode (header, frames,
 duration), render MP4 files prove an `ftyp` container (container-level only —
 not a decode check), PNG stills prove signature + IHDR. Corrupt media blocks
-a GO via `check_production`; anything else stays hash-bound. Decoded video
-dimensions, decoded duration, and audio presence remain future work pending
-a pinned probing tool.
+a GO via `check_production`; anything else stays hash-bound. Opt-in strict
+mode (`record-review --strict-media`) additionally decode-verifies the render
+via `ffprobe` — dimensions, positive duration, narrated audio track — and
+fails loudly when no decoder is installed, so decoder-less machines are never
+silently gated on it.
 
 ## Word-timing caveat
 

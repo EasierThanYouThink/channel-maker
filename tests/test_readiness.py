@@ -244,7 +244,7 @@ def test_full_incremental_build_flips_every_item_and_persists_at_the_end(tmp_pat
         scene_candidate_manifest_paths=["evidence/pilot-scene.json"],
         evaluation_result_paths=["evidence/pilot-eval.json"],
         script_ref="evidence/pilot-script.md", voiceover_ref="evidence/pilot-voiceover.wav",
-        render_ref="evidence/pilot-render.mp4",
+        voice="lessac-medium", render_ref="evidence/pilot-render.mp4",
     )
     machine.advance("PILOT_PRODUCTION", next_action="n", actor="a", reason="r", prerequisite_refs=[any_ref])
     machine.advance("PILOT_REVIEW", next_action="n", actor="a", reason="r", prerequisite_refs=[any_ref])

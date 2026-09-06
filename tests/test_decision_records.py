@@ -151,7 +151,7 @@ def test_pilot_review_binds_marked_note_to_decision_and_rev(tmp_path: Path) -> N
         scene_candidate_manifest_paths=["evidence/scene.json"],
         evaluation_result_paths=["evidence/eval.json"],
         script_ref="evidence/script.md", voiceover_ref="evidence/voiceover.wav",
-        render_ref="evidence/render.mp4",
+        voice="lessac-medium", render_ref="evidence/render.mp4",
     )
     from engine.pilot import pilot_path
     from engine.production import production_revision

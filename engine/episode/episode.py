@@ -91,7 +91,8 @@ def plan_episode(
             "opportunity_ref": opportunity_ref,
         },
         "production": {
-            "script_ref": None, "voiceover_ref": None, "scene_candidate_manifest_refs": [],
+            "script_ref": None, "voiceover_ref": None, "voice_name": None,
+            "scene_candidate_manifest_refs": [],
             "evaluation_result_refs": [], "render_ref": None, "production_log_ref": None,
             "revision": None,
         },
@@ -109,6 +110,25 @@ def plan_episode(
     return path
 
 
+def _frozen_pilot_voice(package_root: Path) -> str | None:
+    """Voice of the channel's frozen pilot, if one is pinned.
+
+    Fail-open by design: missing pointer, unreadable pilot, or a pilot
+    recorded before voice tracking all mean "no channel voice yet" — those
+    documents are validated by the pilot engine, not here.
+    """
+    try:
+        pointer = json.loads((package_root / "current-release.json").read_text(encoding="utf-8"))
+        pilot_id = pointer.get("pilot_id")
+        if not isinstance(pilot_id, str):
+            return None
+        pilot = json.loads((package_root / "pilots" / pilot_id / "pilot.json").read_text(encoding="utf-8"))
+        voice = pilot.get("production", {}).get("voice_name")
+        return voice if isinstance(voice, str) and voice else None
+    except (OSError, json.JSONDecodeError):
+        return None
+
+
 def _evidence_ref(repository_root: Path, relative_path: str) -> dict[str, Any]:
     resolved = (repository_root / relative_path).resolve()
     if not resolved.is_relative_to(repository_root) or not resolved.is_file():
@@ -124,6 +144,7 @@ def record_production(
     *,
     script_ref: str | None = None,
     voiceover_ref: str | None = None,
+    voice: str | None = None,
     scene_candidate_manifest_paths: list[str] = (),
     evaluation_result_paths: list[str] = (),
     render_ref: str | None = None,
@@ -137,6 +158,24 @@ def record_production(
         production["script_ref"] = script_ref
     if voiceover_ref is not None:
         production["voiceover_ref"] = voiceover_ref
+        # One voice per channel: narration always arrives with its voice
+        # named; a second voice under one production — or under a channel
+        # whose frozen pilot already speaks with another voice — is refused.
+        if not (voice or "").strip():
+            raise EpisodeValidationError(
+                f"recording narration for episode {episode_id} requires --voice (one voice per channel)"
+            )
+        current = production.get("voice_name")
+        if current is not None and current != voice.strip():
+            raise EpisodeValidationError(
+                f"episode {episode_id} already uses voice {current!r}; refusing second voice {voice.strip()!r}"
+            )
+        frozen_voice = _frozen_pilot_voice(package.root)
+        if frozen_voice is not None and frozen_voice != voice.strip():
+            raise EpisodeValidationError(
+                f"channel's frozen pilot uses voice {frozen_voice!r}; episode {episode_id} must reuse it, got {voice.strip()!r}"
+            )
+        production["voice_name"] = voice.strip()
     if render_ref is not None:
         production["render_ref"] = render_ref
     if production_log_ref is not None:
@@ -206,6 +245,7 @@ def record_review(
     rationale: str,
     decision_ref: str,
     decided_at: str | None = None,
+    strict_media: bool = False,
 ) -> Path:
     if not decision_ref.strip():
         raise EpisodeValidationError("recording an episode review decision requires a non-empty decision_ref")
@@ -251,7 +291,7 @@ def record_review(
         try:
             require_complete(
                 document["production"], repository_root=repository_root,
-                label=f"episode {episode_id}",
+                label=f"episode {episode_id}", strict_media=strict_media,
             )
         except ProductionIncompleteError as exc:
             raise EpisodeValidationError(str(exc)) from exc

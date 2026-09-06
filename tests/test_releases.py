@@ -94,7 +94,7 @@ def produce_pilot(package: Path, root: Path) -> None:
         package, root, "pilot-1",
         scene_candidate_manifest_paths=["evidence/scene.json"],
         evaluation_result_paths=["evidence/eval.json"],
-        script_ref="evidence/script.md", voiceover_ref="evidence/voiceover.wav",
+        script_ref="evidence/script.md", voiceover_ref="evidence/voiceover.wav", voice="lessac-medium",
         render_ref="evidence/render.mp4",
     )
 
@@ -217,7 +217,7 @@ def test_episode_go_pins_current_release(tmp_path: Path) -> None:
         package, tmp_path, "ep-1",
         scene_candidate_manifest_paths=["evidence/scene.json"],
         evaluation_result_paths=["evidence/eval.json"],
-        script_ref="evidence/script.md", voiceover_ref="evidence/voiceover.wav",
+        script_ref="evidence/script.md", voiceover_ref="evidence/voiceover.wav", voice="lessac-medium",
         render_ref="evidence/render.mp4",
     )
     record_episode_review(package, tmp_path, "ep-1", decision="GO", decided_by="Seb",
@@ -237,7 +237,7 @@ def test_episode_go_without_release_pins_null(tmp_path: Path) -> None:
         package, tmp_path, "ep-1",
         scene_candidate_manifest_paths=["evidence/scene.json"],
         evaluation_result_paths=["evidence/eval.json"],
-        script_ref="evidence/script.md", voiceover_ref="evidence/voiceover.wav",
+        script_ref="evidence/script.md", voiceover_ref="evidence/voiceover.wav", voice="lessac-medium",
         render_ref="evidence/render.mp4",
     )
     record_episode_review(package, tmp_path, "ep-1", decision="GO", decided_by="Seb",

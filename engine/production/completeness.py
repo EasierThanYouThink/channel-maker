@@ -84,6 +84,7 @@ def _exists(repository_root: Path, ref: str | None) -> bool:
 
 def check_production(
     production: dict[str, Any], *, repository_root: Path, label: str,
+    strict_media: bool = False,
 ) -> list[str]:
     """Return a list of missing-production problems; empty means complete.
 
@@ -91,10 +92,15 @@ def check_production(
     here — this check establishes that the production exists at all, and that
     its media files are structurally sound per engine.production.probing
     (WAV fully decoded; MP4 container-level; other suffixes existence-only).
-    Decoded video dimensions/duration still need a pinned probing tool
-    (see docs/RENDER_CONTRACT.md).
+    With strict_media=True the render additionally decode-probes via ffprobe
+    (dimensions, positive duration, narrated audio track) when ffprobe is
+    available — and fails loudly when it is not (see docs/RENDER_CONTRACT.md).
     """
-    from engine.production.probing import probe_file
+    from engine.production.probing import (
+        ffprobe_available,
+        probe_file,
+        probe_mp4_decode,
+    )
 
     repository_root = repository_root.resolve()
     problems: list[str] = []
@@ -133,13 +139,22 @@ def check_production(
             problems.append(f"{label}: render file is empty: {render_ref}")
         else:
             probe_media(render_ref)
+            if strict_media and resolved.suffix.lower() == ".mp4":
+                # Strict decode is opt-in and explicit: without ffprobe it
+                # cannot verify, so it refuses instead of silently passing.
+                if not ffprobe_available():
+                    problems.append(f"{label}: strict media demands ffprobe, which is not installed")
+                else:
+                    decode = probe_mp4_decode(resolved)
+                    problems.extend(f"{label}: {problem}" for problem in decode["problems"])
     return problems
 
 
 def require_complete(
     production: dict[str, Any], *, repository_root: Path, label: str,
+    strict_media: bool = False,
 ) -> None:
-    problems = check_production(production, repository_root=repository_root, label=label)
+    problems = check_production(production, repository_root=repository_root, label=label, strict_media=strict_media)
     if problems:
         raise ProductionIncompleteError(
             "production is not complete; a GO decision requires a real, exact production:\n"

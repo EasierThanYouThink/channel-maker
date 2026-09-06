@@ -4,18 +4,28 @@ WAV files fully decode; MP4 files prove an ftyp container (labeled
 container-level — not a decode check); PNG files prove signature + IHDR.
 Corrupt media blocks a GO via check_production; unknown suffixes stay
 hash-bound only (probed False, never a failure).
+
+Opt-in strict decode (ffprobe dimensions, duration, narrated audio) is
+fail-open without ffprobe and blocking with it; fixtures stay stubs so the
+default gate never needs a decoder.
 """
 
 from __future__ import annotations
 
+import shutil
+import subprocess
 from pathlib import Path
+
+import pytest
 
 from engine.production.completeness import check_production
 from engine.production.probing import (
     encode_minimal_mp4,
     encode_minimal_png,
     encode_minimal_wav,
+    ffprobe_available,
     probe_file,
+    probe_mp4_decode,
 )
 
 
@@ -95,6 +105,73 @@ def _production(tmp_path: Path, *, voiceover: bytes, render: bytes) -> dict:
         "production_log_ref": None,
         "revision": None,
     }
+
+
+def _real_mp4(path: Path) -> Path:
+    """One second of test video + tone: a genuinely decodable fixture."""
+    path.parent.mkdir(parents=True, exist_ok=True)
+    subprocess.run(
+        ["ffmpeg", "-v", "error", "-y",
+         "-f", "lavfi", "-i", "testsrc=size=64x64:rate=10:duration=1",
+         "-f", "lavfi", "-i", "sine=frequency=440:duration=1",
+         "-pix_fmt", "yuv420p", "-shortest", str(path)],
+        check=True, capture_output=True,
+    )
+    return path
+
+
+needs_ffmpeg = pytest.mark.skipif(
+    shutil.which("ffmpeg") is None or shutil.which("ffprobe") is None,
+    reason="ffmpeg/ffprobe required for decode tests",
+)
+
+
+@needs_ffmpeg
+def test_decode_probe_accepts_real_render(tmp_path: Path) -> None:
+    video = _real_mp4(tmp_path / "real.mp4")
+    report = probe_mp4_decode(video)
+    assert report["probed"] is True and report["problems"] == []
+    assert (report["details"]["width"], report["details"]["height"]) == (64, 64)
+    assert report["details"]["duration_s"] > 0
+    assert report["details"]["has_audio"] is True
+
+
+@needs_ffmpeg
+def test_decode_probe_rejects_container_stub(tmp_path: Path) -> None:
+    stub = tmp_path / "stub.mp4"
+    stub.write_bytes(encode_minimal_mp4())
+    report = probe_mp4_decode(stub)
+    assert report["probed"] is True and report["problems"]
+
+
+def test_decode_probe_is_fail_open_without_ffprobe(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("PATH", "")
+    assert not ffprobe_available()
+    stub = tmp_path / "stub.mp4"
+    stub.write_bytes(encode_minimal_mp4())
+    report = probe_mp4_decode(stub)
+    assert report == {"probed": False, "problems": [], "details": {"reason": "ffprobe unavailable"}}
+
+
+@needs_ffmpeg
+def test_strict_media_blocks_stub_but_passes_real_render(tmp_path: Path) -> None:
+    production = _production(tmp_path, voiceover=encode_minimal_wav(), render=encode_minimal_mp4())
+    assert check_production(production, repository_root=tmp_path, label="pilot x") == []
+    strict = check_production(production, repository_root=tmp_path, label="pilot x", strict_media=True)
+    assert strict
+
+    production = _production(tmp_path, voiceover=encode_minimal_wav(), render=encode_minimal_mp4())
+    (tmp_path / "render.mp4").write_bytes(_real_mp4(tmp_path / "fresh.mp4").read_bytes())
+    assert check_production(production, repository_root=tmp_path, label="pilot x", strict_media=True) == []
+
+
+def test_strict_media_refuses_without_decoder(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("PATH", "")
+    production = _production(tmp_path, voiceover=encode_minimal_wav(), render=encode_minimal_mp4())
+    problems = check_production(production, repository_root=tmp_path, label="pilot x", strict_media=True)
+    assert any("ffprobe" in problem for problem in problems)
+    # Non-strict default is unaffected: stubs still pass without a decoder.
+    assert check_production(production, repository_root=tmp_path, label="pilot x") == []
 
 
 def test_check_production_blocks_corrupt_media_but_accepts_valid(tmp_path: Path) -> None:

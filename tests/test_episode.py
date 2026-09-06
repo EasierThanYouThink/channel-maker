@@ -84,7 +84,7 @@ def test_plan_produce_review_go_lifecycle(tmp_path: Path) -> None:
     record_production(
         package, tmp_path, "ep-001",
         scene_candidate_manifest_paths=["evidence/scene.json"], evaluation_result_paths=["evidence/eval.json"],
-        script_ref=media["script_ref"], voiceover_ref=media["voiceover_ref"],
+        script_ref=media["script_ref"], voiceover_ref=media["voiceover_ref"], voice="lessac-medium",
         render_ref=media["render_ref"],
     )
     path = episode_path(package, "ep-001")
@@ -116,7 +116,7 @@ def test_multiple_episodes_never_touch_channel_version(tmp_path: Path) -> None:
             package, tmp_path, episode_id,
             scene_candidate_manifest_paths=[f"{prefix}-scene.json"],
             evaluation_result_paths=[f"{prefix}-eval.json"],
-            script_ref=media["script_ref"], voiceover_ref=media["voiceover_ref"],
+            script_ref=media["script_ref"], voiceover_ref=media["voiceover_ref"], voice="lessac-medium",
             render_ref=media["render_ref"],
         )
         record_review(
@@ -134,6 +134,41 @@ def test_opportunity_ref_is_optional(tmp_path: Path) -> None:
     path = plan_episode(package, tmp_path, episode_id="ep-001", topic="t", target_duration_seconds=25.0)
     document = json.loads(path.read_text(encoding="utf-8"))
     assert document["plan"]["opportunity_ref"] is None
+
+
+def test_episode_voice_is_required_and_matches_frozen_pilot(tmp_path: Path) -> None:
+    package = write_package(tmp_path)
+    plan_episode(package, tmp_path, episode_id="ep-001", topic="t", target_duration_seconds=25.0)
+    media = write_production_media(tmp_path)
+    with pytest.raises(EpisodeValidationError, match="requires --voice"):
+        record_production(
+            package, tmp_path, "ep-001",
+            script_ref=media["script_ref"], voiceover_ref=media["voiceover_ref"],
+            render_ref=media["render_ref"],
+        )
+    # No frozen pilot pinned yet: the episode's own voice is accepted.
+    record_production(
+        package, tmp_path, "ep-001",
+        script_ref=media["script_ref"], voiceover_ref=media["voiceover_ref"],
+        voice="lessac-medium", render_ref=media["render_ref"],
+    )
+    with pytest.raises(EpisodeValidationError, match="already uses voice"):
+        record_production(
+            package, tmp_path, "ep-001",
+            voiceover_ref=media["voiceover_ref"], voice="other-voice",
+        )
+    # Once a frozen pilot pins the channel voice, episodes must reuse it.
+    (package / "current-release.json").write_text(json.dumps({"pilot_id": "pilot-1"}), encoding="utf-8")
+    pilot_dir = package / "pilots" / "pilot-1"
+    pilot_dir.mkdir(parents=True, exist_ok=True)
+    (pilot_dir / "pilot.json").write_text(json.dumps({"production": {"voice_name": "other-voice"}}), encoding="utf-8")
+    plan_episode(package, tmp_path, episode_id="ep-002", topic="t", target_duration_seconds=25.0)
+    with pytest.raises(EpisodeValidationError, match="frozen pilot uses voice"):
+        record_production(
+            package, tmp_path, "ep-002",
+            script_ref=media["script_ref"], voiceover_ref=media["voiceover_ref"],
+            voice="lessac-medium", render_ref=media["render_ref"],
+        )
 
 
 def test_record_review_rejects_empty_decision_ref(tmp_path: Path) -> None:

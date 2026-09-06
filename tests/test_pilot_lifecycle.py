@@ -78,7 +78,7 @@ def test_plan_produce_review_go_freeze_lifecycle(tmp_path: Path) -> None:
     record_production(
         package, tmp_path, "pilot-1",
         scene_candidate_manifest_paths=["evidence/scene.json"], evaluation_result_paths=["evidence/eval.json"],
-        script_ref=media["script_ref"], voiceover_ref=media["voiceover_ref"],
+        script_ref=media["script_ref"], voiceover_ref=media["voiceover_ref"], voice="lessac-medium",
         render_ref=media["render_ref"],
     )
     path = pilot_path(package, "pilot-1")
@@ -96,6 +96,28 @@ def test_plan_produce_review_go_freeze_lifecycle(tmp_path: Path) -> None:
     assert document["freeze"]["new_channel_version"] == "0.2.0"
     identity = yaml.safe_load((package / "channel.yaml").read_text(encoding="utf-8"))
     assert identity["version"] == "0.2.0"
+
+
+def test_production_refuses_missing_or_second_voice(tmp_path: Path) -> None:
+    package = write_package(tmp_path)
+    plan_pilot(package, tmp_path, pilot_id="pilot-1", topic="t", target_duration_seconds=25.0, integration_goals=["g"])
+    media = write_production_media(tmp_path)
+    with pytest.raises(PilotValidationError, match="requires --voice"):
+        record_production(
+            package, tmp_path, "pilot-1",
+            script_ref=media["script_ref"], voiceover_ref=media["voiceover_ref"],
+            render_ref=media["render_ref"],
+        )
+    record_production(
+        package, tmp_path, "pilot-1",
+        script_ref=media["script_ref"], voiceover_ref=media["voiceover_ref"],
+        voice="lessac-medium", render_ref=media["render_ref"],
+    )
+    with pytest.raises(PilotValidationError, match="already uses voice"):
+        record_production(
+            package, tmp_path, "pilot-1",
+            voiceover_ref=media["voiceover_ref"], voice="other-voice",
+        )
 
 
 def test_go_review_requires_complete_production(tmp_path: Path) -> None:

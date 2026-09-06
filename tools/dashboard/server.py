@@ -312,6 +312,7 @@ def main() -> int:
     args = parse_args()
     server = ThreadingHTTPServer(("127.0.0.1", args.port), Handler)
     print(f"Channel Maker dashboard: http://127.0.0.1:{args.port}/  (local only, Ctrl+C to stop)")
+    print("Security: this panel can record human-gated decisions — never expose it beyond this machine (no port forwarding, no container port publishing).")
     with suppress(KeyboardInterrupt):
         server.serve_forever()
     return 0

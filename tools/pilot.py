@@ -40,6 +40,7 @@ def parse_args() -> argparse.Namespace:
     production.add_argument("pilot_id")
     production.add_argument("--script-ref", default=None)
     production.add_argument("--voiceover-ref", default=None)
+    production.add_argument("--voice", default=None, help="Narration voice identity (required with --voiceover-ref; one voice per channel).")
     production.add_argument("--scene-candidate-manifest", action="append", default=[], dest="scene_candidate_manifest_paths")
     production.add_argument("--evaluation-result", action="append", default=[], dest="evaluation_result_paths")
     production.add_argument("--render-ref", default=None)
@@ -54,6 +55,7 @@ def parse_args() -> argparse.Namespace:
     review.add_argument("--decision-ref", required=True)
     review.add_argument("--revise-target", default=None)
     review.add_argument("--decided-at", default=None)
+    review.add_argument("--strict-media", action="store_true", help="Decode-probe the render via ffprobe (dimensions, duration, narrated audio); refuses when ffprobe is missing.")
     review.add_argument("--yes", action="store_true")
 
     freeze = subparsers.add_parser("freeze")
@@ -93,7 +95,8 @@ def main() -> int:
         elif args.command == "record-production":
             path = record_production(
                 args.package_root, args.root, args.pilot_id, script_ref=args.script_ref,
-                voiceover_ref=args.voiceover_ref, scene_candidate_manifest_paths=args.scene_candidate_manifest_paths,
+                voiceover_ref=args.voiceover_ref, voice=args.voice,
+                scene_candidate_manifest_paths=args.scene_candidate_manifest_paths,
                 evaluation_result_paths=args.evaluation_result_paths, render_ref=args.render_ref,
                 production_log_ref=args.production_log_ref,
             )
@@ -102,7 +105,7 @@ def main() -> int:
             path = record_review(
                 args.package_root, args.root, args.pilot_id, decision=args.decision, decided_by=args.decided_by,
                 rationale=args.rationale, decision_ref=args.decision_ref, revise_target=args.revise_target,
-                decided_at=args.decided_at,
+                decided_at=args.decided_at, strict_media=args.strict_media,
             )
         elif args.command == "freeze":
             _require_human_confirm(args, f"freeze for {args.pilot_id}")

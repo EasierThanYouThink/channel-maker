@@ -462,7 +462,7 @@ def _walkthrough_init_to_ready(root: Path, tmp_path: Path) -> None:
         root, package, voice_audio, voice_timing, render_ref, "v1")
     cli(root, "pilot.py", "record-production", str(package), "pilot-1",
         "--script-ref", f"channels/{CHANNEL_ID}/pilots/pilot-1/script.md",
-        "--voiceover-ref", voice_audio,
+        "--voiceover-ref", voice_audio, "--voice", "lessac-medium",
         "--scene-candidate-manifest", manifest_rel,
         "--evaluation-result", eval_rel,
         "--render-ref", render_ref)
@@ -483,7 +483,7 @@ def _walkthrough_init_to_ready(root: Path, tmp_path: Path) -> None:
         root, package, voice_audio, voice_timing, render_ref, "v2")
     cli(root, "pilot.py", "record-production", str(package), "pilot-1",
         "--script-ref", f"channels/{CHANNEL_ID}/pilots/pilot-1/script.md",
-        "--voiceover-ref", voice_audio,
+        "--voiceover-ref", voice_audio, "--voice", "lessac-medium",
         "--scene-candidate-manifest", manifest_rel,
         "--evaluation-result", eval_rel,
         "--render-ref", render_ref)
@@ -579,7 +579,7 @@ def _walkthrough_voice_and_episode(root: Path, tmp_path: Path) -> None:
     )
     cli(root, "episode.py", "record-production", str(package), "ep-voice",
         "--script-ref", f"channels/{CHANNEL_ID}/episodes/ep-voice/script.md",
-        "--voiceover-ref", voice_audio,
+        "--voiceover-ref", voice_audio, "--voice", "lessac-medium",
         "--scene-candidate-manifest", ep_manifest,
         "--evaluation-result", ep_eval,
         "--render-ref", ep_render)

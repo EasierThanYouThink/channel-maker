@@ -99,7 +99,8 @@ def plan_pilot(
             "no_reusable_components": no_reusable_components,
         },
         "production": {
-            "script_ref": None, "voiceover_ref": None, "scene_candidate_manifest_refs": [],
+            "script_ref": None, "voiceover_ref": None, "voice_name": None,
+            "scene_candidate_manifest_refs": [],
             "evaluation_result_refs": [], "render_ref": None, "production_log_ref": None,
             "revision": None,
         },
@@ -137,6 +138,7 @@ def record_production(
     *,
     script_ref: str | None = None,
     voiceover_ref: str | None = None,
+    voice: str | None = None,
     scene_candidate_manifest_paths: list[str] = (),
     evaluation_result_paths: list[str] = (),
     render_ref: str | None = None,
@@ -150,6 +152,18 @@ def record_production(
         production["script_ref"] = script_ref
     if voiceover_ref is not None:
         production["voiceover_ref"] = voiceover_ref
+        # One voice per channel: narration always arrives with its voice
+        # named, and a second voice under one production is refused.
+        if not (voice or "").strip():
+            raise PilotValidationError(
+                f"recording narration for pilot {pilot_id} requires --voice (one voice per channel)"
+            )
+        current = production.get("voice_name")
+        if current is not None and current != voice.strip():
+            raise PilotValidationError(
+                f"pilot {pilot_id} already uses voice {current!r}; refusing second voice {voice.strip()!r}"
+            )
+        production["voice_name"] = voice.strip()
     if render_ref is not None:
         production["render_ref"] = render_ref
     if production_log_ref is not None:
@@ -214,6 +228,7 @@ def record_review(
     decision_ref: str,
     revise_target: str | None = None,
     decided_at: str | None = None,
+    strict_media: bool = False,
 ) -> Path:
     if not decision_ref.strip():
         raise PilotValidationError("recording a pilot review decision requires a non-empty decision_ref")
@@ -259,7 +274,7 @@ def record_review(
         try:
             require_complete(
                 document["production"], repository_root=repository_root,
-                label=f"pilot {pilot_id}",
+                label=f"pilot {pilot_id}", strict_media=strict_media,
             )
         except ProductionIncompleteError as exc:
             raise PilotValidationError(str(exc)) from exc

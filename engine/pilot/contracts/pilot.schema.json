@@ -30,6 +30,7 @@
       "properties": {
         "script_ref": {"oneOf": [{"type": "null"}, {"$ref": "common.schema.json#/$defs/relativePath"}]},
         "voiceover_ref": {"oneOf": [{"type": "null"}, {"$ref": "common.schema.json#/$defs/relativePath"}]},
+        "voice_name": {"oneOf": [{"type": "null"}, {"type": "string", "minLength": 1}]},
         "scene_candidate_manifest_refs": {"type": "array", "items": {"$ref": "common.schema.json#/$defs/evidenceRef"}},
         "evaluation_result_refs": {"type": "array", "items": {"$ref": "common.schema.json#/$defs/evidenceRef"}},
         "render_ref": {"oneOf": [{"type": "null"}, {"$ref": "common.schema.json#/$defs/relativePath"}]},

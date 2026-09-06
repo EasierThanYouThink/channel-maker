@@ -203,7 +203,7 @@ def test_pilot_refreeze_refuses_without_force(tmp_path: Path) -> None:
     record_production(
         package, tmp_path, "pilot-1",
         scene_candidate_manifest_paths=["evidence/scene.json"], evaluation_result_paths=["evidence/eval.json"],
-        script_ref="evidence/script.md", voiceover_ref="evidence/voiceover.wav",
+        script_ref="evidence/script.md", voiceover_ref="evidence/voiceover.wav", voice="lessac-medium",
         render_ref="evidence/render.mp4",
     )
     record_review(package, tmp_path, "pilot-1", decision="GO", decided_by="Seb", rationale="Good.", decision_ref=ref)
@@ -242,7 +242,7 @@ def test_pilot_record_review_cli_requires_yes_when_non_interactive(tmp_path: Pat
     record_production(
         package, tmp_path, "pilot-1",
         scene_candidate_manifest_paths=["evidence/scene.json"], evaluation_result_paths=["evidence/eval.json"],
-        script_ref="evidence/script.md", voiceover_ref="evidence/voiceover.wav",
+        script_ref="evidence/script.md", voiceover_ref="evidence/voiceover.wav", voice="lessac-medium",
         render_ref="evidence/render.mp4",
     )
     base = ["record-review", str(package), "pilot-1", "--decision", "GO",

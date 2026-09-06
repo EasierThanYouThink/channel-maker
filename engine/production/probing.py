@@ -19,7 +19,10 @@ stub, a 1x1 PNG. They exist so fixtures prove the gate instead of dodging it.
 from __future__ import annotations
 
 import io
+import json
+import shutil
 import struct
+import subprocess
 import wave
 import zlib
 from pathlib import Path
@@ -126,6 +129,68 @@ def probe_file(path: Path) -> dict[str, Any]:
     if suffix == ".png":
         return probe_png(path)
     return {"kind": suffix.lstrip(".") or "unknown", "probed": False, "problems": [], "details": {}}
+
+
+def ffprobe_available() -> bool:
+    return shutil.which("ffprobe") is not None
+
+
+def probe_mp4_decode(path: Path, *, timeout_s: float = 30.0) -> dict[str, Any]:
+    """Decode-level MP4 probe via ffprobe (dimensions, duration, audio).
+
+    Fail-open by design: without ffprobe nothing is learned (`probed` False,
+    no problems — the container check in probe_mp4 remains the gate). With
+    ffprobe, an undecodable file, a missing video stream, implausible
+    dimensions, zero duration, or a missing audio track (voice-first renders
+    are always narrated) are all problems.
+    """
+    if not ffprobe_available():
+        return {"probed": False, "problems": [], "details": {"reason": "ffprobe unavailable"}}
+    try:
+        completed = subprocess.run(
+            ["ffprobe", "-v", "error", "-show_streams", "-show_format", "-of", "json", str(path)],
+            capture_output=True, text=True, timeout=timeout_s, check=False,
+        )
+    except (OSError, subprocess.TimeoutExpired) as exc:
+        return {"probed": True, "problems": [f"{path}: ffprobe failed: {exc}"], "details": {}}
+    if completed.returncode != 0:
+        tail = (completed.stderr or "").strip().splitlines()[-1:]
+        return {
+            "probed": True,
+            "problems": [f"{path}: ffprobe cannot decode this file" + (f": {tail[0]}" if tail else "")],
+            "details": {},
+        }
+    try:
+        document = json.loads(completed.stdout or "{}")
+    except json.JSONDecodeError as exc:
+        return {"probed": True, "problems": [f"{path}: ffprobe output unreadable: {exc}"], "details": {}}
+    problems: list[str] = []
+    details: dict[str, Any] = {}
+    streams = document.get("streams", [])
+    videos = [stream for stream in streams if stream.get("codec_type") == "video"]
+    audios = [stream for stream in streams if stream.get("codec_type") == "audio"]
+    if not videos:
+        problems.append(f"{path}: decodes, but has no video stream")
+    else:
+        width = videos[0].get("width", 0) or 0
+        height = videos[0].get("height", 0) or 0
+        details.update({"width": width, "height": height, "video_codec": videos[0].get("codec_name")})
+        if width < 1 or height < 1 or width > 16384 or height > 16384:
+            problems.append(f"{path}: implausible decoded dimensions {width}x{height}")
+    duration = document.get("format", {}).get("duration")
+    try:
+        duration_s = float(duration) if duration is not None else 0.0
+    except (TypeError, ValueError):
+        duration_s = 0.0
+    details["duration_s"] = round(duration_s, 3)
+    if duration_s <= 0:
+        problems.append(f"{path}: decoded duration is not positive ({duration_s})")
+    details["has_audio"] = bool(audios)
+    if audios:
+        details["audio_codec"] = audios[0].get("codec_name")
+    else:
+        problems.append(f"{path}: no audio stream (voice-first renders are always narrated)")
+    return {"probed": True, "problems": problems, "details": details}
 
 
 def encode_minimal_wav(*, sample_rate_hz: int = 22050, duration_s: float = 0.1) -> bytes:
