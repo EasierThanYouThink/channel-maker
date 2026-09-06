@@ -129,9 +129,11 @@ def _overview_page(channel_id: str) -> bytes:
         f"<span class='badge {'warn' if v else ''}'>{html.escape(k)}: {v}</span>"
         for k, v in overview["review_counts"].items()
     )
+    frozen_badge = "<span class='badge good'>frozen</span>"
+    open_badge = "<span class='badge todo'>open</span>"
     pilots = "".join(
         f"<tr><td>{html.escape(p['pilot_id'])}</td><td>{html.escape(str(p['decision']))}</td>"
-        f"<td>{'<span class=\'badge good\'>frozen</span>' if p['frozen'] else '<span class=\'badge todo\'>open</span>'}</td></tr>"
+        f"<td>{frozen_badge if p['frozen'] else open_badge}</td></tr>"
         for p in overview["pilots"]
     ) or "<tr><td colspan='3' style='color:var(--muted)'>No pilots yet — Stage 9 will create the first.</td></tr>"
     episodes = "".join(

@@ -57,6 +57,8 @@ def main() -> int:
         candidates = [ROOT / ".venv" / "Scripts" / "python.exe", ROOT / ".venv" / "bin" / "python"]
         test_python = next((str(p) for p in candidates if p.is_file()), sys.executable)
 
+    import ast as _ast
+
     for path in sorted((ROOT / "tools").glob("*.py")):
         try:
             py_compile.compile(str(path), doraise=True)
@@ -64,6 +66,15 @@ def main() -> int:
             failures.append(str(exc))
         if path.name != "check.py" and "TODO:" in path.read_text(encoding="utf-8"):
             failures.append(f"executable placeholder remains in {path.relative_to(ROOT)}")
+
+    # CI spans 3.11-3.14 but developers may run newer Pythons: reject grammar
+    # newer than 3.11 (e.g. backslashes in f-string expressions) everywhere,
+    # so a newer interpreter never green-lights what 3.11 cannot import.
+    for path in sorted([*ROOT.glob("engine/**/*.py"), *ROOT.glob("tools/**/*.py"), *ROOT.glob("tests/**/*.py")]):
+        try:
+            _ast.parse(path.read_text(encoding="utf-8"), feature_version=(3, 11))
+        except (OSError, SyntaxError) as exc:
+            failures.append(f"{path.relative_to(ROOT)} is not Python 3.11 grammar: {exc}")
 
     from importlib.util import find_spec
 
