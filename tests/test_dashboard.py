@@ -54,6 +54,16 @@ def raw_post_action(server, body: str, *, headers: dict[str, str]):
     return response.status, response_body
 
 
+def get_dashboard(server, path: str = "/"):
+    connection = http.client.HTTPConnection(*server.server_address)
+    connection.request("GET", path)
+    response = connection.getresponse()
+    body = response.read()
+    headers = dict(response.getheaders())
+    connection.close()
+    return response.status, headers, body
+
+
 def write_package(root: Path, channel_id: str = "dash-channel") -> Path:
     package = root / "channels" / channel_id
     package.mkdir(parents=True)
@@ -211,6 +221,14 @@ def test_dashboard_page_exposes_process_token_to_same_origin_client() -> None:
 
     assert 'name="channel-maker-action-token"' in page
     assert f'content="{ACTION_TOKEN}"' in page
+
+
+def test_dashboard_does_not_cache_token_bearing_pages() -> None:
+    with running_dashboard() as server:
+        status, headers, _body = get_dashboard(server)
+
+    assert status == 200
+    assert headers["Cache-Control"] == "no-store"
 
 
 def test_render_markdown_handles_headings_lists_and_code() -> None:
