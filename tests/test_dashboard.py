@@ -13,7 +13,7 @@ import yaml
 
 from tools.dashboard.actions import ActionError, run_action
 from tools.dashboard.markdown import render as render_markdown
-from tools.dashboard.server import Handler
+from tools.dashboard.server import ACTION_TOKEN, ACTION_TOKEN_HEADER, Handler
 from tools.dashboard.views import channel_detail, list_channels, review_queue
 
 AT = "2026-09-05T12:00:00+00:00"
@@ -132,6 +132,26 @@ def test_dashboard_rejects_action_without_process_token() -> None:
 
     assert status == 403
     assert "token" in body["error"]
+    dispatch.assert_not_called()
+
+
+def test_dashboard_rejects_cross_origin_action_with_valid_token() -> None:
+    result = SimpleNamespace(returncode=0, stdout="", stderr="")
+    with (
+        patch("tools.dashboard.server.run_action", return_value=result) as dispatch,
+        running_dashboard() as server,
+    ):
+        status, body = post_action(
+            server,
+            {"action": "advance", "params": {}, "confirmed": True},
+            headers={
+                ACTION_TOKEN_HEADER: ACTION_TOKEN,
+                "Origin": "https://attacker.example",
+            },
+        )
+
+    assert status == 403
+    assert "origin" in body["error"]
     dispatch.assert_not_called()
 
 

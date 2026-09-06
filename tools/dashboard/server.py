@@ -296,6 +296,16 @@ class Handler(BaseHTTPRequestHandler):
         if parsed.path != "/action":
             self._send(404, b"{}", "application/json")
             return
+        origin = self.headers.get("Origin")
+        port = self.server.server_address[1]
+        allowed_origins = {f"http://127.0.0.1:{port}", f"http://localhost:{port}"}
+        if origin is not None and origin not in allowed_origins:
+            self._send(
+                403,
+                json.dumps({"error": "dashboard action origin is not allowed"}).encode("utf-8"),
+                "application/json",
+            )
+            return
         supplied_token = self.headers.get(ACTION_TOKEN_HEADER, "")
         if not supplied_token or not hmac.compare_digest(supplied_token, ACTION_TOKEN):
             self._send(
