@@ -69,6 +69,44 @@ def test_ensure_voice_model_replaces_same_size_corrupt_cache(
     assert downloads
 
 
+def test_ensure_voice_model_stages_verified_download_before_install(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path,
+) -> None:
+    model_bytes = b"model"
+    config_bytes = b"config"
+    monkeypatch.setitem(
+        VOICES,
+        "atomic-voice",
+        {
+            "model_file": "atomic.onnx",
+            "model_url": "https://example.invalid/atomic.onnx",
+            "model_sha256": hashlib.sha256(model_bytes).hexdigest(),
+            "config_url": "https://example.invalid/atomic.onnx.json",
+            "config_sha256": hashlib.sha256(config_bytes).hexdigest(),
+            "sample_rate_hz": 22050,
+        },
+    )
+    final_paths = {tmp_path / "atomic.onnx", tmp_path / "atomic.onnx.json"}
+    download_paths: list[Path] = []
+
+    def download(url: str, target: str | Path):
+        path = Path(target)
+        download_paths.append(path)
+        assert path not in final_paths
+        assert path.parent == tmp_path
+        path.write_bytes(config_bytes if url.endswith(".json") else model_bytes)
+        return str(path), None
+
+    monkeypatch.setattr("urllib.request.urlretrieve", download)
+
+    model, config = ensure_voice_model("atomic-voice", tmp_path)
+
+    assert model.read_bytes() == model_bytes
+    assert config.read_bytes() == config_bytes
+    assert len(download_paths) == 2
+    assert not list(tmp_path.glob("*.download"))
+
+
 def test_align_words_measured_from_phoneme_stream() -> None:
     phonemes = ["h", "ə", "l", "o", " ", "w", "ɜ", "l", "d"]
     tokens = ["^", *phonemes, "$"]

@@ -15,6 +15,7 @@ import urllib.request
 import wave
 from dataclasses import dataclass
 from pathlib import Path
+from tempfile import NamedTemporaryFile
 from typing import Any
 
 from .errors import VoiceoverValidationError
@@ -80,19 +81,27 @@ def ensure_voice_model(voice_name: str, cache_dir: Path) -> tuple[Path, Path]:
                 path.unlink()
             else:
                 continue
+        with NamedTemporaryFile(
+            dir=cache_dir,
+            prefix=f".{path.name}.",
+            suffix=".download",
+            delete=False,
+        ) as handle:
+            staged_path = Path(handle.name)
         try:
-            urllib.request.urlretrieve(url, path)
-        except OSError as exc:
-            if path.is_file():
-                path.unlink()
-            raise VoiceoverValidationError(
-                f"could not download voice {voice_name!r} from {url}: {exc}"
-            ) from exc
-        if _file_sha256(path) != expected_sha256:
-            path.unlink()
-            raise VoiceoverValidationError(
-                f"downloaded voice {voice_name!r} failed SHA-256 verification for {path.name}"
-            )
+            try:
+                urllib.request.urlretrieve(url, staged_path)
+            except OSError as exc:
+                raise VoiceoverValidationError(
+                    f"could not download voice {voice_name!r} from {url}: {exc}"
+                ) from exc
+            if _file_sha256(staged_path) != expected_sha256:
+                raise VoiceoverValidationError(
+                    f"downloaded voice {voice_name!r} failed SHA-256 verification for {path.name}"
+                )
+            staged_path.replace(path)
+        finally:
+            staged_path.unlink(missing_ok=True)
     return model_path, config_path
 
 
