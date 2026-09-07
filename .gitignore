@@ -12,3 +12,8 @@ data/local/*
 .DS_Store
 .vscode/
 .idea/
+
+# Private agent operating records; public Channel Maker skills remain tracked.
+/.claude/PROJECT_STATE.md
+/.claude/tasks/
+/.claude/decisions/
