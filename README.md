@@ -6,11 +6,7 @@ got to my mind, when Youtube announced that for their Shorts monetization you
 need atleast 20 million views in the past 90 days. Luckily they will
 implement this change in the year 2027 (which is in three months). 
 This our last chance to build successful
-channels, then if they implement this, it won't really bother us. V1 is
-CREATE-only and niche-driven: niche research, video teardowns, channel
-foundation, Script/Visual/Motion DNA, identity, asset library, pilot, then
-ongoing episodes — every irreversible step gated on a real human decision,
-enforced in code.
+channels, then if they implement this, it won't really bother us.
 
 > [!WARNING]
 > **Public Beta:** Channel Maker is under active development, It hasn't
