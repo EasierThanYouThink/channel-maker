@@ -8,7 +8,8 @@ ongoing episodes — every irreversible step gated on a real human decision,
 enforced in code.
 
 > [!WARNING]
-> **Public Beta:** Channel Maker is under active development. Expect rough
+> **Public Beta:** Channel Maker is under active development, It hasn't
+> been tested by active usage - that is why we want the world to test it. Expect rough
 > edges and workflow changes. Back up channel projects before upgrading, and
 > report problems through GitHub Issues. Feedback and contributions from the
 > Claude developer community are welcome.
